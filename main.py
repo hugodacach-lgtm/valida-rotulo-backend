@@ -436,34 +436,31 @@ async def avaliar_rotulo(imagem: UploadFile = File(...), gabarito: str = Form(..
 
 
 # ─── ENDPOINT: GERAR RÓTULO COM IA (SVG) ─────────────────────────────────────
-SP_DESIGNER = """Você é um designer gráfico especialista em rótulos de produtos alimentícios brasileiros.
+SP_DESIGNER = """Gere um rótulo alimentício em SVG. Responda APENAS com o SVG, sem texto antes ou depois.
 
-Gere um rótulo COMPLETO em formato SVG com design profissional e moderno.
+INÍCIO OBRIGATÓRIO: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+FIM OBRIGATÓRIO: </svg>
 
-REGRAS CRÍTICAS — SIGA À RISCA:
-1. Retorne APENAS o SVG. Comece exatamente com: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
-2. Termine exatamente com: </svg>
-3. PROIBIDO: markdown, backticks, explicações, qualquer texto fora do SVG
-4. Use APENAS elementos SVG válidos: rect, text, line, path, image, g, defs, linearGradient
-5. Todos os textos devem usar font-family="Arial, sans-serif"
-6. NÃO use foreignObject, HTML, CSS externo ou JavaScript dentro do SVG
-7. Todos os elementos devem ter coordenadas absolutas dentro do viewBox 0 0 800 500
+USE APENAS: rect, text, line, g. NÃO use foreignObject nem CSS.
+font-family="Arial,sans-serif" em todos os textos.
 
-ESTRUTURA DO RÓTULO (viewBox 0 0 800 500):
-- Fundo: rect x="0" y="0" width="800" height="500" com cor de fundo
-- TOPO (y=0 a y=80): barra colorida com nome do produto em destaque + logo à direita
-- CORPO ESQUERDO (x=10 a x=510, y=85 a y=415): ingredientes, fabricante, conservação, alérgenos
-- SEPARADOR: line x1="520" y1="85" x2="520" y2="415"
-- CORPO DIREITO (x=525 a x=790, y=85 a y=415): tabela nutricional completa
-- RODAPÉ (y=418 a y=500): lote, validade, carimbo
+LAYOUT (coordenadas fixas):
+1. rect x=0 y=0 w=800 h=520 — fundo com cor fornecida
+2. rect x=0 y=0 w=800 h=70 — barra topo cor destaque
+3. text x=16 y=44 font-size=28 font-weight=bold fill=white — NOME DO PRODUTO
+4. text x=16 y=62 font-size=11 fill=rgba(255,255,255,0.8) — peso/volume
+5. COLUNA ESQUERDA (x=16, y=85 a y=410, w=490): fabricante, ingredientes, conservação, alérgenos, lote, validade
+6. line x1=510 y1=80 x2=510 y2=415 stroke=#cccccc
+7. TABELA NUTRICIONAL (x=515 a x=790, y=80 a y=415):
+   - rect fundo branco com borda
+   - rect header preto h=18
+   - text "Informação Nutricional" centralizado branco
+   - text porção cinza
+   - linhas de cada nutriente: nome à esquerda, valor à direita
+8. rect x=0 y=418 w=800 h=102 — rodapé escuro
+9. texts no rodapé: lote, validade, carimbo, alérgenos
 
-TABELA NUTRICIONAL obrigatória:
-<rect x="525" y="85" width="265" height="330" fill="white" stroke="#ccc"/>
-<rect x="525" y="85" width="265" height="20" fill="#111"/>
-<text x="657" y="99" text-anchor="middle" font-size="10" fill="white" font-weight="bold" font-family="Arial, sans-serif">Informação Nutricional</text>
-[continuar com cada nutriente como linha de texto]
-
-Seja criativo com gradientes no topo. O resultado deve parecer um rótulo real de supermercado."""
+Textos pequenos: font-size=9 ou 10. Produto: font-size=26-30."""
 
 @app.post("/gerar-rotulo")
 async def gerar_rotulo_ia(
@@ -509,37 +506,34 @@ async def gerar_rotulo_ia(
     lupa = campos.get('lupa_necessaria', False)
     lupa_motivo = campos.get('lupa_motivo', '')
 
-    user_prompt = f"""Crie um rótulo profissional com estas informações:
+    # Ingredientes truncados para não estourar o contexto
+    ing = campos.get('ingredientes', '—')
+    ing_curto = ing[:200] + ('...' if len(ing) > 200 else '')
 
-PRODUTO: {campos.get('denominacao', produto)}
-CATEGORIA: {categoria}
-FORMA: {forma}
-COR PRINCIPAL: {cor_principal}
-{'LOGO: fornecida em base64 (inclua no SVG usando <image href="data:' + logo_mime + ';base64,' + logo_b64[:50] + '...">)' if logo_b64 else 'SEM LOGO (crie um placeholder elegante)'}
+    user_prompt = f"""PRODUTO: {campos.get('denominacao', produto)}
+FORMA: {forma} | COR: {cor_principal} | {'COM LOGO (reserve rect id=logo-area x=700 y=8 w=88 h=54 fill=white rx=4)' if logo_b64 else 'SEM LOGO'}
 
-CAMPOS OBRIGATÓRIOS:
-- Ingredientes: {campos.get('ingredientes', '—')}
-- Conteúdo líquido: {campos.get('conteudo_liquido', '—')}
-- Fabricante: {campos.get('fabricante', '—')}
-- Lote: {campos.get('lote', 'L: ______')}
-- Validade: {campos.get('validade', 'Consumir até: __/__/____')}
-- Conservação: {campos.get('conservacao', '—')}
-- Carimbo: {campos.get('carimbo', 'SIM Nº 001')}
-- Alérgenos: {campos.get('alergenos', '—')}
-- Transgênicos: {campos.get('transgenicos', 'Não contém ingredientes transgênicos')}
-{'- LUPA FRONTAL OBRIGATÓRIA: ' + lupa_motivo if lupa else ''}
+CAMPOS:
+denominacao={campos.get('denominacao', produto)}
+ingredientes={ing_curto}
+conteudo={campos.get('conteudo_liquido', '—')}
+fabricante={campos.get('fabricante', '—')}
+lote={campos.get('lote', 'L:______')}
+validade={campos.get('validade', 'Consumir até: __/__/____')}
+conservacao={campos.get('conservacao', '—')}
+carimbo={campos.get('carimbo', 'SIM Nº 001')}
+alergenos={campos.get('alergenos', '—')}
+{('LUPA=SIM motivo=' + lupa_motivo) if lupa else 'LUPA=NAO'}
 
 {tn_texto}
 
-{'Logo em base64 completa: data:' + logo_mime + ';base64,' + logo_b64 if logo_b64 else ''}
-
-Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer feito por um designer gráfico experiente."""
+Gere o SVG agora."""
 
     # Chama Claude para gerar SVG
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 3000,
-        "temperature": 1,  # Mais criatividade para design
+        "max_tokens": 2000,
+        "temperature": 0,
         "system": SP_DESIGNER,
         "messages": [{"role": "user", "content": user_prompt}]
     }
@@ -564,7 +558,7 @@ Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer 
     else:
         svg_clean = svg_text.strip()
 
-    return JSONResponse({"svg": svg_clean, "produto": produto})
+    return JSONResponse({"svg": svg_clean, "produto": produto, "tem_logo": bool(logo_b64), "logo_data": f"data:{logo_mime};base64,{logo_b64}" if logo_b64 else ""})
 
 
 @app.get("/")
