@@ -1,10 +1,10 @@
 import os, base64, json, io, asyncio
 import httpx
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="ValidaRótulo IA v4")
+app = FastAPI(title="ValidaRótulo IA v4 + Eval")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -75,7 +75,6 @@ REGRA DE CONSISTÊNCIA: Baseie respostas SOMENTE no que está VISÍVEL na imagem
 
 ## PASSO 2 — LEGISLAÇÕES APLICÁVEIS
 NORMAS GERAIS: IN 22/2005 (MAPA) | RDC 429/2020 + IN 75/2020 (ANVISA) | RDC 727/2022 (ANVISA) | INMETRO 249/2021
-
 NORMAS ESPECÍFICAS:
 - Queijo fresco: IN 30/2001 + Port. 146/1996 | Mussarela: Port. 352/1997 | Requeijão: Port. 359/1997
 - Salsicha/Mortadela/Linguiça: IN 04/2000 | Salame: IN 22/2000 | Presunto: Port. 765/2023
@@ -84,23 +83,22 @@ NORMAS ESPECÍFICAS:
 - Aves: Port. SDA 1485/2025 | Ovos: Port. MAPA 1/2020
 
 ## PASSO 3 — VALIDAÇÃO CAMPO A CAMPO (12 campos obrigatórios)
-
 ✅ CONFORME — [o que está correto] (norma)
 ❌ NÃO CONFORME — [problema] → [como corrigir] (norma)
 ⚠️ AUSENTE — [campo faltando] → [o que deve constar] (norma)
 
-CAMPO 1 — DENOMINAÇÃO DE VENDA: nome específico conforme MAPA/DIPOA. Queijos: Port. 146/96. Embutidos: RTIQ.
+CAMPO 1 — DENOMINAÇÃO DE VENDA: nome específico conforme MAPA/DIPOA.
 CAMPO 2 — LISTA DE INGREDIENTES: "Ingredientes:" em ordem decrescente. Aditivos com função + INS.
-CAMPO 3 — CONTEÚDO LÍQUIDO: g/kg ou mL/L no painel principal. Fonte mínima: ≤50g=2mm, 50-200g=3mm, 200g-1kg=4mm, >1kg=6mm. "Peso da embalagem" NÃO substitui.
-CAMPO 4 — FABRICANTE: razão social + endereço completo (rua, número, cidade, estado).
+CAMPO 3 — CONTEÚDO LÍQUIDO: g/kg ou mL/L no painel principal. "Peso da embalagem" NÃO substitui.
+CAMPO 4 — FABRICANTE: razão social + endereço completo.
 CAMPO 5 — LOTE: precedido de "L" ou "Lote". Deve ser legível.
 CAMPO 6 — PRAZO DE VALIDADE: "Consumir até" + data. ≤90 dias=dia+mês. >90 dias=mês+ano.
 CAMPO 7 — CONSERVAÇÃO: temperatura específica + instruções pós-abertura.
-CAMPO 8 — CARIMBO SIF/SIE/SIM: carimbo oval com tipo + número do estabelecimento, legível.
-CAMPO 9 — TABELA NUTRICIONAL: energia(kcal+kJ), carboidratos, açúcares totais, açúcares adicionados, proteínas, gorduras totais, saturadas, trans, fibra, sódio. Porção: queijos=30g, embutidos=50g, presunto=30g, carnes=100g, pescado=100g, mel=25g.
-CAMPO 10 — LUPA FRONTAL: obrigatória se açúcar adicionado≥15g/100g, gordura saturada≥6g/100g ou sódio≥600mg/100g. Se não visível: NÃO VERIFICÁVEL.
-CAMPO 11 — ALÉRGENOS: "Alérgenos:" + todos os presentes. Laticínios: "CONTÉM LEITE E DERIVADOS" obrigatório.
-CAMPO 12 — TRANSGÊNICOS: OGM>1%=símbolo T amarelo obrigatório. Se não aplicável: CONFORME.
+CAMPO 8 — CARIMBO SIF/SIE/SIM: carimbo oval com tipo + número, legível.
+CAMPO 9 — TABELA NUTRICIONAL: energia(kcal+kJ), carboidratos, açúcares totais, açúcares adicionados, proteínas, gorduras totais, saturadas, trans, fibra, sódio. Porção: queijos=30g, embutidos=50g, carnes=100g, pescado=100g, mel=25g.
+CAMPO 10 — LUPA FRONTAL: obrigatória se açúcar adicionado≥15g/100g, gordura saturada≥6g/100g ou sódio≥600mg/100g.
+CAMPO 11 — ALÉRGENOS: "Alérgenos:" + todos os presentes. Laticínios: "CONTÉM LEITE E DERIVADOS".
+CAMPO 12 — TRANSGÊNICOS: OGM>1%=símbolo T amarelo. Se não aplicável: CONFORME.
 
 ## PASSO 4 — RELATÓRIO FINAL
 ### SCORE: [X]/12 campos conformes ([%]%)
@@ -108,42 +106,51 @@ CAMPO 12 — TRANSGÊNICOS: OGM>1%=símbolo T amarelo obrigatório. Se não apli
 ### CORREÇÕES PRIORITÁRIAS: [ordem de importância]
 ### PONTOS CORRETOS: [campos aprovados]"""
 
-# ─── SEGUNDA LEITURA CRÍTICA (Etapa 4) ───────────────────────────────────────
 SP_REVISAO = """Você é um auditor sênior de rotulagem de produtos de origem animal.
+Revise criticamente o relatório abaixo. Identifique:
+1. Campos esquecidos (algum dos 12 não foi avaliado?)
+2. Erros de julgamento (CONFORME quando deveria ser NÃO CONFORME?)
+3. Normas incorretas
+4. Omissões críticas
 
-Você recebeu o relatório de validação abaixo gerado por um sistema automatizado.
-Sua missão é revisar criticamente este relatório e identificar:
-
-1. CAMPOS ESQUECIDOS: algum dos 12 campos obrigatórios não foi avaliado?
-2. ERROS DE JULGAMENTO: algum campo foi marcado como CONFORME quando deveria ser NÃO CONFORME ou vice-versa?
-3. NORMAS INCORRETAS: alguma norma citada está errada ou desatualizada?
-4. OMISSÕES CRÍTICAS: existe algum erro grave que o relatório não apontou?
-
-Os 12 campos obrigatórios são:
-1. Denominação de venda | 2. Lista de ingredientes | 3. Conteúdo líquido
-4. Fabricante | 5. Lote | 6. Prazo de validade | 7. Conservação
-8. Carimbo SIF/SIE/SIM | 9. Tabela nutricional | 10. Lupa frontal
-11. Alérgenos | 12. Transgênicos
-
-RELATÓRIO A REVISAR:
+RELATÓRIO:
 {relatorio}
 
----
-Responda APENAS se encontrar problemas reais. Se o relatório estiver correto, responda:
-"✅ REVISÃO CONCLUÍDA — Relatório sem inconsistências identificadas."
+Se correto: "✅ REVISÃO CONCLUÍDA — Sem inconsistências."
+Se houver problemas: liste cada um como:
+⚠️ CORREÇÃO [n]: [campo] — [problema] → [como deveria ser]
+Ao final com correções: apresente SCORE e VEREDICTO revisados."""
 
-Se encontrar problemas, liste cada um assim:
-⚠️ CORREÇÃO [número]: [campo afetado] — [o que está errado no relatório] → [como deveria ser]
+CAMPOS_NOME = {
+    1:"Denominação de venda", 2:"Lista de ingredientes", 3:"Conteúdo líquido",
+    4:"Fabricante", 5:"Lote", 6:"Prazo de validade", 7:"Conservação",
+    8:"Carimbo SIF/SIE/SIM", 9:"Tabela nutricional", 10:"Lupa frontal",
+    11:"Alérgenos", 12:"Transgênicos"
+}
 
-Ao final, se houver correções, apresente o SCORE e VEREDICTO revisados."""
+# ─── HELPERS ──────────────────────────────────────────────────────────────────
+async def call_claude_stream(system: str, image_b64: str, mime_type: str, user_text: str):
+    category = detect_category(user_text)
+    kb_text = await get_kb_for_category(category) if category else ""
+    kb_section = f"## LEGISLAÇÃO ESPECÍFICA — {category.upper()} (MAPA)\n{kb_text[:3000]}\n---" if kb_text else ""
+    sp = system.format(kb_section=kb_section) if "{kb_section}" in system else system
 
-
-async def call_claude_simple(system: str, user: str) -> str:
-    """Chamada simples sem streaming — usada para a revisão crítica."""
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 1000,
-        "temperature": 0,
+        "max_tokens": 2500, "temperature": 0, "stream": True,
+        "system": sp,
+        "messages": [{"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
+            {"type": "text", "text": user_text}
+        ]}]
+    }
+    headers = {"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+    return payload, headers
+
+async def call_claude_simple(system: str, user: str) -> str:
+    payload = {
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 1000, "temperature": 0,
         "system": system,
         "messages": [{"role": "user", "content": user}]
     }
@@ -151,46 +158,42 @@ async def call_claude_simple(system: str, user: str) -> str:
     async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers)
         if r.status_code != 200: return ""
-        data = r.json()
-        return data.get("content", [{}])[0].get("text", "")
+        return r.json().get("content", [{}])[0].get("text", "")
 
+def detectar_status_campo(texto: str, campo: int) -> str:
+    import re
+    nome = CAMPOS_NOME.get(campo, "")
+    linhas = texto.split("\n")
+    for i, linha in enumerate(linhas):
+        if f"CAMPO {campo}" in linha.upper() or (nome and nome.upper() in linha.upper()):
+            trecho = " ".join(linhas[i:i+5]).upper()
+            if "NÃO CONFORME" in trecho or "NAO CONFORME" in trecho: return "NAO_CONFORME"
+            elif "AUSENTE" in trecho: return "AUSENTE"
+            elif "CONFORME" in trecho: return "CONFORME"
+    return "NAO_DETECTADO"
 
+def extrair_score(texto: str):
+    import re
+    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*12", texto, re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+def extrair_veredicto(texto: str) -> str:
+    import re
+    m = re.search(r"VEREDICTO[:\s]+(APROVADO COM RESSALVAS|APROVADO|REPROVADO)", texto, re.IGNORECASE)
+    return m.group(1).upper() if m else "NÃO IDENTIFICADO"
+
+# ─── ENDPOINT: VALIDAR ────────────────────────────────────────────────────────
 async def stream_validation(image_b64: str, mime_type: str, obs: str):
-    # 1. Busca KB específica da categoria
-    category = detect_category(obs)
-    kb_text = await get_kb_for_category(category) if category else ""
+    user_text = "Analise este rótulo e execute os 4 passos. Não pule nenhum dos 12 campos."
+    if obs: user_text += f"\nObservações: {obs}"
 
-    kb_section = ""
-    if kb_text:
-        kb_section = f"## LEGISLAÇÃO ESPECÍFICA — {category.upper()} (fonte: MAPA oficial)\n{kb_text[:3000]}\n---"
-
-    system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
-    user_text = "Analise este rótulo e execute os 4 passos obrigatórios. Não pule nenhum dos 12 campos."
-    if obs:
-        user_text += f"\nObservações: {obs}"
-
-    # 2. PRIMEIRA LEITURA — streaming para o usuário ver em tempo real
-    payload = {
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2500,
-        "temperature": 0,
-        "stream": True,
-        "system": system_prompt,
-        "messages": [{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
-            {"type": "text", "text": user_text}
-        ]}]
-    }
-
-    headers = {"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
-
-    relatorio_completo = ""
+    payload, headers = await call_claude_stream(SP_VALIDACAO, image_b64, mime_type, user_text)
+    relatorio = ""
 
     async with httpx.AsyncClient(timeout=90.0) as client:
         async with client.stream("POST", "https://api.anthropic.com/v1/messages", json=payload, headers=headers) as response:
             if response.status_code != 200:
-                error_body = await response.aread()
-                yield f"data: {json.dumps({'error': error_body.decode()})}\n\n"
+                yield f"data: {json.dumps({'error': (await response.aread()).decode()})}\n\n"
                 return
             async for line in response.aiter_lines():
                 if not line.startswith("data: "): continue
@@ -198,41 +201,107 @@ async def stream_validation(image_b64: str, mime_type: str, obs: str):
                 if raw == "[DONE]": break
                 try:
                     ev = json.loads(raw)
-                    if ev.get("type") == "content_block_delta":
-                        delta = ev.get("delta", {})
-                        if delta.get("type") == "text_delta":
-                            chunk = delta.get("text", "")
-                            relatorio_completo += chunk
-                            yield f"data: {json.dumps({'text': chunk})}\n\n"
-                except Exception:
-                    continue
+                    if ev.get("type") == "content_block_delta" and ev.get("delta", {}).get("type") == "text_delta":
+                        chunk = ev["delta"]["text"]
+                        relatorio += chunk
+                        yield f"data: {json.dumps({'text': chunk})}\n\n"
+                except Exception: continue
 
-    # 3. SEGUNDA LEITURA CRÍTICA — revisão do relatório gerado
     yield f"data: {json.dumps({'text': '\n\n---\n\n## REVISÃO CRÍTICA DO RELATÓRIO\n'})}\n\n"
-
-    revisao_prompt = SP_REVISAO.format(relatorio=relatorio_completo)
-    revisao = await call_claude_simple(revisao_prompt, "Revise o relatório acima com rigor técnico.")
-
-    if revisao:
-        yield f"data: {json.dumps({'text': revisao})}\n\n"
-
+    revisao = await call_claude_simple(SP_REVISAO.format(relatorio=relatorio), "Revise com rigor técnico.")
+    if revisao: yield f"data: {json.dumps({'text': revisao})}\n\n"
     yield "data: [DONE]\n\n"
-
 
 @app.post("/validar")
 async def validar_rotulo(imagem: UploadFile = File(...), obs: str = Form(default="")):
-    if not ANTHROPIC_API_KEY:
-        return {"error": "ANTHROPIC_API_KEY não configurada"}
+    if not ANTHROPIC_API_KEY: return {"error": "ANTHROPIC_API_KEY não configurada"}
     contents = await imagem.read()
     image_b64 = base64.b64encode(contents).decode("utf-8")
     mime_map = {"image/jpeg":"image/jpeg","image/jpg":"image/jpeg","image/png":"image/png","image/webp":"image/webp","image/gif":"image/gif"}
     mime_type = mime_map.get(imagem.content_type, "image/jpeg")
-    return StreamingResponse(stream_validation(image_b64, mime_type, obs), media_type="text/event-stream",
-        headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
+    return StreamingResponse(stream_validation(image_b64, mime_type, obs),
+        media_type="text/event-stream", headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
 
+# ─── ENDPOINT: EVAL ───────────────────────────────────────────────────────────
+@app.post("/eval")
+async def avaliar_rotulo(
+    imagem: UploadFile = File(...),
+    gabarito: str = Form(...)   # JSON string com campos esperados
+):
+    if not ANTHROPIC_API_KEY: return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"})
+
+    try:
+        gab = json.loads(gabarito)
+    except Exception:
+        return JSONResponse({"error": "Gabarito inválido — envie JSON válido"})
+
+    contents = await imagem.read()
+    image_b64 = base64.b64encode(contents).decode("utf-8")
+    mime_map = {"image/jpeg":"image/jpeg","image/jpg":"image/jpeg","image/png":"image/png","image/webp":"image/webp"}
+    mime_type = mime_map.get(imagem.content_type, "image/jpeg")
+
+    categoria = gab.get("categoria", "")
+    obs = f"{gab.get('produto','')} {categoria}".strip()
+    user_text = "Analise este rótulo e execute os 4 passos. Não pule nenhum dos 12 campos.\nObservações: " + obs
+
+    payload, headers = await call_claude_stream(SP_VALIDACAO, image_b64, mime_type, user_text)
+    relatorio = ""
+
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        async with client.stream("POST", "https://api.anthropic.com/v1/messages", json=payload, headers=headers) as response:
+            if response.status_code != 200:
+                return JSONResponse({"error": "Erro na API Claude"})
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "): continue
+                raw = line[6:].strip()
+                if raw == "[DONE]": break
+                try:
+                    ev = json.loads(raw)
+                    if ev.get("type") == "content_block_delta" and ev.get("delta", {}).get("type") == "text_delta":
+                        relatorio += ev["delta"]["text"]
+                except Exception: continue
+
+    # Compara com gabarito
+    score_agente = extrair_score(relatorio)
+    veredicto_agente = extrair_veredicto(relatorio)
+    erros_conhecidos = gab.get("erros_conhecidos", [])
+
+    detalhes = []
+    for erro in erros_conhecidos:
+        campo = erro["campo"]
+        esperado = erro["status"]
+        detectado = detectar_status_campo(relatorio, campo)
+        detalhes.append({
+            "campo": campo,
+            "nome": CAMPOS_NOME.get(campo, ""),
+            "esperado": esperado,
+            "detectado": detectado,
+            "acertou": detectado == esperado,
+            "descricao_gabarito": erro.get("descricao", ""),
+            "norma": erro.get("norma", "")
+        })
+
+    total = len(detalhes)
+    acertos = sum(1 for d in detalhes if d["acertou"])
+    precisao = round(acertos / total * 100) if total > 0 else 100
+
+    return JSONResponse({
+        "produto": gab.get("produto", ""),
+        "relatorio_completo": relatorio,
+        "score_agente": score_agente,
+        "score_esperado": gab.get("score_esperado"),
+        "veredicto_agente": veredicto_agente,
+        "veredicto_esperado": gab.get("veredicto_esperado", "").upper(),
+        "precisao_pct": precisao,
+        "erros_avaliados": total,
+        "erros_acertados": acertos,
+        "detalhes": detalhes
+    })
+
+# ─── HEALTH ───────────────────────────────────────────────────────────────────
 @app.get("/")
 def health():
-    return {"status": "ok", "service": "ValidaRótulo IA v4", "kb_cached": list(_kb_cache.keys())}
+    return {"status": "ok", "service": "ValidaRótulo IA v4", "endpoints": ["/validar", "/eval", "/kb/preload"]}
 
 @app.get("/kb/preload")
 async def preload_kb():
