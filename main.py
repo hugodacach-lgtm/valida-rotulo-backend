@@ -423,6 +423,132 @@ async def avaliar_rotulo(imagem: UploadFile = File(...), gabarito: str = Form(..
         "erros_avaliados": total, "erros_acertados": acertos, "detalhes": detalhes
     })
 
+
+# ─── ENDPOINT: GERAR RÓTULO COM IA (SVG) ─────────────────────────────────────
+SP_DESIGNER = """Você é um designer gráfico especialista em rótulos de produtos alimentícios brasileiros.
+
+Sua tarefa é gerar um rótulo COMPLETO em formato SVG, pronto para impressão, com design profissional.
+
+REGRAS OBRIGATÓRIAS:
+1. Retorne APENAS o código SVG completo, começando com <svg e terminando com </svg>
+2. Sem explicações, sem markdown, sem código fora do SVG
+3. O SVG deve ter todos os textos dos campos fornecidos
+4. Design limpo, profissional e legível
+5. Use cores harmoniosas baseadas na cor principal fornecida
+6. A tabela nutricional deve ser visualmente clara e completa
+7. Inclua todos os campos obrigatórios da legislação brasileira (IN 22/2005)
+8. Se houver logo em base64, inclua-a no SVG usando <image>
+9. Tamanho padrão: viewBox="0 0 800 500" para retangular, "0 0 500 500" para redondo
+
+ESTRUTURA ESPERADA DO RÓTULO:
+- Topo: nome do produto em destaque + logo da empresa
+- Corpo esquerdo: ingredientes, fabricante, conservação, alérgenos
+- Corpo direito: tabela nutricional completa
+- Rodapé: lote, validade, carimbo SIF/SIE/SIM, código de barras simulado
+- Borda e divisores visuais que separam as seções"""
+
+@app.post("/gerar-rotulo")
+async def gerar_rotulo_ia(
+    produto:      str = Form(...),
+    categoria:    str = Form(default=""),
+    cor_principal:str = Form(default="#1e3a5f"),
+    forma:        str = Form(default="retangular"),
+    campos_json:  str = Form(default="{}"),
+    logo:         UploadFile = File(default=None)
+):
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"})
+
+    try:
+        campos = json.loads(campos_json)
+    except Exception:
+        campos = {}
+
+    # Monta logo em base64 se enviada
+    logo_b64 = ""
+    logo_mime = "image/png"
+    if logo and logo.filename:
+        logo_bytes = await logo.read()
+        logo_b64 = base64.b64encode(logo_bytes).decode()
+        logo_mime = logo.content_type or "image/png"
+
+    # Monta o prompt com todos os dados
+    tn = campos.get("tabela_nutricional", {})
+    tn_texto = ""
+    if tn:
+        tn_texto = f"""Tabela Nutricional (porção {tn.get('porcao','—')}):
+- Energia: {tn.get('energia_kcal','—')} kcal / {tn.get('energia_kj','—')} kJ
+- Carboidratos: {tn.get('carboidratos','—')}
+- Açúcares totais: {tn.get('acucares_totais','—')}
+- Açúcares adicionados: {tn.get('acucares_adicionados','—')}
+- Proteínas: {tn.get('proteinas','—')}
+- Gorduras totais: {tn.get('gorduras_totais','—')}
+- Gorduras saturadas: {tn.get('gorduras_saturadas','—')}
+- Gorduras trans: {tn.get('gorduras_trans','0g')}
+- Fibra alimentar: {tn.get('fibra','—')}
+- Sódio: {tn.get('sodio','—')}"""
+
+    lupa = campos.get('lupa_necessaria', False)
+    lupa_motivo = campos.get('lupa_motivo', '')
+
+    user_prompt = f"""Crie um rótulo profissional com estas informações:
+
+PRODUTO: {campos.get('denominacao', produto)}
+CATEGORIA: {categoria}
+FORMA: {forma}
+COR PRINCIPAL: {cor_principal}
+{'LOGO: fornecida em base64 (inclua no SVG usando <image href="data:' + logo_mime + ';base64,' + logo_b64[:50] + '...">)' if logo_b64 else 'SEM LOGO (crie um placeholder elegante)'}
+
+CAMPOS OBRIGATÓRIOS:
+- Ingredientes: {campos.get('ingredientes', '—')}
+- Conteúdo líquido: {campos.get('conteudo_liquido', '—')}
+- Fabricante: {campos.get('fabricante', '—')}
+- Lote: {campos.get('lote', 'L: ______')}
+- Validade: {campos.get('validade', 'Consumir até: __/__/____')}
+- Conservação: {campos.get('conservacao', '—')}
+- Carimbo: {campos.get('carimbo', 'SIM Nº 001')}
+- Alérgenos: {campos.get('alergenos', '—')}
+- Transgênicos: {campos.get('transgenicos', 'Não contém ingredientes transgênicos')}
+{'- LUPA FRONTAL OBRIGATÓRIA: ' + lupa_motivo if lupa else ''}
+
+{tn_texto}
+
+{'Logo em base64 completa: data:' + logo_mime + ';base64,' + logo_b64 if logo_b64 else ''}
+
+Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer feito por um designer gráfico experiente."""
+
+    # Chama Claude para gerar SVG
+    payload = {
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 4000,
+        "temperature": 1,  # Mais criatividade para design
+        "system": SP_DESIGNER,
+        "messages": [{"role": "user", "content": user_prompt}]
+    }
+    headers = {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+    }
+
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers)
+        if r.status_code != 200:
+            return JSONResponse({"error": "Erro na API Claude: " + str(r.status_code)})
+        data = r.json()
+        svg_text = data.get("content", [{}])[0].get("text", "")
+
+    # Extrai só o SVG
+    import re
+    svg_match = re.search(r'<svg[\s\S]*?</svg>', svg_text, re.IGNORECASE | re.DOTALL)
+    if svg_match:
+        svg_clean = svg_match.group(0)
+    else:
+        svg_clean = svg_text.strip()
+
+    return JSONResponse({"svg": svg_clean, "produto": produto})
+
+
 @app.get("/")
 def health():
     return {"status": "ok", "service": "ValidaRótulo IA v5", "endpoints": ["/validar","/criar","/eval"]}
