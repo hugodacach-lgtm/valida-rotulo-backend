@@ -106,20 +106,18 @@ CAMPO 12 — TRANSGÊNICOS: OGM>1%=símbolo T amarelo. Se não aplicável: CONFO
 ### CORREÇÕES PRIORITÁRIAS: [ordem de importância]
 ### PONTOS CORRETOS: [campos aprovados]"""
 
-SP_REVISAO = """Você é um auditor sênior de rotulagem de produtos de origem animal.
-Revise criticamente o relatório abaixo. Identifique:
-1. Campos esquecidos (algum dos 12 não foi avaliado?)
-2. Erros de julgamento (CONFORME quando deveria ser NÃO CONFORME?)
-3. Normas incorretas
-4. Omissões críticas
+SP_REVISAO = """Você é auditor sênior de rotulagem de POA. Revise o relatório abaixo em no máximo 200 palavras.
+
+Verifique APENAS:
+- Algum dos 12 campos foi pulado?
+- Algum campo foi julgado errado?
 
 RELATÓRIO:
 {relatorio}
 
-Se correto: "✅ REVISÃO CONCLUÍDA — Sem inconsistências."
-Se houver problemas: liste cada um como:
-⚠️ CORREÇÃO [n]: [campo] — [problema] → [como deveria ser]
-Ao final com correções: apresente SCORE e VEREDICTO revisados."""
+Se correto: "✅ REVISÃO — Nenhuma inconsistência encontrada."
+Se houver erros: liste apenas os erros reais em formato: ⚠️ Campo X: [problema] → [correção]
+Seja extremamente conciso."""
 
 CAMPOS_NOME = {
     1:"Denominação de venda", 2:"Lista de ingredientes", 3:"Conteúdo líquido",
@@ -150,7 +148,7 @@ async def call_claude_stream(system: str, image_b64: str, mime_type: str, user_t
 async def call_claude_simple(system: str, user: str) -> str:
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 1000, "temperature": 0,
+        "max_tokens": 350, "temperature": 0,
         "system": system,
         "messages": [{"role": "user", "content": user}]
     }
