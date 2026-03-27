@@ -427,25 +427,32 @@ async def avaliar_rotulo(imagem: UploadFile = File(...), gabarito: str = Form(..
 # ─── ENDPOINT: GERAR RÓTULO COM IA (SVG) ─────────────────────────────────────
 SP_DESIGNER = """Você é um designer gráfico especialista em rótulos de produtos alimentícios brasileiros.
 
-Sua tarefa é gerar um rótulo COMPLETO em formato SVG, pronto para impressão, com design profissional.
+Gere um rótulo COMPLETO em formato SVG com design profissional e moderno.
 
-REGRAS OBRIGATÓRIAS:
-1. Retorne APENAS o código SVG completo, começando com <svg e terminando com </svg>
-2. Sem explicações, sem markdown, sem código fora do SVG
-3. O SVG deve ter todos os textos dos campos fornecidos
-4. Design limpo, profissional e legível
-5. Use cores harmoniosas baseadas na cor principal fornecida
-6. A tabela nutricional deve ser visualmente clara e completa
-7. Inclua todos os campos obrigatórios da legislação brasileira (IN 22/2005)
-8. Se houver logo em base64, inclua-a no SVG usando <image>
-9. Tamanho padrão: viewBox="0 0 800 500" para retangular, "0 0 500 500" para redondo
+REGRAS CRÍTICAS — SIGA À RISCA:
+1. Retorne APENAS o SVG. Comece exatamente com: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+2. Termine exatamente com: </svg>
+3. PROIBIDO: markdown, backticks, explicações, qualquer texto fora do SVG
+4. Use APENAS elementos SVG válidos: rect, text, line, path, image, g, defs, linearGradient
+5. Todos os textos devem usar font-family="Arial, sans-serif"
+6. NÃO use foreignObject, HTML, CSS externo ou JavaScript dentro do SVG
+7. Todos os elementos devem ter coordenadas absolutas dentro do viewBox 0 0 800 500
 
-ESTRUTURA ESPERADA DO RÓTULO:
-- Topo: nome do produto em destaque + logo da empresa
-- Corpo esquerdo: ingredientes, fabricante, conservação, alérgenos
-- Corpo direito: tabela nutricional completa
-- Rodapé: lote, validade, carimbo SIF/SIE/SIM, código de barras simulado
-- Borda e divisores visuais que separam as seções"""
+ESTRUTURA DO RÓTULO (viewBox 0 0 800 500):
+- Fundo: rect x="0" y="0" width="800" height="500" com cor de fundo
+- TOPO (y=0 a y=80): barra colorida com nome do produto em destaque + logo à direita
+- CORPO ESQUERDO (x=10 a x=510, y=85 a y=415): ingredientes, fabricante, conservação, alérgenos
+- SEPARADOR: line x1="520" y1="85" x2="520" y2="415"
+- CORPO DIREITO (x=525 a x=790, y=85 a y=415): tabela nutricional completa
+- RODAPÉ (y=418 a y=500): lote, validade, carimbo
+
+TABELA NUTRICIONAL obrigatória:
+<rect x="525" y="85" width="265" height="330" fill="white" stroke="#ccc"/>
+<rect x="525" y="85" width="265" height="20" fill="#111"/>
+<text x="657" y="99" text-anchor="middle" font-size="10" fill="white" font-weight="bold" font-family="Arial, sans-serif">Informação Nutricional</text>
+[continuar com cada nutriente como linha de texto]
+
+Seja criativo com gradientes no topo. O resultado deve parecer um rótulo real de supermercado."""
 
 @app.post("/gerar-rotulo")
 async def gerar_rotulo_ia(
@@ -540,7 +547,7 @@ Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer 
 
     # Extrai só o SVG
     import re
-    svg_match = re.search(r'<svg[\s\S]*?</svg>', svg_text, re.IGNORECASE | re.DOTALL)
+    svg_match = re.search('<svg[\\s\\S]*?</svg>', svg_text, re.IGNORECASE | re.DOTALL)
     if svg_match:
         svg_clean = svg_match.group(0)
     else:
