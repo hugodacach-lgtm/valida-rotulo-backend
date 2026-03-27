@@ -4,23 +4,23 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="ValidaRótulo IA v3")
+app = FastAPI(title="ValidaRótulo IA v4")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
-# ─── KNOWLEDGE BASE: URLs dos PDFs oficiais do MAPA ──────────────────────────
+# ─── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
 MAPA_URLS = {
-    "embutidos":    ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN042000salsichamortadelalinguia.pdf"],
-    "presunto":     ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7652023RTIQpresunto.pdf"],
-    "hamburguer":   ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7242022RThamburguer1.pdf"],
-    "bacon":        ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/copy_of_Port7482023RTbacon.pdf"],
-    "carne_moida":  ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port6642022RTIQcarnemoda1.pdf"],
-    "salame":       ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000RTsalamesalaminhocopaprescrupresparmalingcolpepperoni.pdf"],
-    "charque":      ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN922020RTCharqueCarneSalgadaMidoSalgado.pdf"],
-    "fiambre":      ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7062022RTIQfiambre.pdf"],
+    "embutidos":     ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN042000salsichamortadelalinguia.pdf"],
+    "presunto":      ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7652023RTIQpresunto.pdf"],
+    "hamburguer":    ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7242022RThamburguer1.pdf"],
+    "bacon":         ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/copy_of_Port7482023RTbacon.pdf"],
+    "carne_moida":   ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port6642022RTIQcarnemoda1.pdf"],
+    "salame":        ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000RTsalamesalaminhocopaprescrupresparmalingcolpepperoni.pdf"],
+    "charque":       ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN922020RTCharqueCarneSalgadaMidoSalgado.pdf"],
+    "fiambre":       ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7062022RTIQfiambre.pdf"],
     "carne_maturada":["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7232022RTcarnematuradabovino.pdf"],
-    "nomenclatura": ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
+    "nomenclatura":  ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
 }
 
 _kb_cache: dict = {}
@@ -58,10 +58,10 @@ def detect_category(obs: str) -> str:
     if "mel" in o: return "mel"
     return ""
 
-# ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
-SP_BASE = """Você é ValidaRótulo IA — o mais preciso sistema de validação de rótulos de produtos de origem animal do Brasil.
+# ─── SYSTEM PROMPTS ───────────────────────────────────────────────────────────
+SP_VALIDACAO = """Você é ValidaRótulo IA — o mais preciso sistema de validação de rótulos de produtos de origem animal do Brasil.
 
-REGRA ABSOLUTA: Você NUNCA pula nenhum dos 12 campos obrigatórios. Mesmo que não visível, registre como AUSENTE.
+REGRA ABSOLUTA: Você NUNCA pula nenhum dos 12 campos. Se não visível: registre como AUSENTE.
 REGRA DE CONSISTÊNCIA: Baseie respostas SOMENTE no que está VISÍVEL na imagem.
 
 {kb_section}
@@ -74,95 +74,102 @@ REGRA DE CONSISTÊNCIA: Baseie respostas SOMENTE no que está VISÍVEL na imagem
 - Número de registro no carimbo
 
 ## PASSO 2 — LEGISLAÇÕES APLICÁVEIS
-NORMAS GERAIS (sempre aplicáveis):
-- IN 22/2005 (MAPA) — rotulagem geral de POA
-- RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional
-- RDC 727/2022 (ANVISA) — alérgenos
-- INMETRO 249/2021 — conteúdo líquido
+NORMAS GERAIS: IN 22/2005 (MAPA) | RDC 429/2020 + IN 75/2020 (ANVISA) | RDC 727/2022 (ANVISA) | INMETRO 249/2021
 
-NORMAS ESPECÍFICAS POR CATEGORIA:
-- Queijo fresco (Minas Frescal, Coalho): IN 30/2001 + Portaria MAPA 146/1996
-- Mussarela: Portaria MAPA 352/1997 | Requeijão: Portaria MAPA 359/1997
-- Salsicha/Mortadela/Linguiça: IN 04/2000 | Salame: IN 22/2000
-- Presunto: Port. 765/2023 | Bacon: Port. 748/2023 | Hambúrguer: Port. 724/2022
-- Carne moída: Port. 664/2022 | Charque: IN 92/2020
-- Mel: Port. SDA 795/2023 | Pescado: IN 53/2020 + Port. 570/2023
+NORMAS ESPECÍFICAS:
+- Queijo fresco: IN 30/2001 + Port. 146/1996 | Mussarela: Port. 352/1997 | Requeijão: Port. 359/1997
+- Salsicha/Mortadela/Linguiça: IN 04/2000 | Salame: IN 22/2000 | Presunto: Port. 765/2023
+- Bacon: Port. 748/2023 | Hambúrguer: Port. 724/2022 | Carne moída: Port. 664/2022
+- Charque: IN 92/2020 | Mel: Port. SDA 795/2023 | Pescado: IN 53/2020 + Port. 570/2023
 - Aves: Port. SDA 1485/2025 | Ovos: Port. MAPA 1/2020
 
-## PASSO 3 — VALIDAÇÃO CAMPO A CAMPO (todos os 12 campos, sem exceção)
+## PASSO 3 — VALIDAÇÃO CAMPO A CAMPO (12 campos obrigatórios)
 
-Use exatamente:
-✅ CONFORME — [o que está correto e onde está na imagem] (norma)
-❌ NÃO CONFORME — [o que está errado] → [como corrigir] (norma)
-⚠️ AUSENTE — [campo não encontrado] → [o que deve constar] (norma)
+✅ CONFORME — [o que está correto] (norma)
+❌ NÃO CONFORME — [problema] → [como corrigir] (norma)
+⚠️ AUSENTE — [campo faltando] → [o que deve constar] (norma)
 
-CAMPO 1 — DENOMINAÇÃO DE VENDA
-Nome específico conforme MAPA/DIPOA. Queijos: conforme Port. 146/96. Embutidos: conforme RTIQ.
-
-CAMPO 2 — LISTA DE INGREDIENTES
-"Ingredientes:" em ordem decrescente. Aditivos com função + INS (ex: Conservantes INS 250, INS 251).
-
-CAMPO 3 — CONTEÚDO LÍQUIDO
-g/kg ou mL/L no painel principal. Fonte mínima: ≤50g=2mm, 50-200g=3mm, 200g-1kg=4mm, >1kg=6mm.
-"Peso da embalagem" NÃO substitui conteúdo líquido.
-
-CAMPO 4 — IDENTIFICAÇÃO DO FABRICANTE
-Razão social + endereço completo (rua, número, cidade, estado).
-
-CAMPO 5 — LOTE
-Precedido de "L" ou "Lote". Deve ser legível e rastreável.
-
-CAMPO 6 — PRAZO DE VALIDADE
-"Consumir até" ou "Val." + data. ≤90 dias: dia+mês. >90 dias: mês+ano.
-
-CAMPO 7 — INSTRUÇÕES DE CONSERVAÇÃO
-Temperatura específica (ex: "Manter refrigerado 0°C a 8°C") + instruções pós-abertura.
-
-CAMPO 8 — CARIMBO SIF/SIE/SIM
-Carimbo oval com tipo de inspeção e número do estabelecimento, legível.
-
-CAMPO 9 — TABELA NUTRICIONAL
-Verificar TODOS: energia (kcal+kJ), carboidratos, açúcares totais, açúcares adicionados, proteínas, gorduras totais, saturadas, trans, fibra, sódio.
-Porção: queijos=30g, embutidos=50g, presunto=30g, carnes in natura=100g, pescado=100g, mel=25g.
-
-CAMPO 10 — LUPA NUTRICIONAL FRONTAL
-Lupa preta obrigatória: açúcar adicionado ≥15g/100g, gordura saturada ≥6g/100g ou sódio ≥600mg/100g.
-Se valores não visíveis: NÃO VERIFICÁVEL.
-
-CAMPO 11 — DECLARAÇÃO DE ALÉRGENOS
-"Alérgenos:" ou "Contém:" + todos os alérgenos. Laticínios: obrigatório "CONTÉM LEITE E DERIVADOS".
-
-CAMPO 12 — DECLARAÇÃO DE TRANSGÊNICOS
-OGM >1%: símbolo T amarelo obrigatório. Se não aplicável: CONFORME (não aplicável).
+CAMPO 1 — DENOMINAÇÃO DE VENDA: nome específico conforme MAPA/DIPOA. Queijos: Port. 146/96. Embutidos: RTIQ.
+CAMPO 2 — LISTA DE INGREDIENTES: "Ingredientes:" em ordem decrescente. Aditivos com função + INS.
+CAMPO 3 — CONTEÚDO LÍQUIDO: g/kg ou mL/L no painel principal. Fonte mínima: ≤50g=2mm, 50-200g=3mm, 200g-1kg=4mm, >1kg=6mm. "Peso da embalagem" NÃO substitui.
+CAMPO 4 — FABRICANTE: razão social + endereço completo (rua, número, cidade, estado).
+CAMPO 5 — LOTE: precedido de "L" ou "Lote". Deve ser legível.
+CAMPO 6 — PRAZO DE VALIDADE: "Consumir até" + data. ≤90 dias=dia+mês. >90 dias=mês+ano.
+CAMPO 7 — CONSERVAÇÃO: temperatura específica + instruções pós-abertura.
+CAMPO 8 — CARIMBO SIF/SIE/SIM: carimbo oval com tipo + número do estabelecimento, legível.
+CAMPO 9 — TABELA NUTRICIONAL: energia(kcal+kJ), carboidratos, açúcares totais, açúcares adicionados, proteínas, gorduras totais, saturadas, trans, fibra, sódio. Porção: queijos=30g, embutidos=50g, presunto=30g, carnes=100g, pescado=100g, mel=25g.
+CAMPO 10 — LUPA FRONTAL: obrigatória se açúcar adicionado≥15g/100g, gordura saturada≥6g/100g ou sódio≥600mg/100g. Se não visível: NÃO VERIFICÁVEL.
+CAMPO 11 — ALÉRGENOS: "Alérgenos:" + todos os presentes. Laticínios: "CONTÉM LEITE E DERIVADOS" obrigatório.
+CAMPO 12 — TRANSGÊNICOS: OGM>1%=símbolo T amarelo obrigatório. Se não aplicável: CONFORME.
 
 ## PASSO 4 — RELATÓRIO FINAL
-
 ### SCORE: [X]/12 campos conformes ([%]%)
+### VEREDICTO: APROVADO (11-12) | APROVADO COM RESSALVAS (7-10) | REPROVADO (≤6)
+### CORREÇÕES PRIORITÁRIAS: [ordem de importância]
+### PONTOS CORRETOS: [campos aprovados]"""
 
-### VEREDICTO:
-APROVADO (11-12) | APROVADO COM RESSALVAS (7-10) | REPROVADO (≤6)
+# ─── SEGUNDA LEITURA CRÍTICA (Etapa 4) ───────────────────────────────────────
+SP_REVISAO = """Você é um auditor sênior de rotulagem de produtos de origem animal.
 
-### CORREÇÕES PRIORITÁRIAS:
-[ordem de importância — o que impede comercialização primeiro]
+Você recebeu o relatório de validação abaixo gerado por um sistema automatizado.
+Sua missão é revisar criticamente este relatório e identificar:
 
-### PONTOS CORRETOS:
-[todos os campos aprovados]"""
+1. CAMPOS ESQUECIDOS: algum dos 12 campos obrigatórios não foi avaliado?
+2. ERROS DE JULGAMENTO: algum campo foi marcado como CONFORME quando deveria ser NÃO CONFORME ou vice-versa?
+3. NORMAS INCORRETAS: alguma norma citada está errada ou desatualizada?
+4. OMISSÕES CRÍTICAS: existe algum erro grave que o relatório não apontou?
+
+Os 12 campos obrigatórios são:
+1. Denominação de venda | 2. Lista de ingredientes | 3. Conteúdo líquido
+4. Fabricante | 5. Lote | 6. Prazo de validade | 7. Conservação
+8. Carimbo SIF/SIE/SIM | 9. Tabela nutricional | 10. Lupa frontal
+11. Alérgenos | 12. Transgênicos
+
+RELATÓRIO A REVISAR:
+{relatorio}
+
+---
+Responda APENAS se encontrar problemas reais. Se o relatório estiver correto, responda:
+"✅ REVISÃO CONCLUÍDA — Relatório sem inconsistências identificadas."
+
+Se encontrar problemas, liste cada um assim:
+⚠️ CORREÇÃO [número]: [campo afetado] — [o que está errado no relatório] → [como deveria ser]
+
+Ao final, se houver correções, apresente o SCORE e VEREDICTO revisados."""
+
+
+async def call_claude_simple(system: str, user: str) -> str:
+    """Chamada simples sem streaming — usada para a revisão crítica."""
+    payload = {
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 1000,
+        "temperature": 0,
+        "system": system,
+        "messages": [{"role": "user", "content": user}]
+    }
+    headers = {"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers)
+        if r.status_code != 200: return ""
+        data = r.json()
+        return data.get("content", [{}])[0].get("text", "")
 
 
 async def stream_validation(image_b64: str, mime_type: str, obs: str):
+    # 1. Busca KB específica da categoria
     category = detect_category(obs)
     kb_text = await get_kb_for_category(category) if category else ""
 
+    kb_section = ""
     if kb_text:
         kb_section = f"## LEGISLAÇÃO ESPECÍFICA — {category.upper()} (fonte: MAPA oficial)\n{kb_text[:3000]}\n---"
-    else:
-        kb_section = ""
 
-    system_prompt = SP_BASE.format(kb_section=kb_section)
+    system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
     user_text = "Analise este rótulo e execute os 4 passos obrigatórios. Não pule nenhum dos 12 campos."
     if obs:
         user_text += f"\nObservações: {obs}"
 
+    # 2. PRIMEIRA LEITURA — streaming para o usuário ver em tempo real
     payload = {
         "model": "claude-sonnet-4-20250514",
         "max_tokens": 2500,
@@ -177,6 +184,8 @@ async def stream_validation(image_b64: str, mime_type: str, obs: str):
 
     headers = {"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
 
+    relatorio_completo = ""
+
     async with httpx.AsyncClient(timeout=90.0) as client:
         async with client.stream("POST", "https://api.anthropic.com/v1/messages", json=payload, headers=headers) as response:
             if response.status_code != 200:
@@ -186,17 +195,28 @@ async def stream_validation(image_b64: str, mime_type: str, obs: str):
             async for line in response.aiter_lines():
                 if not line.startswith("data: "): continue
                 raw = line[6:].strip()
-                if raw == "[DONE]":
-                    yield "data: [DONE]\n\n"
-                    break
+                if raw == "[DONE]": break
                 try:
                     ev = json.loads(raw)
                     if ev.get("type") == "content_block_delta":
                         delta = ev.get("delta", {})
                         if delta.get("type") == "text_delta":
-                            yield f"data: {json.dumps({'text': delta.get('text','')})}\n\n"
+                            chunk = delta.get("text", "")
+                            relatorio_completo += chunk
+                            yield f"data: {json.dumps({'text': chunk})}\n\n"
                 except Exception:
                     continue
+
+    # 3. SEGUNDA LEITURA CRÍTICA — revisão do relatório gerado
+    yield f"data: {json.dumps({'text': '\n\n---\n\n## REVISÃO CRÍTICA DO RELATÓRIO\n'})}\n\n"
+
+    revisao_prompt = SP_REVISAO.format(relatorio=relatorio_completo)
+    revisao = await call_claude_simple(revisao_prompt, "Revise o relatório acima com rigor técnico.")
+
+    if revisao:
+        yield f"data: {json.dumps({'text': revisao})}\n\n"
+
+    yield "data: [DONE]\n\n"
 
 
 @app.post("/validar")
@@ -210,15 +230,12 @@ async def validar_rotulo(imagem: UploadFile = File(...), obs: str = Form(default
     return StreamingResponse(stream_validation(image_b64, mime_type, obs), media_type="text/event-stream",
         headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
 
-
 @app.get("/")
 def health():
-    return {"status": "ok", "service": "ValidaRótulo IA v3", "kb_cached": list(_kb_cache.keys())}
-
+    return {"status": "ok", "service": "ValidaRótulo IA v4", "kb_cached": list(_kb_cache.keys())}
 
 @app.get("/kb/preload")
 async def preload_kb():
-    """Pré-carrega todas as legislações do MAPA em cache."""
     results = {}
     for category in MAPA_URLS:
         text = await get_kb_for_category(category)
