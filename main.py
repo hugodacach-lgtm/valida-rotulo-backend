@@ -7,6 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="ValidaRótulo IA v5")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+from fastapi.responses import JSONResponse as _JSONResponse
+from fastapi import Request as _Request
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: _Request, exc: Exception):
+    return _JSONResponse(
+        status_code=500,
+        content={"error": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # ─── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
@@ -527,7 +538,7 @@ Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer 
     # Chama Claude para gerar SVG
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 4000,
+        "max_tokens": 3000,
         "temperature": 1,  # Mais criatividade para design
         "system": SP_DESIGNER,
         "messages": [{"role": "user", "content": user_prompt}]
@@ -538,7 +549,7 @@ Gere o SVG completo agora. Seja criativo e profissional. O rótulo deve parecer 
         "content-type": "application/json"
     }
 
-    async with httpx.AsyncClient(timeout=90.0) as client:
+    async with httpx.AsyncClient(timeout=180.0) as client:
         r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers)
         if r.status_code != 200:
             return JSONResponse({"error": "Erro na API Claude: " + str(r.status_code)})
