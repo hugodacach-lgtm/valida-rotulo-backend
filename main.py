@@ -409,14 +409,15 @@ async def get_kb_for_categories(categories: list[str]) -> str:
         _kb_cache[cat] = result
         return result
 
-    # Carrega em paralelo, max 3 categorias para não estourar o contexto
-    cats_to_load = categories[:3]
+    # Carrega em paralelo, max 2 categorias para não estourar o contexto
+    cats_to_load = categories[:2]
     texts = await asyncio.gather(*[load_one(c) for c in cats_to_load])
 
     sections = []
     for cat, text in zip(cats_to_load, texts):
         if text:
-            sections.append(f"### RTIQ: {cat.upper().replace('_',' ')}\n{text[:3000]}")
+            # Limita cada RTIQ a 2000 chars para não exceder contexto
+            sections.append(f"### RTIQ: {cat.upper().replace('_',' ')}\n{text[:2000]}")
 
     return "\n\n---\n\n".join(sections)
 
@@ -821,7 +822,7 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
         "content-type": "application/json",
     }
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=12.0) as client:
             r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers_api)
             if r.status_code != 200:
                 return {}
@@ -906,7 +907,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 3500,
+        "max_tokens": 2500,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -1022,7 +1023,7 @@ async def avaliar_rotulo(
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 3500,
+        "max_tokens": 2500,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
