@@ -1,4 +1,9 @@
 import os, base64, json, io, asyncio, re
+try:
+    from pypdf import PdfReader
+    HAS_PYPDF = True
+except ImportError:
+    HAS_PYPDF = False
 import httpx
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -392,6 +397,50 @@ async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
             return text.strip()[:max_chars]
     except Exception:
         return ""
+
+
+async def pdf_to_images_b64(pdf_bytes: bytes) -> list[dict]:
+    """
+    Converte PDF para lista de imagens base64.
+    Cada item: {"b64": str, "mime": "image/png", "page": int}
+    Tenta com pypdf primeiro (extrai páginas como imagens via pillow/fitz).
+    Fallback: envia PDF diretamente como document para a API Anthropic.
+    """
+    pages = []
+
+    # Método 1: Tentar extrair páginas como imagens com pdf2image/pillow
+    try:
+        import subprocess, tempfile, os as _os
+        # Tenta usar pdftoppm (poppler) que pode estar disponível no Render
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(pdf_bytes)
+            tmp_path = tmp.name
+
+        out_prefix = tmp_path.replace(".pdf", "_page")
+        result = subprocess.run(
+            ["pdftoppm", "-png", "-r", "150", tmp_path, out_prefix],
+            capture_output=True, timeout=30
+        )
+        _os.unlink(tmp_path)
+
+        if result.returncode == 0:
+            import glob
+            page_files = sorted(glob.glob(out_prefix + "*.png"))
+            for i, pf in enumerate(page_files):
+                with open(pf, "rb") as f:
+                    img_b64 = base64.b64encode(f.read()).decode()
+                pages.append({"b64": img_b64, "mime": "image/png", "page": i + 1})
+                _os.unlink(pf)
+            if pages:
+                return pages
+    except Exception:
+        pass
+
+    # Método 2: Enviar PDF direto como document (Anthropic suporta PDF nativo)
+    # Retorna lista especial indicando envio como documento
+    pdf_b64 = base64.b64encode(pdf_bytes).decode()
+    return [{"b64": pdf_b64, "mime": "application/pdf", "page": 0, "is_pdf": True}]
+
 
 async def get_kb_for_categories(categories: list[str]) -> str:
     """Carrega e combina KB para múltiplas categorias detectadas."""
@@ -878,10 +927,13 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
-        "messages": [{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
-            {"type": "text", "text": user_text},
-        ]}],
+        "messages": [{"role": "user", "content": (
+            [{"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": image_b64}},
+             {"type": "text", "text": user_text}]
+            if mime_type == "application/pdf" else
+            [{"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
+             {"type": "text", "text": user_text}]
+        )}],
     }
     headers = {
         "x-api-key": ANTHROPIC_API_KEY,
@@ -941,15 +993,44 @@ async def validar_rotulo(
                             headers={"Access-Control-Allow-Origin": "*"})
 
     contents = await imagem.read()
-    image_b64 = base64.b64encode(contents).decode("utf-8")
-    mime_map = {
-        "image/jpeg": "image/jpeg",
-        "image/jpg": "image/jpeg",
-        "image/png": "image/png",
-        "image/webp": "image/webp",
-        "image/gif": "image/gif",
-    }
-    mime_type = mime_map.get(imagem.content_type, "image/jpeg")
+    content_type = (imagem.content_type or "").lower()
+    filename = (imagem.filename or "").lower()
+
+    # ── Detectar se é PDF ────────────────────────────────────────────────
+    is_pdf = (
+        content_type == "application/pdf" or
+        filename.endswith(".pdf")
+    )
+
+    if is_pdf:
+        pages = await pdf_to_images_b64(contents)
+        if not pages:
+            return JSONResponse({"error": "Não foi possível processar o PDF."},
+                                headers={"Access-Control-Allow-Origin": "*"})
+
+        first = pages[0]
+        if first.get("is_pdf"):
+            # PDF nativo — envia direto para API Anthropic como documento
+            image_b64 = first["b64"]
+            mime_type = "application/pdf"
+        else:
+            # PDF convertido em imagem — usa primeira página
+            image_b64 = first["b64"]
+            mime_type = first["mime"]
+            # Se tiver múltiplas páginas, junta obs com aviso
+            if len(pages) > 1 and not obs:
+                obs = f"PDF com {len(pages)} páginas — analisando página 1 (painel principal)"
+    else:
+        image_b64 = base64.b64encode(contents).decode("utf-8")
+        mime_map = {
+            "image/jpeg": "image/jpeg",
+            "image/jpg": "image/jpeg",
+            "image/png": "image/png",
+            "image/webp": "image/webp",
+            "image/gif": "image/gif",
+            "image/bmp": "image/jpeg",
+        }
+        mime_type = mime_map.get(content_type, "image/jpeg")
 
     return StreamingResponse(
         stream_validation(image_b64, mime_type, obs, orgao),
