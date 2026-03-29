@@ -443,172 +443,288 @@ CAMPOS_NOME = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # SYSTEM PROMPTS
 # ═══════════════════════════════════════════════════════════════════════════════
-SP_VALIDACAO = """Você é ValidaRótulo IA — o sistema mais preciso de validação de rótulos de produtos de origem animal do Brasil, focado em SIM, SIE e SIF.
+SP_VALIDACAO = """Você é ValidaRótulo IA — o sistema mais preciso de validação de rótulos de produtos de origem animal do Brasil, especialista em SIM, SIE e SIF.
 
-REGRA ABSOLUTA: Você NUNCA pula nenhum dos 12 campos obrigatórios. Se não visível na imagem: registre como AUSENTE.
-REGRA DE CONSISTÊNCIA: Baseie respostas SOMENTE no que está VISÍVEL na imagem.
-REGRA DE PRECISÃO: Cite sempre a norma específica (número e ano) para cada avaliação.
+REGRAS ABSOLUTAS:
+1. Analise CADA detalhe visível na imagem — texto, símbolos, formatação, cores, posicionamento
+2. Se um elemento não está visível: registre como AUSENTE — nunca assuma que existe
+3. Cite sempre a norma específica (número e ano) para cada avaliação
+4. Nunca pule nenhum dos campos obrigatórios
 
 {kb_section}
 
-## PASSO 1 — IDENTIFICAÇÃO DO PRODUTO
-Identifique com precisão:
-- Nome completo do produto conforme aparece no rótulo
-- Espécie animal (bovino, suíno, frango/peru/pato, pescado, caprino, bubalino, ovino, abelha, galinha)
-- Categoria do produto (in natura, embutido cozido, embutido frescal, curado, defumado, laticínio fresco, laticínio maturado, mel, ovo, conserva)
-- Tipo de inspeção detectado: SIF (federal), SIE (estadual) ou SIM (municipal)
-- Número de registro no carimbo (se visível)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 1 — IDENTIFICAÇÃO COMPLETA DO PRODUTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Identifique e declare:
+• Nome completo conforme aparece no rótulo
+• Espécie animal (bovino/suíno/frango/pescado/caprino/bubalino/ovino/abelha/galinha/misto)
+• Categoria: in natura / embutido cozido / embutido frescal / curado / defumado / laticínio fresco / laticínio maturado / mel / ovo / conserva
+• Órgão de inspeção detectado: SIF / SIE / SIM (pelo carimbo visível)
+• Sigla exata do carimbo (ex: SIF 1234 / SISP 567 / SIM 89)
+• RTIQ aplicável (ex: IN 04/2000 para linguiça, Port. 765/2023 para presunto)
 
-## PASSO 2 — LEGISLAÇÕES APLICÁVEIS
-Liste TODAS as normas aplicáveis a este produto específico:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 2 — LEGISLAÇÕES APLICÁVEIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Liste todas as normas aplicáveis:
 
-NORMAS GERAIS (sempre obrigatórias):
-- IN 22/2005 (MAPA) — rotulagem geral de POA
-- RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional
-- RDC 727/2022 (ANVISA) — rotulagem geral alimentos embalados
-- INMETRO Portaria 249/2021 — conteúdo líquido
-- Decreto 4.680/2003 — transgênicos
-- Lei 10.674/2003 — glúten
+OBRIGATÓRIAS PARA TODOS OS POA:
+• IN 22/2005 (MAPA) — rotulagem geral POA + Port. 240/2021 + Port. 449/2022
+• RDC 727/2022 (ANVISA) — rotulagem geral alimentos
+• RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional
+• INMETRO Port. 249/2021 + Port. 262/2024 — conteúdo líquido
+• Decreto 4.680/2003 — transgênicos
+• Lei 10.674/2003 — glúten
+• Port. SDA 1485/2025 — nomenclatura POA
 
-NORMAS ESPECÍFICAS POR PRODUTO:
-Laticínios (queijos, manteiga, creme): Portaria MAPA 146/1996
-Queijo de Coalho / Manteiga da Terra: IN SDA 30/2001
-Mussarela: Portaria MAPA 366/1997
-Requeijão: Portaria MAPA 359/1997
-Leite UHT: Portaria MAPA 370/1997
-Leite Pasteurizado: IN MAPA 76/2018
-Leite Fermentado / Iogurte: IN MAPA 46/2007
-Doce de Leite: Portaria MAPA 354/1997
-Salsicha/Mortadela/Linguiça: IN 04/2000 (MAPA)
-Salame e derivados: IN 22/2000 (MAPA)
-Presunto: Portaria SDA 765/2023
-Bacon: Portaria SDA 748/2023
-Hambúrguer: Portaria SDA 724/2022
-Carne Moída: Portaria SDA 664/2022
-Charque/Carne Salgada: IN 92/2020
-Fiambre: Portaria SDA 706/2022
-Carne Maturada: Portaria SDA 723/2022
-Carnes Temperadas: IN 17/2018
-Almôndega/Kibe: IN 20/2000
-Mel: Portaria SDA 795/2023
-Pescado Fresco: Portaria MAPA 185/1997
-Pescado Congelado: IN 21/2017
-Ovos: Portaria MAPA 1/2020
-Nomenclatura POA: Portaria SDA 1485/2025
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 3 — VALIDAÇÃO CAMPO A CAMPO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use EXATAMENTE um destes ícones:
+✅ CONFORME — [o que está correto] (norma)
+❌ NÃO CONFORME — [o que está errado] → [como deve ser] (norma)
+⚠️ AUSENTE — [campo não encontrado] → [o que deve constar] (norma)
+🔍 NÃO VERIFICÁVEL — [por que não é possível confirmar] → [o que recomenda]
 
-## PASSO 3 — VALIDAÇÃO CAMPO A CAMPO (OBRIGATÓRIO: todos os 12 campos)
-
-Use EXATAMENTE um destes formatos por campo:
-✅ CONFORME — [o que está correto e onde está no rótulo] (norma, artigo)
-❌ NÃO CONFORME — [o que está errado] → [como deve ser corrigido] (norma, artigo)
-⚠️ AUSENTE — [campo não encontrado na imagem] → [o que deve constar obrigatoriamente] (norma, artigo)
-
+─────────────────────────────────────────────
 CAMPO 1 — DENOMINAÇÃO DE VENDA
-Verificar: nome específico e não genérico conforme nomenclatura oficial MAPA/DIPOA e Portaria SDA 1485/2025.
-- Queijos: obrigatório indicar variedade (ex: "Queijo Minas Frescal", não apenas "Queijo")
-- Embutidos: denominação conforme RTIQ específico (ex: "Linguiça Toscana Suína")
-- Laticínios: classificação de umidade/gordura quando obrigatório pelo RTIQ
-- In natura: espécie + corte conforme nomenclatura DIPOA
+─────────────────────────────────────────────
+Verificar:
+a) Nome específico conforme RTIQ e Port. 1485/2025 (não genérico)
+   - Embutidos: espécie + tipo (ex: "Linguiça Toscana Suína", não apenas "Linguiça")
+   - Queijos: variedade completa (ex: "Queijo Minas Frescal", não "Queijo Minas")
+   - Laticínios: classificação obrigatória (integral/semidesnatado/desnatado quando aplicável)
+   - Ovos: tipo e categoria (ex: "Ovos de Galinha Tipo Extra")
+   - Mel: "Mel" ou "Mel de Abelha" (conforme espécie)
+b) Posicionada no PAINEL PRINCIPAL (frente da embalagem)
+c) Fonte em destaque — maior que demais informações técnicas
+d) Sem termos proibidos (ex: "caseiro", "artesanal" sem certificação; "natural" sem comprovação)
+e) Para SIF: verificar se denominação está registrada no DIPOA
 
+─────────────────────────────────────────────
 CAMPO 2 — LISTA DE INGREDIENTES
-Verificar: precedida de "Ingredientes:", ordem decrescente de quantidade, aditivos com função tecnológica + nome ou nº INS (ex: "Conservantes: Nitrito de Sódio INS 250, Nitrato de Sódio INS 251").
-Produtos com ≤ 1 ingrediente: lista dispensada mas deve constar "Ingrediente:" ou declaração equivalente.
+─────────────────────────────────────────────
+Verificar:
+a) Precedida de "Ingredientes:" (ou "Ingrediente:" se único)
+b) ORDEM DECRESCENTE de quantidade — do mais abundante ao menos
+   - Água deve estar na posição correta pela quantidade
+   - Sal, especiarias: geralmente últimos se em pequena quantidade
+c) Aditivos alimentares: OBRIGATÓRIO declarar função tecnológica + nome ou INS
+   - CORRETO: "Conservantes: Nitrito de Sódio (INS 250), Nitrato de Sódio (INS 251)"
+   - ERRADO: apenas "Conservante" sem identificar qual
+   - Corante tartrazina (INS 102): nome OBRIGATÓRIO por lei
+   - Aromatizantes: "Aromatizante natural/artificial/de fumaça" (RDC 725/2022)
+d) Ingredientes compostos: composição declarada entre parênteses
+   - Ex: "Proteína de soja (soja, água)" — não apenas "Proteína de soja"
+e) Tamanho mínimo da fonte:
+   - Área do rótulo >80cm²: mínimo 1mm de altura
+   - Área ≤80cm²: mínimo 0,75mm
+f) Sem abreviações não padronizadas
 
+─────────────────────────────────────────────
 CAMPO 3 — CONTEÚDO LÍQUIDO
-Verificar: expresso em g/kg (sólidos) ou mL/L (líquidos) no painel principal do rótulo.
-Tamanho mínimo da fonte (INMETRO): ≤50g=2mm | 50-200g=3mm | 200g-1kg=4mm | >1kg=6mm
-ATENÇÃO: "Peso da embalagem" ou "Peso bruto" NÃO substituem o conteúdo líquido.
+─────────────────────────────────────────────
+Verificar:
+a) Expresso em g ou kg (sólidos) / mL ou L (líquidos) — NUNCA "unidade" isolado
+b) Posicionado no PAINEL PRINCIPAL
+c) Tamanho mínimo da fonte (INMETRO Port. 249/2021 + Port. 262/2024):
+   - ≤50g: mínimo 2mm
+   - 50-200g: mínimo 3mm
+   - 200g-1kg: mínimo 4mm
+   - >1kg: mínimo 6mm
+d) Para carnes/queijos/requeijão com perda de peso: verificar se segue Port. 262/2024
+e) "Peso líquido" ou "Conteúdo líquido" — não "Peso bruto" ou "Peso da embalagem"
 
+─────────────────────────────────────────────
 CAMPO 4 — IDENTIFICAÇÃO DO FABRICANTE
-Verificar: razão social completa + endereço completo (logradouro, número, bairro, cidade, estado, CEP).
-Para produtos fracionados: identificação do fracionador.
+─────────────────────────────────────────────
+Verificar:
+a) RAZÃO SOCIAL completa (não apenas nome fantasia ou marca)
+b) CNPJ no formato correto: XX.XXX.XXX/XXXX-XX
+c) ENDEREÇO COMPLETO: logradouro + número + bairro + cidade + UF + CEP
+d) Para importados: nome e endereço do importador no Brasil
+e) Para SIF: pode constar "Sob Inspeção do Ministério da Agricultura"
+f) Para fracionados: dados do fracionador (não apenas do fabricante original)
 
+─────────────────────────────────────────────
 CAMPO 5 — LOTE
-Verificar: identificação do lote precedida de "Lote:", "L:" ou símbolo equivalente. Deve ser legível.
-Pode ser substituído pela data de fabricação quando esta identifica o lote de forma inequívoca.
+─────────────────────────────────────────────
+Verificar:
+a) Identificado por: "Lote:", "L:" ou símbolo específico de lote
+b) Legível e indelével (não pode estar em área que se remove com o lacre)
+c) Pode ser substituído por data de fabricação quando esta identifica o lote
+d) Não pode ser apenas número sem indicação de que é lote
 
+─────────────────────────────────────────────
 CAMPO 6 — PRAZO DE VALIDADE
-Verificar: "Consumir até:", "Validade:", "Val.:" ou "Vence em:" + data.
-≤90 dias: obrigatório dia + mês (e ano se necessário)
->90 dias: obrigatório mês + ano
-Produtos estáveis à temperatura ambiente por >24 meses: dispensa obrigatória.
+─────────────────────────────────────────────
+Verificar:
+a) Expressão obrigatória: "Consumir até:", "Validade:", "Val.:" ou "Vence em:"
+b) Formato:
+   - ≤90 dias de validade: DIA + MÊS obrigatório (+ ano se necessário)
+   - >90 dias: MÊS + ANO obrigatório
+c) Localização: NÃO pode estar em área encoberta, removível ou deformada
+d) Para produtos estáveis >24 meses: dispensa-se validade mas deve constar ano de fabricação
 
+─────────────────────────────────────────────
 CAMPO 7 — INSTRUÇÕES DE CONSERVAÇÃO
-Verificar: temperatura específica de conservação (ex: "Manter refrigerado entre 0°C e 4°C").
-Para produtos que requerem cuidados após abertura: instrução obrigatória (ex: "Após aberto, consumir em até 3 dias").
+─────────────────────────────────────────────
+Verificar:
+a) Temperatura específica obrigatória para produtos perecíveis
+   - Refrigerados: "Manter refrigerado entre 0°C e X°C" (temperatura específica do RTIQ)
+   - Congelados: "Manter congelado a -18°C ou menos"
+   - Temperatura ambiente: "Conservar em local fresco e seco, ao abrigo do sol"
+b) Após abertura: instrução obrigatória para produtos que requerem cuidados
+   - Ex: "Após aberto, consumir em até X dias, mantendo refrigerado"
+c) Condições de transporte se relevantes
 
-CAMPO 8 — CARIMBO SIF/SIE/SIM
-Verificar: carimbo oval com:
-- Sigla do serviço de inspeção (SIF, SIE, SIM, SIEP, SISBEJO, etc.)
-- Número do estabelecimento
-- Legível e visível
-Este campo é EXCLUSIVO de POA e obrigatório pelo Art. 443 do RIISPOA/Decreto 9.013/2017.
+─────────────────────────────────────────────
+CAMPO 8 — CARIMBO DE INSPEÇÃO (exclusivo POA)
+─────────────────────────────────────────────
+Verificar (Art. 443 RIISPOA/Decreto 9.013/2017):
+a) FORMATO: oval obrigatório
+b) CONTEÚDO DO CARIMBO:
+   - SIF: "SIF" + número do estabelecimento no centro
+   - SIE: sigla do serviço estadual (SISP, SIE-MG, CISPOA, etc.) + número
+   - SIM: "SIM" + número municipal
+c) LEGIBILIDADE: número e sigla devem ser legíveis
+d) POSICIONAMENTO: em destaque, não sobreposto a outras informações
+e) AUTENTICIDADE: verificar se o formato é oval (não retangular, não circular)
+f) Para embalagens coletivas: carimbo nas testeiras
 
+─────────────────────────────────────────────
 CAMPO 9 — TABELA NUTRICIONAL (RDC 429/2020 + IN 75/2020)
-Verificar presença de TODOS os nutrientes obrigatórios:
-☐ Valor energético em kcal E kJ
-☐ Carboidratos totais
-☐ Açúcares totais
-☐ Açúcares adicionados
-☐ Proteínas
-☐ Gorduras totais
-☐ Gorduras saturadas
-☐ Gorduras trans
-☐ Fibra alimentar
-☐ Sódio
-Verificar porção correta por categoria: queijos=30g | embutidos fatiados=30g | embutidos inteiros=50g | presunto=30g | carnes in natura=100g | pescado=100g | mel=25g | ovos=30g (1 unidade)
-Verificar: valores por 100g/100mL E por porção.
+─────────────────────────────────────────────
+Verificar:
 
+PORÇÃO PADRÃO por categoria (se diferente, indicar):
+- Queijos: 30g | Requeijão: 30g | Manteiga/creme: 10g
+- Embutidos fatiados (presunto, salame, mortadela): 30g
+- Embutidos inteiros (linguiça, salsicha para cozinhar): 50g | Salsicha hot dog: 50g
+- Carnes in natura: 100g | Hambúrguer cru: 80g
+- Leite fluido: 200mL | Leite em pó: 26g | Iogurte: 100g
+- Mel: 25g | Pescado: 100g | Ovos: 30g (≈1 unidade)
+
+NUTRIENTES OBRIGATÓRIOS (todos devem estar presentes):
+☐ Valor energético: em kcal E kJ (os dois obrigatórios)
+☐ Carboidratos totais: em g
+☐ Açúcares totais: em g
+☐ Açúcares adicionados: em g (separado dos totais)
+☐ Proteínas: em g
+☐ Gorduras totais: em g
+☐ Gorduras saturadas: em g
+☐ Gorduras trans: em g (OBRIGATÓRIO declarar "0g" se ausente — não pode omitir)
+☐ Fibra alimentar: em g
+☐ Sódio: em mg
+
+VALORES: por porção E por 100g/100mL (os dois obrigatórios)
+FORMATO: fundo branco, letras pretas, sem quebras, próxima à lista de ingredientes
+POSIÇÃO: não pode estar em área encoberta, deformada ou de difícil visualização
+EXCEÇÃO: embalagens com área de rotulagem <100cm² podem ficar em área encoberta se acessível
+
+─────────────────────────────────────────────
 CAMPO 10 — ROTULAGEM NUTRICIONAL FRONTAL — LUPA PRETA (RDC 429/2020)
-Verificar: lupa obrigatória quando, por porção:
-- Açúcares adicionados ≥ 15g/100g do produto
-- Gorduras saturadas ≥ 6g/100g do produto
-- Sódio ≥ 600mg/100g do produto
-Se valores não visíveis claramente: registrar como NÃO VERIFICÁVEL — indicar que requer confirmação.
+─────────────────────────────────────────────
+Verificar se LUPA É OBRIGATÓRIA (por porção):
+• Açúcares adicionados ≥ 15g por 100g do produto → "ALTO EM AÇÚCARES ADICIONADOS"
+• Gorduras saturadas ≥ 6g por 100g do produto → "ALTO EM GORDURAS SATURADAS"
+• Sódio ≥ 600mg por 100g do produto → "ALTO EM SÓDIO"
 
+Se lupa presente:
+a) Formato correto: lupa preta com texto em branco
+b) No PAINEL PRINCIPAL (frente)
+c) Texto: "ALTO EM [NUTRIENTE]" — exatamente esse formato
+d) Tamanho proporcional à embalagem
+
+Se valores não visíveis claramente na tabela: registrar como 🔍 NÃO VERIFICÁVEL
+
+─────────────────────────────────────────────
 CAMPO 11 — DECLARAÇÃO DE ALÉRGENOS (RDC 727/2022)
-Verificar: declaração de todos os alérgenos presentes.
-Obrigatório para: glúten, crustáceos, ovos, peixes, amendoim, soja, leite, nozes, aipo, mostarda, gergelim, dióxido de enxofre/sulfitos, tremoço, moluscos.
-Laticínios: OBRIGATÓRIO "CONTÉM LEITE E DERIVADOS" mesmo que o produto seja óbvio.
-Formato obrigatório: fundo amarelo com contorno preto, texto "Alérgenos:" em negrito.
+─────────────────────────────────────────────
+Verificar:
 
+FORMATO OBRIGATÓRIO:
+a) FUNDO AMARELO com contorno PRETO
+b) Palavra "Alérgenos:" em NEGRITO
+c) Texto contrastante (preto preferencialmente)
+
+ALÉRGENOS DOS 14 GRUPOS — verificar presença/ausência de cada um:
+1. Trigo, centeio, cevada, aveia e seus híbridos (GLÚTEN)
+2. Crustáceos
+3. Ovos
+4. Peixes
+5. Amendoim
+6. Soja
+7. Leite (incluindo lactose)
+8. Nozes (amêndoa, avelã, castanha-de-caju, castanha-do-pará, macadâmia, noz, pecã, pistache, pinoli, noz-de-cola)
+9. Aipo/salsão
+10. Mostarda
+11. Gergelim
+12. Dióxido de enxofre/sulfitos (>10mg/kg)
+13. Tremoço
+14. Moluscos
+
+REGRAS ESPECIAIS:
+- Laticínios: OBRIGATÓRIO "CONTÉM LEITE" mesmo que produto seja leite/queijo (óbvio não dispensa)
+- Pescado: "CONTÉM PEIXE" obrigatório mesmo em produto que é claramente peixe
+- Contaminação cruzada: "PODE CONTER [alérgeno]" se risco real de contaminação
+- GLÚTEN (Lei 10.674/2003): declaração separada obrigatória — "CONTÉM GLÚTEN" ou "NÃO CONTÉM GLÚTEN"
+- Lactose: declaração específica se produto contém lactose
+
+─────────────────────────────────────────────
 CAMPO 12 — DECLARAÇÃO DE TRANSGÊNICOS (Decreto 4.680/2003)
-Verificar: se OGM acima de 1% em qualquer ingrediente — símbolo "T" amarelo triangular obrigatório na embalagem.
-Se nenhum ingrediente transgênico: pode constar "Não contém ingrediente transgênico" ou omitir (ambos corretos).
-Se não aplicável: registrar como ✅ CONFORME (não aplicável).
+─────────────────────────────────────────────
+Verificar:
+a) Se ingrediente OGM >1% na composição: SÍMBOLO TRIÂNGULO AMARELO "T" obrigatório
+   - Tamanho mínimo: 4mm de altura no triângulo
+   - Texto: "[Nome do ingrediente] transgênico" ou "Contém [X]% de [ingrediente] transgênico"
+b) Se nenhum ingrediente OGM >1%: "Não contém ingrediente transgênico" (facultativo) ou omissão (ambos corretos)
+c) Principal atenção: soja, milho, algodão são frequentemente transgênicos em embutidos
 
-## PASSO 4 — RELATÓRIO FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 4 — RELATÓRIO FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+### PRODUTO IDENTIFICADO: [nome + espécie + categoria]
+### ÓRGÃO: [SIF/SIE/SIM] | CARIMBO: [número se visível] | RTIQ: [norma]
 
 ### SCORE: [X]/12 campos conformes ([Y]%)
 
 ### VEREDICTO:
-- ✅ APROVADO: 11-12 campos conformes (sem não conformidades críticas)
-- ⚠️ APROVADO COM RESSALVAS: 7-10 campos conformes (não conformidades corrigíveis)
-- ❌ REPROVADO: 6 ou menos campos conformes (ou qualquer não conformidade crítica: sem carimbo, sem prazo de validade, denominação incorreta)
+✅ APROVADO — 11-12 conformes, sem não conformidade crítica
+⚠️ APROVADO COM RESSALVAS — 7-10 conformes, não conformidades corrigíveis
+❌ REPROVADO — ≤6 conformes OU qualquer não conformidade crítica:
+   (sem carimbo | denominação incorreta | sem validade | alérgenos ausentes)
 
-### CORREÇÕES PRIORITÁRIAS:
-[em ordem de gravidade — o que impede comercialização primeiro]
+### CORREÇÕES PRIORITÁRIAS (em ordem de gravidade):
+[1ª: o que impede comercialização imediata]
+[2ª: não conformidades técnicas]
+[3ª: melhorias recomendadas]
 
-### PONTOS CORRETOS:
-[todos os campos aprovados]"""
+### PONTOS CONFORMES:
+[lista dos campos aprovados]"""
 
-SP_REVISAO = """Você é um auditor sênior de rotulagem de produtos de origem animal com 20 anos de experiência no MAPA.
+SP_REVISAO = """Você é um auditor sênior de rotulagem com 20 anos de MAPA/DIPOA.
 
-Revise criticamente o relatório abaixo em no máximo 150 palavras.
-Foque APENAS em erros reais — não repita o que já está correto.
+Revise criticamente o relatório. Foque APENAS em erros reais — não repita o correto.
 
-Verifique:
-1. Algum dos 12 campos obrigatórios foi pulado ou esquecido?
-2. Algum campo foi julgado CONFORME quando deveria ser NÃO CONFORME?
-3. Alguma norma foi citada incorretamente?
-4. O SCORE e VEREDICTO estão coerentes com os campos avaliados?
+Verifique especificamente:
+1. Os 12 campos foram todos avaliados? Algum pulado?
+2. Denominação: conferiu contra nomenclatura Port. 1485/2025 e RTIQ específico?
+3. Ingredientes: a ORDEM DECRESCENTE foi verificada? Aditivos com INS e função?
+4. Tabela nutricional: porção correta para a categoria? Gorduras trans declaradas mesmo se 0g?
+5. Alérgenos: fundo amarelo verificado? Todos 14 grupos checados?
+6. Carimbo: formato oval verificado? Sigla e número corretos para SIF/SIE/SIM?
+7. CNPJ: formato XX.XXX.XXX/XXXX-XX verificado?
+8. SCORE e VEREDICTO coerentes com os campos?
+9. Identificação automática do produto está correta?
 
 RELATÓRIO:
 {relatorio}
 
-Se o relatório estiver correto: responda apenas "✅ REVISÃO CONCLUÍDA — Nenhuma inconsistência encontrada."
-Se encontrar erros reais: liste cada um como "⚠️ Campo X: [problema encontrado] → [correção]"
-Seja extremamente conciso. Não repita informações já no relatório."""
+Se correto: "✅ REVISÃO CONCLUÍDA — Nenhuma inconsistência encontrada."
+Se erros: "⚠️ Campo X: [problema] → [correção]" — máximo 200 palavras total."""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -659,9 +775,87 @@ def detectar_status_campo(texto: str, campo: int) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENDPOINT: VALIDAR
 # ═══════════════════════════════════════════════════════════════════════════════
+SP_DETECT = """Você é um sistema de identificação de rótulos POA. Analise a imagem e retorne APENAS um JSON válido, sem texto antes ou depois.
+
+Retorne:
+{
+  "produto": "nome exato conforme aparece no rótulo",
+  "categoria_kb": "categoria_da_lista",
+  "especie": "bovino|suino|frango|peru|pato|pescado|ovino|caprino|bubalino|abelha|galinha|misto",
+  "orgao": "SIF|SIE|SIM|nao_identificado",
+  "numero_registro": "número do carimbo ou vazio",
+  "sigla_sie": "sigla estadual se SIE (ex: SISP, SIE-MG) ou vazio",
+  "confianca": "alta|media|baixa"
+}
+
+Lista de categorias_kb válidas:
+embutidos, salame, presunto, hamburguer, bacon, carne_moida, charque, fiambre,
+carne_maturada, carnes_temperadas, almondega_kibe, gelatina_colageno,
+apresuntado, paleta_empanados, corned_beef,
+laticinios_geral, queijo_coalho_manteiga, mussarela, leite_uht, leite_pasteurizado,
+doce_de_leite, leite_fermentado, requeijao, leite_em_po, leite_condensado,
+bebida_lactea, soro_leite, leite_aromatizado, composto_lacteo, nata,
+pescado_fresco, pescado_congelado, pescado_salgado, camarao,
+conserva_sardinhas, conserva_peixes, conserva_atuns, lagosta,
+mel, mel_qualidade, apicola_derivados,
+ovos, ovos_pasteurizados,
+aves_geral, outro
+"""
+
+async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dict:
+    """Fase 1: identifica produto, categoria e órgão automaticamente da imagem."""
+    user_content = [
+        {"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
+        {"type": "text", "text": f"Identifique este rótulo.{' Dica: ' + obs if obs else ''} Retorne APENAS o JSON."}
+    ]
+    payload = {
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 300,
+        "temperature": 0,
+        "system": SP_DETECT,
+        "messages": [{"role": "user", "content": user_content}],
+    }
+    headers_api = {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers_api)
+            if r.status_code != 200:
+                return {}
+            text = r.json().get("content", [{}])[0].get("text", "")
+            # Extrai JSON do texto
+            import re as _re
+            m = _re.search(r'\{[\s\S]*\}', text)
+            if m:
+                return json.loads(m.group(0))
+    except Exception:
+        pass
+    return {}
+
 async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = ""):
-    # Detecta categorias e carrega KB relevante
-    categories = detect_categories(obs) if obs else []
+    # ── FASE 1: Detecção automática do produto ──────────────────────────────
+    detected = await detect_product_phase1(image_b64, mime_type, obs)
+
+    # Mescla: detecção automática tem prioridade, obs é fallback
+    produto_detectado = detected.get("produto", "")
+    categoria_detectada = detected.get("categoria_kb", "")
+    orgao_detectado = detected.get("orgao", orgao or "")
+    sigla_sie = detected.get("sigla_sie", "")
+    num_registro = detected.get("numero_registro", "")
+    especie = detected.get("especie", "")
+
+    # Usa orgao do form se usuário especificou explicitamente
+    orgao_final = orgao if orgao else orgao_detectado
+
+    # Combina obs com produto detectado para enriquecer as keywords
+    obs_enriched = f"{obs} {produto_detectado} {categoria_detectada} {especie}".strip()
+    categories = detect_categories(obs_enriched)
+    if categoria_detectada and categoria_detectada in MAPA_URLS and categoria_detectada not in categories:
+        categories.insert(0, categoria_detectada)
+
     kb_text = await get_kb_for_categories(categories) if categories else ""
 
     if kb_text:
@@ -676,27 +870,43 @@ Use como referência primária na validação:
     else:
         kb_section = ""
 
-    # Contexto do órgão de inspeção
-    orgao_context = ""
-    if orgao:
-        orgao_map = {
-            "SIM": "ATENÇÃO: Produto registrado no SIM (Municipal). Verificar conformidade com regulamentação municipal além das normas federais.",
-            "SIE": "ATENÇÃO: Produto registrado no SIE (Estadual). Verificar conformidade com regulamentação estadual além das normas federais.",
-            "SIF": "ATENÇÃO: Produto registrado no SIF (Federal). Aplicar todas as normas federais do MAPA/DIPOA com máximo rigor.",
-        }
-        orgao_context = orgao_map.get(orgao.upper(), "")
+    # Contexto do órgão — usa detecção automática + input do usuário
+    orgao_map = {
+        "SIM": "ATENÇÃO: Produto registrado no SIM (Serviço de Inspeção Municipal). Verificar carimbo oval com sigla 'SIM' e número do município. Exigências municipais somam-se às federais.",
+        "SIE": f"ATENÇÃO: Produto registrado no SIE (Serviço de Inspeção Estadual{' — ' + sigla_sie if sigla_sie else ''}). Verificar carimbo com sigla estadual{' ' + sigla_sie if sigla_sie else ''}. Exigências estaduais somam-se às federais.",
+        "SIF": "ATENÇÃO: Produto registrado no SIF (Serviço de Inspeção Federal — DIPOA/MAPA). Máximo rigor. Verificar carimbo oval com 'SIF' e número do estabelecimento. Produto pode ser comercializado em todo território nacional.",
+    }
+    orgao_context = orgao_map.get(orgao_final.upper(), "")
+
+    # Contexto da detecção automática
+    detection_context = ""
+    if detected:
+        detection_context = f"""## DETECÇÃO AUTOMÁTICA DA FASE 1
+Produto identificado: {produto_detectado}
+Espécie animal: {especie}
+Órgão de inspeção detectado: {orgao_final}
+{f'Sigla SIE: {sigla_sie}' if sigla_sie else ''}
+{f'Número do registro: {num_registro}' if num_registro else ''}
+Confiança da detecção: {detected.get('confianca', 'media')}
+
+Use essas informações como ponto de partida — confirme ou corrija com base no que você vê na imagem.
+---"""
 
     system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
+    if detection_context:
+        system_prompt += f"\n\n{detection_context}"
 
-    user_text = "Analise este rótulo de produto de origem animal e execute os 4 passos obrigatórios. Não pule nenhum dos 12 campos."
+    user_text = "Analise este rótulo com máxima precisão. Execute TODOS os passos. Não pule nenhum campo."
     if obs:
-        user_text += f"\nInformações do produto: {obs}"
+        user_text += f"\nObservação adicional: {obs}"
+    if produto_detectado:
+        user_text += f"\nProduto identificado automaticamente: {produto_detectado}"
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2500,
+        "max_tokens": 3500,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -812,7 +1022,7 @@ async def avaliar_rotulo(
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2500,
+        "max_tokens": 3500,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
