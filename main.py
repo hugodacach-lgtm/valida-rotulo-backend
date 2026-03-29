@@ -982,6 +982,49 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     yield "data: [DONE]\n\n"
 
 
+
+def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
+    """
+    Garante que a imagem tenha resolução adequada para leitura de texto pequeno.
+    - Se menor que 1500px no maior lado → upscale para 1500px
+    - Se maior que 3000px no maior lado → downscale para 3000px (evita payload gigante)
+    - Converte para JPEG para uniformidade e compressão controlada
+    Retorna (bytes, mime_type) processados.
+    """
+    try:
+        from PIL import Image as PILImage
+        img = PILImage.open(io.BytesIO(image_bytes))
+
+        # Converte RGBA/P para RGB
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+
+        w, h = img.size
+        maior = max(w, h)
+
+        # Upscale se muito pequena (texto ilegível)
+        if maior < 1500:
+            scale = 1500 / maior
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            img = img.resize((new_w, new_h), PILImage.LANCZOS)
+
+        # Downscale se muito grande (economiza tokens)
+        elif maior > 3000:
+            scale = 3000 / maior
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            img = img.resize((new_w, new_h), PILImage.LANCZOS)
+
+        # Salva como JPEG com qualidade alta
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92, optimize=True)
+        return buf.getvalue(), "image/jpeg"
+
+    except Exception:
+        # Se Pillow não disponível ou erro, retorna original
+        return image_bytes, mime_type
+
 @app.post("/validar")
 async def validar_rotulo(
     imagem: UploadFile = File(...),
@@ -1015,13 +1058,13 @@ async def validar_rotulo(
             mime_type = "application/pdf"
         else:
             # PDF convertido em imagem — usa primeira página
-            image_b64 = first["b64"]
-            mime_type = first["mime"]
+            raw_bytes = base64.b64decode(first["b64"])
+            processed_bytes, mime_type = preprocess_image(raw_bytes, first["mime"])
+            image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
             # Se tiver múltiplas páginas, junta obs com aviso
             if len(pages) > 1 and not obs:
                 obs = f"PDF com {len(pages)} páginas — analisando página 1 (painel principal)"
     else:
-        image_b64 = base64.b64encode(contents).decode("utf-8")
         mime_map = {
             "image/jpeg": "image/jpeg",
             "image/jpg": "image/jpeg",
@@ -1030,7 +1073,10 @@ async def validar_rotulo(
             "image/gif": "image/gif",
             "image/bmp": "image/jpeg",
         }
-        mime_type = mime_map.get(content_type, "image/jpeg")
+        raw_mime = mime_map.get(content_type, "image/jpeg")
+        # Pré-processa: garante resolução mínima 1500px para leitura de texto
+        processed_bytes, mime_type = preprocess_image(contents, raw_mime)
+        image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
 
     return StreamingResponse(
         stream_validation(image_b64, mime_type, obs, orgao),
