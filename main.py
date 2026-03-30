@@ -110,6 +110,11 @@ MAPA_URLS = {
 
     # ── CÁRNEOS — GAPS FECHADOS ───────────────────────────────────────────
     "pate":                   ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN202000RTcrneosalmondegakibe.pdf"],
+    "prato_pronto_poa":       ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN62001RTcarneospaletasalgadosempanadospresserranopratopronto.pdf"],
+    "funcional_poa":          [
+        "https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-267-de-22-de-setembro-de-2005-13651025",
+        "https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN762018RTleitecrurefrleitepasteuhomogleitefluido.pdf",
+    ],
     "jerked_beef":            ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000RTjerkedbeef.pdf"],
     "carne_sol":              ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN922020RTCharqueCarneSalgadaMidoSalgado.pdf"],
     "frango_inteiro":         ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
@@ -510,6 +515,13 @@ CATEGORIA_KEYWORDS = {
 
     # ── CARNES — GAPS FECHADOS ─────────────────────────────────────────────
     "pate":               ["patê", "pate", "patê de frango", "patê de fígado", "patê de presunto"],
+    "prato_pronto_poa":   ["empanado", "nugget", "steak de frango", "bife empanado", "lasanha",
+                           "lasanha com carne", "croquete", "prato pronto", "semiprontos",
+                           "produto cárneo elaborado", "hambúrguer recheado", "cordon bleu"],
+    "funcional_poa":      ["leite com cálcio", "leite enriquecido", "leite com vitaminas",
+                           "leite com ômega", "ovo enriquecido", "ovo com ômega", "probiótico",
+                           "prebiótico", "lactobacillus", "bifidobacterium", "leite funcional",
+                           "iogurte funcional", "alimento funcional", "reduzido em gordura"],
     "jerked_beef":        ["jerked beef", "jerk beef", "carne bovina salgada", "carne curada"],
     "carne_sol":          ["carne de sol", "carne do sol", "carne sol"],
     "frango_inteiro":     ["frango inteiro", "frango resfriado", "frango congelado", "galeto", "frango caipira"],
@@ -758,17 +770,188 @@ OBSERVAÇÃO: O PR tem exigências mais próximas ao federal.
 Foco principal em procedimentos de registro, não em conteúdo de rótulo."""
 
 # Mapa de Estado → Fallback
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PRATOS PRONTOS POA — RTIQ (IN 6/2001 + Port. 1485/2025)
+# ──────────────────────────────────────────────────────────────────────────────
+PRATO_PRONTO_POA_FALLBACK = """PRODUTOS CÁRNEOS ELABORADOS / PRATOS PRONTOS POA (IN 6/2001 + Port. 1485/2025)
+
+CATEGORIAS COBERTAS: Empanados (nugget, steak, bife empanado), Lasanha com carne,
+Quibe industrializado, Croquete de carne/frango, Hambúrguer recheado, Produto cárneo
+semiprontos para consumo, Frango temperado inteiro/em partes.
+
+DENOMINAÇÃO DE VENDA (Campo 1):
+• Empanados: "Empanado de [espécie]" — ex: "Empanado de Frango", "Empanado Bovino"
+• NÃO pode usar "filé" sem ser músculo inteiro: "Filé de Frango Empanado" exige músculo
+• Nuggets: "Produto Cárneo Reestruturado Empanado de [espécie]" ou denominação consagrada
+• Lasanha: "Lasanha com Carne Bovina" — deve identificar espécie
+• Quibe: "Quibe Industrializado" ou "Kibe" — ambos aceitos pela Port. 1485/2025
+• Croquete: "Croquete de [ingrediente principal]"
+
+LISTA DE INGREDIENTES (Campo 2):
+• Em empanados: declarar "Farinha de trigo" — implica CONTÉM GLÚTEN obrigatório
+• CMS de aves em empanados: declarar "Carne Mecanicamente Separada de Aves (X%)"
+• Proteína de soja em empanados: declarar % entre parênteses — limite máx. 4% (IN 6/2001)
+• Ingredientes compostos (massa, molho): listar subingredientes entre parênteses
+• Corante caramelo: declarar "Corante Caramelo (INS 150)" com classe e INS
+
+TABELA NUTRICIONAL — PORÇÕES PADRÃO (IN 75/2020):
+• Empanados (nugget, steak): porção = 100g (4 unidades médias)
+• Hambúrguer recheado: porção = 80g
+• Lasanha congelada: porção = 300g (1 porção individual)
+• Quibe: porção = 100g (2 unidades)
+• Croquete: porção = 80g (2 unidades)
+
+FAIXAS TACO — PLAUSIBILIDADE NUTRICIONAL POR 100g:
+EMPANADO DE FRANGO (industrializado):
+• kcal: TACO 230-280 | Proteínas: mín 10g (IN 6/2001), típico 14-18g
+• Gorduras totais: típico 12-18g | Carboidratos: típico 14-22g (farinha de trigo)
+• Sódio: típico 500-900mg | Fibra: típico 0,5-2g (farinha)
+
+EMPANADO BOVINO:
+• kcal: TACO 220-270 | Proteínas: mín 10g, típico 13-17g
+• Gorduras totais: típico 12-17g | Carboidratos: típico 12-20g
+• Sódio: típico 500-900mg
+
+NUGGET DE FRANGO:
+• kcal: TACO 240-300 | Proteínas: mín 10g, típico 13-17g
+• Gorduras totais: típico 14-20g | Carboidratos: típico 12-20g
+• Sódio: típico 500-1000mg
+
+LASANHA COM CARNE BOVINA (congelada):
+• kcal: TACO 100-160 | Proteínas: típico 6-10g
+• Gorduras totais: típico 4-9g | Carboidratos: típico 12-20g
+• Sódio: típico 400-700mg
+
+QUIBE / KIBE INDUSTRIALIZADO:
+• kcal: TACO 180-250 | Proteínas: mín 12g, típico 12-17g
+• Gorduras totais: típico 10-18g | Carboidratos: típico 8-14g (trigo integral)
+• Sódio: típico 350-700mg
+
+ALERTA ESPECIAL: carboidratos altos (>8g/100g) em produtos cárneos elaborados
+são normais e esperados — indicam adição de farinha, amido ou proteína vegetal."""
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PRODUTO DUAL MAPA + ANVISA — ALIMENTOS FUNCIONAIS DE ORIGEM ANIMAL
+# ──────────────────────────────────────────────────────────────────────────────
+DUAL_MAPA_ANVISA_FALLBACK = """ALIMENTOS FUNCIONAIS / ENRIQUECIDOS DE ORIGEM ANIMAL
+BASE LEGAL: RDC 267/2003 (alegações funcionais) + RDC 18/1999 (bioativos) + IN MAPA específica
+
+PRODUTOS TÍPICOS COM REGISTRO DUAL:
+• Leite enriquecido com cálcio, ferro, vitaminas A/D, ômega-3 (UHT ou pasteurizado)
+• Ovo enriquecido com ômega-3, vitamina E ou selênio
+• Iogurte com probióticos (Lactobacillus, Bifidobacterium)
+• Queijo com reduzido teor de gordura + fibras adicionadas
+• Leite fermentado funcional (tipo Yakult/Activia)
+
+CAMPO 1 — DENOMINAÇÃO:
+• Produto MAPA: "Leite UHT Integral" / "Iogurte Natural" (denominação técnica obrigatória)
+• Claim funcional ANVISA: pode adicionar na embalagem mas NÃO na denominação técnica
+  ✅ CORRETO: "Leite UHT Integral — Fonte de Cálcio" (claim separado da denominação)
+  ❌ ERRADO: "Leite Cálcio Integral" (modifica a denominação técnica)
+• Probióticos: "Iogurte com [microrganismo]" aceito se souche declarado e viable count comprovado
+
+CAMPO 2 — LISTA DE INGREDIENTES:
+• Nutrientes adicionados: declarar em ordem decrescente normalmente
+• Vitaminas/minerais adicionados: declarar nome completo + função
+  Ex: "Vitamina D (colecalciferol) — antioxidante" ou apenas nome
+• Probióticos: declarar o nome completo do microrganismo
+  Ex: "Fermentos lácteos (Lactobacillus acidophilus, Bifidobacterium lactis)"
+• Ômega-3: declarar fonte — "Óleo de peixe (fonte de ômega-3)"
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Nutrientes objeto de alegação DEVEM ser declarados (obrigatório — RDC 267/2003)
+• Vitaminas e minerais: declarar em mg ou µg + % VD
+• Probióticos UFC: podem ser declarados em nota separada (não na tabela principal)
+• Ômega-3: declarar EPA + DHA separadamente se for o claim
+
+CAMPO 10 — LUPA FRONTAL:
+• Atenção: produto enriquecido com sódio pode acionar lupa "ALTO EM SÓDIO" mesmo sendo
+  produto "saudável" — verificar se sódio ≥600mg/100g mesmo com claims positivos
+
+ALEGAÇÕES PROIBIDAS (RDC 267/2003 Art. 3):
+• "Cura", "trata", "previne" doenças específicas — PROIBIDO
+• "Fortalece o sistema imune" sem substantiação científica — PROIBIDO
+• "Reduz o risco de doenças cardíacas" só se ômega-3 EPA+DHA ≥600mg/porção
+• Probióticos: só "contribui para o equilíbrio da flora intestinal" (alegação aprovada pela ANVISA)
+• Cálcio: "contribui para manutenção de ossos e dentes" (aprovada)"""
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NORMAS SIE — 21 ESTADOS RESTANTES
+# ──────────────────────────────────────────────────────────────────────────────
+SIE_OUTROS_ESTADOS_FALLBACK = """NORMAS SIE — ESTADOS SEM ADIÇÕES RELEVANTES AO FEDERAL
+(AC, AL, AM, AP, CE, DF, ES, GO, MA, MS, MT, PA, PB, PE, PI, RJ, RN, RO, RR, SE, TO)
+
+REGRA GERAL: Todos esses estados adotam as normas federais (MAPA + ANVISA) integralmente
+para conteúdo de rótulo. As diferenças são exclusivamente procedimentais (registro, formulários).
+
+SIGLAS E ÓRGÃOS SIE POR ESTADO:
+• AC (Acre): IDAF-AC — "SIE AC Nº XXXX"
+• AL (Alagoas): ADEAL — "SIE AL Nº XXXX"
+• AM (Amazonas): ADAF-AM — "SIE AM Nº XXXX"
+• AP (Amapá): RURAP-AP — "SIE AP Nº XXXX"
+• BA (Bahia): ADAB — "SIE BA Nº XXXX" | Ativo em pescado e mel
+• CE (Ceará): ADAGRI-CE — "SIE CE Nº XXXX" | Ativo em pescado
+• DF (Distrito Federal): SEAGRI-DF — "SIE DF Nº XXXX"
+• ES (Espírito Santo): IDAF-ES — "SIE ES Nº XXXX"
+• GO (Goiás): AGRODEFESA — "SIE GO Nº XXXX" | Ativo em bovinos
+• MA (Maranhão): AGED-MA — "SIE MA Nº XXXX"
+• MS (Mato Grosso do Sul): IAGRO-MS — "SIE MS Nº XXXX" | Ativo em bovinos
+• MT (Mato Grosso): INDEA-MT — "SIE MT Nº XXXX" | Ativo em bovinos
+• PA (Pará): ADEPARÁ — "SIE PA Nº XXXX" | Ativo em pescado
+• PB (Paraíba): AESA-PB — "SIE PB Nº XXXX"
+• PE (Pernambuco): ADAGRO-PE — "SIE PE Nº XXXX"
+• PI (Piauí): ADAPI-PI — "SIE PI Nº XXXX"
+• RJ (Rio de Janeiro): PESAGRO-RJ / SEAPEC — "SIE RJ Nº XXXX" | Ativo em laticínios e pescado
+• RN (Rio Grande do Norte): IDEMA-RN / EMPARN — "SIE RN Nº XXXX"
+• RO (Rondônia): IDARON — "SIE RO Nº XXXX"
+• RR (Roraima): ADERR — "SIE RR Nº XXXX"
+• SE (Sergipe): EMDAGRO — "SIE SE Nº XXXX"
+• TO (Tocantins): ADAPEC-TO — "SIE TO Nº XXXX"
+
+NOTAS ESPECÍFICAS:
+• BA, PA, CE: produtos de pescado podem ter exigência de declarar "pescado artesanal" ou
+  "pesca artesanal" se oriundo de colônias de pesca registradas — verificar se aplicável
+• GO, MS, MT: bovinos — sem adições ao federal para conteúdo de rótulo
+• RJ: laticínios artesanais fluminenses — mesmas regras de queijo artesanal (leite cru declarado)
+
+CAMPO 8 — CARIMBO SIE:
+• Formato oval obrigatório — IGUAL ao federal
+• Deve conter: sigla do estado + "SIE" + número OR sigla do órgão estadual + número
+  Ex válidos: "SIE RJ 1234", "IAGRO MS 456", "ADAB BA 789"
+• Produtos fabricados nesses estados que circulam APENAS no estado de origem"""
+
+
 SIE_ESTADO_MAP = {
-    "RS": CISPOA_RS_FALLBACK,
-    "CISPOA": CISPOA_RS_FALLBACK,
-    "SP": SISP_SP_FALLBACK,
-    "SISP": SISP_SP_FALLBACK,
-    "MG": IMA_MG_FALLBACK,
-    "IMA": IMA_MG_FALLBACK,
-    "SC": CIDASC_SC_FALLBACK,
-    "CIDASC": CIDASC_SC_FALLBACK,
-    "PR": ADAPAR_PR_FALLBACK,
-    "ADAPAR": ADAPAR_PR_FALLBACK,
+    # Estados com normas específicas relevantes
+    "RS": CISPOA_RS_FALLBACK, "CISPOA": CISPOA_RS_FALLBACK,
+    "SP": SISP_SP_FALLBACK,   "SISP": SISP_SP_FALLBACK,
+    "MG": IMA_MG_FALLBACK,    "IMA": IMA_MG_FALLBACK,
+    "SC": CIDASC_SC_FALLBACK, "CIDASC": CIDASC_SC_FALLBACK,
+    "PR": ADAPAR_PR_FALLBACK, "ADAPAR": ADAPAR_PR_FALLBACK,
+    # 21 estados restantes — normas gerais SIE
+    "AC": SIE_OUTROS_ESTADOS_FALLBACK, "IDAF": SIE_OUTROS_ESTADOS_FALLBACK,
+    "AL": SIE_OUTROS_ESTADOS_FALLBACK, "ADEAL": SIE_OUTROS_ESTADOS_FALLBACK,
+    "AM": SIE_OUTROS_ESTADOS_FALLBACK, "ADAF": SIE_OUTROS_ESTADOS_FALLBACK,
+    "AP": SIE_OUTROS_ESTADOS_FALLBACK, "RURAP": SIE_OUTROS_ESTADOS_FALLBACK,
+    "BA": SIE_OUTROS_ESTADOS_FALLBACK, "ADAB": SIE_OUTROS_ESTADOS_FALLBACK,
+    "CE": SIE_OUTROS_ESTADOS_FALLBACK, "ADAGRI": SIE_OUTROS_ESTADOS_FALLBACK,
+    "DF": SIE_OUTROS_ESTADOS_FALLBACK, "SEAGRI": SIE_OUTROS_ESTADOS_FALLBACK,
+    "ES": SIE_OUTROS_ESTADOS_FALLBACK,
+    "GO": SIE_OUTROS_ESTADOS_FALLBACK, "AGRODEFESA": SIE_OUTROS_ESTADOS_FALLBACK,
+    "MA": SIE_OUTROS_ESTADOS_FALLBACK, "AGED": SIE_OUTROS_ESTADOS_FALLBACK,
+    "MS": SIE_OUTROS_ESTADOS_FALLBACK, "IAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
+    "MT": SIE_OUTROS_ESTADOS_FALLBACK, "INDEA": SIE_OUTROS_ESTADOS_FALLBACK,
+    "PA": SIE_OUTROS_ESTADOS_FALLBACK, "ADEPAR": SIE_OUTROS_ESTADOS_FALLBACK,
+    "PB": SIE_OUTROS_ESTADOS_FALLBACK,
+    "PE": SIE_OUTROS_ESTADOS_FALLBACK, "ADAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
+    "PI": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPI": SIE_OUTROS_ESTADOS_FALLBACK,
+    "RJ": SIE_OUTROS_ESTADOS_FALLBACK, "PESAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
+    "RN": SIE_OUTROS_ESTADOS_FALLBACK,
+    "RO": SIE_OUTROS_ESTADOS_FALLBACK, "IDARON": SIE_OUTROS_ESTADOS_FALLBACK,
+    "RR": SIE_OUTROS_ESTADOS_FALLBACK, "ADERR": SIE_OUTROS_ESTADOS_FALLBACK,
+    "SE": SIE_OUTROS_ESTADOS_FALLBACK, "EMDAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
+    "TO": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPEC": SIE_OUTROS_ESTADOS_FALLBACK,
 }
 
 async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
@@ -1484,6 +1667,60 @@ VITAMINAS/MINERAIS (complexo multivitamínico):
 • Vitaminas lipossolúveis (A, D, E, K): podem ser perigosas em excesso — verificar se % VD < 300%
 
 ━━━ PRODUTOS VEGETAIS E INDUSTRIALIZADOS — GAPS POA ━━━━━
+━━━ PRATOS PRONTOS E ELABORADOS POA ━━━━━━━━━━━━━━━━━━
+⚠️ ATENÇÃO: Em produtos cárneos elaborados (empanados, lasanha, pratos prontos),
+carboidratos altos (>8g/100g) são NORMAIS e esperados — indicam farinha e amido adicionados.
+Não alertar como inconsistência. Verificar % VD na tabela.
+
+EMPANADO DE FRANGO (nugget, steak, filé):
+• kcal: TACO 230-290 | Proteínas: mín 10g RTIQ (IN 6/2001), típico TACO 13-18g
+• Gorduras totais: típico TACO 12-18g | Carboidratos: típico TACO 14-22g (normal — farinha)
+• Sódio: típico TACO 500-950mg
+
+EMPANADO BOVINO:
+• kcal: TACO 220-270 | Proteínas: mín 10g RTIQ, típico TACO 12-17g
+• Gorduras totais: típico TACO 11-17g | Carboidratos: típico TACO 12-20g
+• Sódio: típico TACO 500-900mg
+
+NUGGET DE FRANGO (reestruturado):
+• kcal: TACO 240-300 | Proteínas: mín 10g RTIQ, típico TACO 12-16g
+• Gorduras totais: típico TACO 14-20g | Carboidratos: típico TACO 12-20g
+• Sódio: típico TACO 500-1000mg
+
+LASANHA COM CARNE BOVINA/FRANGO (congelada):
+• kcal: TACO 100-160 | Proteínas: típico TACO 6-10g
+• Gorduras totais: típico TACO 4-9g | Carboidratos: típico TACO 12-20g
+• Sódio: típico TACO 400-700mg
+
+QUIBE / KIBE INDUSTRIALIZADO:
+• kcal: TACO 180-250 | Proteínas: mín 12g, típico TACO 12-17g
+• Gorduras totais: típico TACO 10-18g | Carboidratos: típico TACO 8-14g
+• Sódio: típico TACO 350-700mg
+
+CROQUETE DE CARNE:
+• kcal: TACO 200-280 | Proteínas: típico TACO 8-13g
+• Gorduras totais: típico TACO 10-18g | Carboidratos: típico TACO 15-25g
+• Sódio: típico TACO 400-800mg
+
+━━━ ALIMENTOS FUNCIONAIS DE ORIGEM ANIMAL ━━━━━━━━━━━━
+LEITE ENRIQUECIDO (cálcio, vitaminas, ômega-3):
+• kcal: TACO 55-70 (similar ao leite base) | Proteínas: típico TACO 3,0-3,5g
+• Verificar se nutrientes objeto de alegação estão DECLARADOS NA TABELA (obrigatório RDC 267/2003)
+• Vitaminas A/D: em µg ou UI | Cálcio: em mg com % VD
+
+OVO ENRIQUECIDO (ômega-3, vitamina E):
+• kcal/composição: similar ao ovo padrão (TACO 138-148 kcal)
+• Verificar se EPA+DHA ou vitamina E declarados na tabela se forem objeto de claim
+
+IOGURTE COM PROBIÓTICOS:
+• kcal/composição: similar ao iogurte padrão (TACO 58-70 kcal)
+• Verificar: alegação "contribui para equilíbrio da flora intestinal" é aprovada pela ANVISA
+• NÃO aceito: "fortalece imunidade", "previne infecções" — proibidos pela RDC 267/2003
+
+LEITE FERMENTADO FUNCIONAL:
+• kcal: TACO 55-80 | Proteínas: típico TACO 3,0-4,0g
+• Verificar UFC/porção se declarado — mín. 10⁸ UFC/porção para alegação probiótica (ANVISA)
+
 ━━━ PRODUTOS CÁRNEOS — GAPS POA ━━━━━━━━━━━━━━━━━━━━━━━
 PATÊ (IN 20/2000 + Almôndega/Kibe):
 • kcal: TACO 180-280 | Proteínas: mín 8g típico TACO 10-18g
@@ -2147,6 +2384,20 @@ Use como referência primária na validação:
     }
     orgao_context = orgao_map.get(orgao_final.upper(), "")
 
+    # Injetar contexto de alimento funcional dual MAPA+ANVISA quando detectado
+    funcional_context = ""
+    if any(kw in obs.lower() for kw in ["funcional", "probiótico", "probiotico", "enriquecido",
+                                          "ômega", "omega", "lactobacillus", "bifidobacterium",
+                                          "vitamina d", "vitamina a", "reduzido em", "light", "zero"]):
+        funcional_context = f"\n\n## ALIMENTO FUNCIONAL / DUAL MAPA+ANVISA\n{DUAL_MAPA_ANVISA_FALLBACK}"
+
+    # Injetar contexto de prato pronto POA quando detectado
+    prato_pronto_context = ""
+    if any(kw in obs.lower() for kw in ["empanado", "nugget", "lasanha", "croquete",
+                                          "prato pronto", "semiprontos", "cordon bleu",
+                                          "steak", "hamburguer recheado"]):
+        prato_pronto_context = f"\n\n## PRATO PRONTO / PRODUTO CÁRNEO ELABORADO\n{PRATO_PRONTO_POA_FALLBACK}"
+
     # Injetar norma estadual SIE quando estado detectado
     sie_context = ""
     if orgao_final.upper() == "SIE" and sigla_sie:
@@ -2181,6 +2432,10 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += f"\n\n{orgao_context}"
     if sie_context:
         system_prompt += sie_context
+    if funcional_context:
+        system_prompt += funcional_context
+    if prato_pronto_context:
+        system_prompt += prato_pronto_context
     if detection_context:
         system_prompt += f"\n\n{detection_context}"
 
