@@ -401,31 +401,57 @@ async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
 
 async def pdf_to_images_b64(pdf_bytes: bytes) -> list[dict]:
     """
-    Converte PDF para lista de imagens base64.
-    Cada item: {"b64": str, "mime": "image/png", "page": int}
-    Tenta com pypdf primeiro (extrai páginas como imagens via pillow/fitz).
-    Fallback: envia PDF diretamente como document para a API Anthropic.
+    Converte PDF para imagens PNG em alta resolução (300 DPI).
+    Trata PDFs CMYK (artes gráficas) convertendo para RGB.
+    Estratégias em ordem de preferência:
+    1. PyMuPDF (fitz) — melhor qualidade, suporte CMYK nativo
+    2. pdftoppm (Poppler) — 300 DPI, boa qualidade
+    3. PDF nativo via Anthropic — fallback final
     """
-    pages = []
+    import subprocess, tempfile, os as _os, glob as _glob
 
-    # Método 1: Tentar extrair páginas como imagens com pdf2image/pillow
+    # ── Método 1: PyMuPDF (fitz) ─────────────────────────────────────────
     try:
-        import subprocess, tempfile, os as _os
-        # Tenta usar pdftoppm (poppler) que pode estar disponível no Render
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        pages = []
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # 300 DPI = zoom 4.17 (72 DPI padrão × 4.17 = 300)
+            mat = fitz.Matrix(4.17, 4.17)
+            # Renderiza em RGB (converte CMYK automaticamente)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB, alpha=False)
+            img_bytes = pix.tobytes("png")
+            pages.append({
+                "b64": base64.b64encode(img_bytes).decode(),
+                "mime": "image/png",
+                "page": page_num + 1
+            })
+        doc.close()
+        if pages:
+            return pages
+    except ImportError:
+        pass  # PyMuPDF não instalado, tenta próximo método
+    except Exception:
+        pass
+
+    # ── Método 2: pdftoppm (Poppler) a 300 DPI ───────────────────────────
+    try:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             tmp.write(pdf_bytes)
             tmp_path = tmp.name
 
         out_prefix = tmp_path.replace(".pdf", "_page")
         result = subprocess.run(
-            ["pdftoppm", "-png", "-r", "150", tmp_path, out_prefix],
-            capture_output=True, timeout=30
+            ["pdftoppm", "-png", "-r", "300", tmp_path, out_prefix],
+            capture_output=True, timeout=60
         )
         _os.unlink(tmp_path)
 
         if result.returncode == 0:
-            import glob
-            page_files = sorted(glob.glob(out_prefix + "*.png"))
+            page_files = sorted(_glob.glob(out_prefix + "*.png"))
+            pages = []
             for i, pf in enumerate(page_files):
                 with open(pf, "rb") as f:
                     img_b64 = base64.b64encode(f.read()).decode()
@@ -436,8 +462,7 @@ async def pdf_to_images_b64(pdf_bytes: bytes) -> list[dict]:
     except Exception:
         pass
 
-    # Método 2: Enviar PDF direto como document (Anthropic suporta PDF nativo)
-    # Retorna lista especial indicando envio como documento
+    # ── Método 3: PDF nativo (fallback) ──────────────────────────────────
     pdf_b64 = base64.b64encode(pdf_bytes).decode()
     return [{"b64": pdf_b64, "mime": "application/pdf", "page": 0, "is_pdf": True}]
 
@@ -1061,13 +1086,40 @@ async def validar_rotulo(
             image_b64 = first["b64"]
             mime_type = "application/pdf"
         else:
-            # PDF convertido em imagem — usa primeira página
-            raw_bytes = base64.b64decode(first["b64"])
-            processed_bytes, mime_type = preprocess_image(raw_bytes, first["mime"])
+            # PDF convertido em imagens — mescla todas as páginas numa única imagem vertical
+            # Isso garante que o agente veja frente E verso do rótulo
+            from PIL import Image as _PIL
+            page_imgs = []
+            for pg in pages:
+                raw_bytes = base64.b64decode(pg["b64"])
+                proc_bytes, _ = preprocess_image(raw_bytes, pg["mime"])
+                page_imgs.append(_PIL.open(io.BytesIO(proc_bytes)))
+
+            if len(page_imgs) == 1:
+                # Página única — usa direto
+                buf = io.BytesIO()
+                page_imgs[0].save(buf, "JPEG", quality=95)
+                processed_bytes = buf.getvalue()
+            else:
+                # Múltiplas páginas — empilha verticalmente com separador
+                total_w = max(img.width for img in page_imgs)
+                sep = 20  # pixels de separação entre páginas
+                total_h = sum(img.height for img in page_imgs) + sep * (len(page_imgs) - 1)
+                merged = _PIL.new("RGB", (total_w, total_h), (200, 200, 200))
+                y_offset = 0
+                for img in page_imgs:
+                    # Centraliza horizontalmente se larguras diferentes
+                    x_offset = (total_w - img.width) // 2
+                    merged.paste(img, (x_offset, y_offset))
+                    y_offset += img.height + sep
+                buf = io.BytesIO()
+                merged.save(buf, "JPEG", quality=95)
+                processed_bytes = buf.getvalue()
+
+            mime_type = "image/jpeg"
             image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
-            # Se tiver múltiplas páginas, junta obs com aviso
-            if len(pages) > 1 and not obs:
-                obs = f"PDF com {len(pages)} páginas — analisando página 1 (painel principal)"
+            if len(pages) > 1:
+                obs = (obs + " " if obs else "") + f"[PDF com {len(pages)} páginas — frente e verso incluídos na análise]"
     else:
         mime_map = {
             "image/jpeg": "image/jpeg",
