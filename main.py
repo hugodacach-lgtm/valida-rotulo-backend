@@ -9,7 +9,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="ValidaRótulo IA v6 — KB Expandida POA")
+app = FastAPI(title="ValidaRótulo IA v7 — Cobertura Universal: POA + Vegetais + Bebidas + Suplementos")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -108,6 +108,25 @@ MAPA_URLS = {
     "mel_qualidade":          ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN112000RTmeldequal.pdf"],
     "apicola_derivados":      ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN032001RTapitoxinacerageleiarealpropolis.pdf"],
 
+    # ── CÁRNEOS — GAPS FECHADOS ───────────────────────────────────────────
+    "pate":                   ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN202000RTcrneosalmondegakibe.pdf"],
+    "jerked_beef":            ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000RTjerkedbeef.pdf"],
+    "carne_sol":              ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN922020RTCharqueCarneSalgadaMidoSalgado.pdf"],
+    "frango_inteiro":         ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
+
+    # ── LATICÍNIOS — GAPS FECHADOS ────────────────────────────────────────
+    "queijo_suico_gruyere":   ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port1461996RTqueijomanteigacremedeleitegorduralctealeitefluido.pdf"],
+    "queijo_gouda_edam":      ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port1461996RTqueijomanteigacremedeleitegorduralctealeitefluido.pdf"],
+    "creme_azedo":            ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN232012RTnata.pdf"],
+    "miudos_visceras":        ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
+    "peru_pato":              ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port14852025PadrocategoriaenomeclaturaPOA.pdf"],
+    "leite_cabra":            ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port1461996RTqueijomanteigacremedeleitegorduralctealeitefluido.pdf"],
+    "ovo_codorna":            ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port012020RTovosdemesadeovosparasementeovoscaipiras.pdf"],
+    "queijo_provolone":       ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN732020RTqueijoprovolone.pdf"],
+    "queijo_brie_camembert":  ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port1461996RTqueijomanteigacremedeleitegorduralctealeitefluido.pdf"],
+    "bebida_lactea":          ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN162005RTbebidalactea.pdf"],
+    "composto_lacteo":        ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN282007RTcompostolacteo.pdf"],
+
     # ── OVOS ADICIONAIS ─────────────────────────────────────────────────────
     "ovos_pasteurizados":     ["https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/Port7282022RTovointegralpasteurizadodesidratado.pdf"],
 
@@ -185,6 +204,69 @@ MAPA_URLS = {
 
     # ── MAPA — BEBIDAS ─────────────────────────────────────────────────────
     "bebidas_dec6871":        ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+
+    # ════════════════════════════════════════════════════════════════════════
+    # CATEGORIAS NÃO-POA — ANVISA + MAPA (FASE 2)
+    # ════════════════════════════════════════════════════════════════════════
+
+    # ── CEREAIS, PÃES, MASSAS, BISCOITOS ─────────────────────────────────
+    "cereais_pao_massa":      ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-711-de-1-de-julho-de-2022-413249064"],
+    "alimentos_integrais":    ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-712-de-1-de-julho-de-2022-413249083"],
+    "farinhas_amidos":        ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-711-de-1-de-julho-de-2022-413249064"],
+    "biscoito_bolacha":       ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-711-de-1-de-julho-de-2022-413249064"],
+    "macarrao_massa":         ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-711-de-1-de-julho-de-2022-413249064"],
+
+    # ── ÓLEOS E GORDURAS ─────────────────────────────────────────────────
+    "oleos_gorduras":         ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf"],
+    "azeite_oliva":           ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf"],
+    "margarina":              ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf"],
+
+    # ── AÇÚCAR, MEL VEGETAL E PRODUTOS AÇUCARADOS ───────────────────────
+    "acucar_derivados":       ["https://www.planalto.gov.br/ccivil_03/decreto-lei/del0986.htm"],
+    "chocolate_cacau":        ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+264_2005.pdf"],
+    "doces_geleias":          ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf"],
+    "sorvete_gelado":         ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+266_2005.pdf"],
+
+    # ── FRUTAS, HORTALIÇAS E CONSERVAS ───────────────────────────────────
+    "conservas_vegetais":     ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf"],
+    "frutas_processadas":     ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf"],
+    "cogumelos":              ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf"],
+
+    # ── CONDIMENTOS, MOLHOS E TEMPEROS ───────────────────────────────────
+    "condimentos_temperos":   ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf"],
+    "molhos_ketchup":         ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf"],
+    "vinagre":                ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+278_2005.pdf"],
+    "cafe_cevada_cha":        ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf"],
+
+    # ── LEGUMINOSAS E GRÃOS ──────────────────────────────────────────────
+    "leguminosas_graos":      ["https://www.planalto.gov.br/ccivil_03/decreto-lei/del0986.htm"],
+    "feijao_ervilha_graos":   ["https://www.planalto.gov.br/ccivil_03/decreto-lei/del0986.htm"],
+
+    # ── BEBIDAS (expansão) ────────────────────────────────────────────────
+    "suco_néctar":            ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    "refrigerante":           ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    "agua_mineral":           ["https://www.planalto.gov.br/ccivil_03/leis/l9433.htm"],
+    "cerveja":                ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    "vinho":                  ["https://www.planalto.gov.br/ccivil_03/leis/l7678.htm"],
+    "cachaça_destilados":     ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    "bebida_energetica":      ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-727-de-1-de-julho-de-2022-413249279"],
+    "isotonica":              ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-727-de-1-de-julho-de-2022-413249279"],
+
+    # ── SUPLEMENTOS ALIMENTARES ──────────────────────────────────────────
+    "suplementos_rdc243_v2":  ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
+    "suplementos_in28_v2":    ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-28-de-26-de-julho-de-2018-41232253"],
+    "proteina_po":            ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
+    "vitaminas_minerais":     ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
+
+    # ── ALIMENTOS PARA FINS ESPECIAIS ────────────────────────────────────
+    "dieta_diabetico":        ["https://antigo.anvisa.gov.br/documents/33916/392655/resolucao+29-98.pdf"],
+    "formula_infantil":       ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-241-de-26-de-julho-de-2018-41232198"],
+    "alimento_celíaco":       ["https://www.planalto.gov.br/ccivil_03/leis/2003/l10.674.htm"],
+
+    # ── SNACKS, SALGADINHOS E INDUSTRIALIZADOS MISTOS ───────────────────
+    "salgadinhos_snacks":     ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-711-de-1-de-julho-de-2022-413249064"],
+    "barrinha_cereal":        ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+263_2005.pdf"],
+    "amendoim_castanhas":     ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf"],
 }
 _kb_cache: dict = {}
 
@@ -301,8 +383,105 @@ CATEGORIA_KEYWORDS = {
     "queijo_provolone": ["queijo provolone", "provolone"],
     "queijo_fundido":   ["queijo fundido", "queijo processado", "queijo cremoso"],
 
-    # Carnes extras
-    "pate_bacon_copa":  ["patê", "pate", "copa"],
+    # ════════════════════════════════════════════════════════════════════
+    # CATEGORIAS NÃO-POA (Fase 2)
+    # ════════════════════════════════════════════════════════════════════
+
+    # ── CEREAIS, PÃES, MASSAS, BISCOITOS ─────────────────────────────────
+    "cereais_pao_massa":   ["pão", "pao", "bisnaguinha", "baguete", "macarrão", "macarrao",
+                            "massa", "espaguete", "lasanha", "arroz", "aveia", "granola",
+                            "muesli", "cereal matinal", "biscoito", "bolacha", "wafer",
+                            "crackers", "torrada"],
+    "farinhas_amidos":     ["farinha de trigo", "farinha de milho", "farinha de arroz",
+                            "amido de milho", "maisena", "fécula", "polvilho", "tapioca",
+                            "fubá", "farelo", "flocos"],
+    "biscoito_bolacha":    ["biscoito", "bolacha", "wafer", "cookie", "crackers"],
+    "macarrao_massa":      ["macarrão", "macarrao", "massa", "espaguete", "penne",
+                            "fusilli", "lasanha", "talharim", "nhoque"],
+    "alimentos_integrais": ["integral", "grão inteiro", "cereal integral", "pão integral",
+                            "farinha integral", "macarrão integral"],
+
+    # ── ÓLEOS, GORDURAS E MARGARINAS ─────────────────────────────────────
+    "oleos_gorduras":      ["óleo", "oleo", "gordura vegetal", "óleo de soja",
+                            "óleo de girassol", "óleo de canola", "óleo de milho",
+                            "óleo de palma", "óleo de coco"],
+    "azeite_oliva":        ["azeite", "azeite de oliva", "olive oil", "azeite extra virgem"],
+    "margarina":           ["margarina", "creme vegetal", "gordura vegetal culinária"],
+
+    # ── AÇÚCAR E PRODUTOS AÇUCARADOS ─────────────────────────────────────
+    "acucar_derivados":    ["açúcar", "acucar", "açúcar refinado", "açúcar cristal",
+                            "açúcar mascavo", "açúcar demerara", "rapadura", "melado"],
+    "chocolate_cacau":     ["chocolate", "cacau", "achocolatado", "creme de avelã",
+                            "trufas", "bombom"],
+    "doces_geleias":       ["geleia", "compota", "doce de frutas", "marmelada",
+                            "goiabada", "pasta de amendoim"],
+    "sorvete_gelado":      ["sorvete", "picolé", "picole", "gelato", "frozen", "sorbet"],
+
+    # ── FRUTAS, HORTALIÇAS E CONSERVAS ───────────────────────────────────
+    "conservas_vegetais":  ["conserva", "picles", "ervilha enlatada", "milho enlatado",
+                            "tomate pelado", "extrato de tomate", "polpa de tomate",
+                            "palmito", "azeitona"],
+    "frutas_processadas":  ["polpa de fruta", "purê de fruta", "fruta desidratada",
+                            "fruta seca", "uva passa", "banana passa"],
+    "cogumelos":           ["cogumelo", "shitake", "champignon", "funghi"],
+
+    # ── CONDIMENTOS, MOLHOS E TEMPEROS ───────────────────────────────────
+    "condimentos_temperos":["tempero", "condimento", "pimenta", "colorau", "urucum",
+                            "alho em pó", "cebola em pó", "curry", "curcuma", "canela",
+                            "cominho", "páprica", "sal temperado", "caldo em cubo",
+                            "caldo em pó", "sazon"],
+    "molhos_ketchup":      ["molho", "ketchup", "maionese", "mostarda", "shoyu",
+                            "molho de soja", "molho inglês", "molho barbecue", "pesto"],
+    "vinagre":             ["vinagre", "aceto", "vinagre de maçã", "vinagre balsâmico"],
+    "cafe_cevada_cha":     ["café", "cafe", "nescafé", "espresso", "cevada",
+                            "chá", "cha", "erva mate", "mate", "camomila"],
+
+    # ── LEGUMINOSAS E GRÃOS ──────────────────────────────────────────────
+    "leguminosas_graos":   ["feijão", "feijao", "lentilha", "grão de bico", "ervilha",
+                            "fava", "quinoa", "trigo em grão"],
+    "feijao_ervilha_graos":["feijão carioca", "feijão preto", "feijão branco",
+                            "grão de bico", "lentilha vermelha"],
+
+    # ── BEBIDAS ──────────────────────────────────────────────────────────
+    "suco_néctar":         ["suco", "néctar", "nectar", "suco de laranja", "suco de uva",
+                            "suco integral", "néctar de fruta", "refresco", "polpa de açaí"],
+    "refrigerante":        ["refrigerante", "coca-cola", "pepsi", "guaraná", "fanta",
+                            "sprite", "água tônica", "cola"],
+    "agua_mineral":        ["água mineral", "agua mineral", "água com gás",
+                            "água saborizada", "água aromatizada"],
+    "cerveja":             ["cerveja", "chope", "lager", "ale", "pilsen", "ipa", "stout",
+                            "weiss", "cerveja sem álcool", "cerveja zero"],
+    "vinho":               ["vinho", "espumante", "champagne", "prosecco",
+                            "vinho tinto", "vinho branco", "vinho rosé"],
+    "cachaça_destilados":  ["cachaça", "cachaca", "pinga", "aguardente", "vodka",
+                            "rum", "whisky", "gin", "tequila", "conhaque", "licor"],
+    "bebida_energetica":   ["energético", "energetico", "red bull", "monster",
+                            "energy drink", "bebida energizante"],
+    "isotonica":           ["isotônico", "isotonico", "gatorade", "powerade",
+                            "bebida esportiva", "bebida hidratante"],
+
+    # ── SUPLEMENTOS ALIMENTARES ──────────────────────────────────────────
+    "proteina_po":         ["whey", "proteína em pó", "proteina em po", "proteína isolada",
+                            "proteína concentrada", "caseína", "albumina",
+                            "proteína vegetal", "proteína de ervilha"],
+    "vitaminas_minerais":  ["vitamina c", "vitamina d", "vitamina b12", "complexo b",
+                            "multivitamínico", "zinco", "magnésio", "ômega 3",
+                            "fish oil", "colágeno hidrolisado"],
+    "suplementos_rdc243_v2":["suplemento", "bcaa", "creatina", "glutamina",
+                              "termogênico", "pre-treino", "hipercalórico"],
+    "dieta_diabetico":     ["diet", "zero açúcar", "sem açúcar adicionado", "diabético"],
+    "formula_infantil":    ["fórmula infantil", "formula infantil", "leite maternizado"],
+
+    # ── SNACKS E INDUSTRIALIZADOS MISTOS ────────────────────────────────
+    "salgadinhos_snacks":  ["salgadinho", "snack", "chips", "doritos", "cheetos",
+                            "batata frita", "amendoim crocante"],
+    "barrinha_cereal":     ["barra de cereal", "barrinha", "granola bar",
+                            "barra de proteína"],
+    "amendoim_castanhas":  ["amendoim", "castanha", "nozes", "amêndoa", "amendoa",
+                            "macadâmia", "avelã", "pistache", "mix de nuts"],
+
+    # Carnes extras (mantido)
+    "pate_bacon_copa":     ["patê", "pate", "copa"],
     "paleta_empanados_presunto_serrano": ["paleta cozida", "empanado", "nugget", "presunto serrano"],
     "corned_beef_conserva": ["corned beef", "carne enlatada", "carne em conserva"],
 
@@ -329,10 +508,79 @@ CATEGORIA_KEYWORDS = {
     # Ovos derivados
     "ovos_derivados":     ["ovo pasteurizado", "ovo desidratado", "ovo integral pasteurizado", "ovoproduto"],
 
-    # Carnes extras
-    "pate_bacon_copa":    ["patê", "pate"],
+    # ── CARNES — GAPS FECHADOS ─────────────────────────────────────────────
+    "pate":               ["patê", "pate", "patê de frango", "patê de fígado", "patê de presunto"],
+    "jerked_beef":        ["jerked beef", "jerk beef", "carne bovina salgada", "carne curada"],
+    "carne_sol":          ["carne de sol", "carne do sol", "carne sol"],
+    "frango_inteiro":     ["frango inteiro", "frango resfriado", "frango congelado", "galeto", "frango caipira"],
+    "miudos_visceras":    ["fígado", "figado", "coração bovino", "coracao bovino", "rim bovino", "língua bovina",
+                           "lingua bovina", "bucho", "mocotó", "mocoto", "tutano", "rabo bovino",
+                           "moela", "coração de frango", "fígado de frango", "figado de frango", "miúdo", "miudo"],
+    "peru_pato":          ["peru", "peito de peru", "coxa de peru", "pato", "carne de pato", "pato inteiro"],
+    "leite_cabra":        ["leite de cabra", "queijo de cabra", "iogurte de cabra"],
+    "ovo_codorna":        ["ovo de codorna", "ovos de codorna"],
+    "queijo_brie_camembert": ["brie", "camembert", "queijo brie", "queijo camembert"],
+    "queijo_provolone":   ["provolone", "queijo provolone"],
     "paleta_salgada":     ["paleta cozida", "empanado", "nugget", "presunto serrano", "prato pronto"],
     "corned_beef":        ["corned beef", "carne enlatada", "carne em conserva"],
+
+    # ── LATICÍNIOS — GAPS FECHADOS ─────────────────────────────────────────
+    "queijo_suico_gruyere":["queijo suíço", "queijo suico", "gruyère", "gruyere", "emmental", "emental"],
+    "queijo_gouda_edam":   ["gouda", "edam", "queijo holandês", "queijo holandes"],
+    "creme_azedo":         ["creme azedo", "sour cream", "crème fraîche"],
+    "bebida_lactea":       ["bebida láctea", "bebida lactea", "iogurte bebível", "iogurte para beber"],
+    "composto_lacteo":     ["composto lácteo", "composto lacteo", "alimento lácteo composto"],
+
+    # ── PESCADO — REGIONAIS E GAPS ─────────────────────────────────────────
+    "pescado_fresco":      ["peixe", "pescado", "tilápia", "tilapia", "salmão", "salmao", "atum",
+                            "sardinha", "merluza", "badejo", "pintado", "dourado", "robalo", "tainha",
+                            "corvina", "pacu", "tambaqui", "pirarucu", "surubim", "garoupa",
+                            "linguado", "pescada", "cação", "cacao", "tubarão"],
+
+    # ════════════════════════════════════════════════════════════════════════
+    # NÃO-POA — PRODUTOS VEGETAIS, INDUSTRIALIZADOS, BEBIDAS, SUPLEMENTOS
+    # ════════════════════════════════════════════════════════════════════════
+    "cereais_rdc711":          ["arroz branco", "milho", "fubá", "fuba", "amido de milho",
+                                "farinha de trigo", "farinha de milho", "farinha de arroz",
+                                "flocos de aveia", "flocos de milho", "aveia em flocos",
+                                "canjica", "quirera", "pipoca", "polenta"],
+    "cereais_integrais_rdc712":["integral", "grão inteiro", "grain", "farelo de trigo",
+                                "farelo de aveia", "farinha integral", "cereal integral"],
+    "frutas_hortalicas_rdc714":["conserva de legume", "palmito", "milho em conserva",
+                                "ervilha em conserva", "tomate pelado", "extrato de tomate",
+                                "purê de tomate", "passata", "molho de tomate",
+                                "picles", "azeitona", "alcaparra"],
+    "acucares_rdc713":         ["açúcar cristal", "açúcar refinado", "açúcar demerara",
+                                "açúcar mascavo", "açúcar orgânico", "açúcar impalpável",
+                                "rapadura", "melado", "melaço"],
+    "oleos_gorduras_rdc270":   ["óleo de soja", "oleo de soja", "óleo de girassol",
+                                "óleo de canola", "óleo de milho", "azeite de oliva",
+                                "azeite extra virgem", "óleo de côco", "gordura vegetal",
+                                "banha", "gordura de palma", "margarina", "creme vegetal"],
+    "sucos_nectares_in49":     ["suco de", "néctar de", "nectar de", "refresco de",
+                                "bebida de fruta", "suco integral", "suco concentrado",
+                                "polpa de fruta", "smoothie"],
+    "cerveja_in14":            ["cerveja", "chope", "chopp", "ale", "lager", "pilsen",
+                                "weiss", "weizen", "ipa", "stout", "porter", "bock",
+                                "cerveja artesanal", "craft beer"],
+    "vinho_lei7678":           ["vinho tinto", "vinho branco", "vinho rosé", "vinho rose",
+                                "espumante", "champagne", "prosecco", "cava",
+                                "vinho frisante", "vinho licoroso", "vinho do porto"],
+    "suplementos_rdc243":      ["suplemento alimentar", "whey protein", "whey concentrado",
+                                "whey isolado", "creatina", "bcaa", "aminoácido essencial",
+                                "colágeno hidrolisado", "multivitamínico", "termogênico",
+                                "pré-treino", "pre-treino", "hipercalórico", "mass gainer",
+                                "albumina", "caseína", "caseina", "proteína vegetal em pó"],
+    "suplementos_proteinas":   ["proteína em pó", "proteina em po", "proteína concentrada",
+                                "proteína isolada", "blend proteico"],
+    "regularizacao_rdc843":    ["biscoito", "bolacha", "cookie", "wafer",
+                                "chocolate", "barra de chocolate", "bombom", "trufa",
+                                "sorvete", "gelado", "picolé", "bolo", "torta",
+                                "macarrão instantâneo", "lamen", "lámen", "ramen",
+                                "salgadinho", "chips", "snack", "barra de cereal",
+                                "ketchup", "mostarda industrial", "maionese",
+                                "molho shoyu", "shoyu", "molho inglês",
+                                "fermento", "levedura", "extrato de levedura"],
 }
 
 def detect_categories(obs: str) -> list[str]:
@@ -376,6 +624,153 @@ PARA POA (embutidos defumados, bacon, linguiça, charque):
 - Aroma de defumação artificial → declarar como "Aromatizante artificial"
 - Extrato de fumaça, fumaça condensada: idem, declarar função + classificação"""
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NORMAS ESTADUAIS SIE — DIFERENÇAS EM RELAÇÃO AO FEDERAL
+# Base: manuais CISPOA-RS, SISP-SP, IMA-MG, CIDASC-SC, ADAPAR-PR
+# Conteúdo de rótulo federal (MAPA + ANVISA) aplica-se integralmente a todos.
+# O que está aqui são adições/especificidades estaduais.
+# ══════════════════════════════════════════════════════════════════════════════
+
+CISPOA_RS_FALLBACK = """NORMAS COMPLEMENTARES CISPOA-RS (Coordenadoria de Inspeção de Produtos de Origem Animal - RS)
+
+BASE LEGAL: Decreto Estadual RS nº 37.106/1996 + Portarias CISPOA vigentes.
+
+DIFERENÇAS DO FEDERAL:
+1. DENOMINAÇÃO DE VENDA:
+   • O RS exige que a denominação inclua OBRIGATORIAMENTE a espécie animal por extenso (ex: "Linguiça Suína Frescal", não apenas "Linguiça Frescal")
+   • Queijos artesanais: deve constar "Artesanal" na denominação se produzido artesanalmente
+
+2. IDENTIFICAÇÃO DO FABRICANTE:
+   • Além do federal, deve constar o número de registro no CISPOA no formato: "CISPOA/RS Nº XXXX" 
+   • Estabelecimentos de agricultura familiar: aceita CPF ao invés de CNPJ + menção "Agricultura Familiar"
+
+3. CAMPO SIE (específico RS):
+   • Carimbo oval com: "SIE/RS" + número ou "CISPOA" + número
+   • Sigla aceita: "SIE RS", "CISPOA RS", "INPOA RS"
+   • Alguns selos mais antigos usam apenas número — aceitar se oval e legível
+
+4. LATICÍNIOS ARTESANAIS RS:
+   • Queijos artesanais com maturação: prazo de validade diferenciado (Lei Estadual RS 15.136/2018)
+   • "Queijo Artesanal" deve mencionar município/região de origem se for indicação geográfica
+   • Não exige tabela nutricional para queijos artesanais com superfície ≤100cm² (mesma isenção federal)
+
+5. PRODUTOS DE PESCADO RS:
+   • Pescado de piscicultura gaúcha: pode incluir menção opcional "Piscicultura Gaúcha"
+   • Mesmas exigências federais para tabela nutricional e alérgenos
+
+OBSERVAÇÃO: Para rotulagem federal (SIF), o CISPOA não adiciona requisitos de conteúdo. 
+As adições acima são exclusivas para produtos com registro CISPOA."""
+
+SISP_SP_FALLBACK = """NORMAS COMPLEMENTARES SISP-SP (Serviço de Inspeção do Estado de São Paulo)
+
+BASE LEGAL: Decreto Estadual SP nº 24.528/1986 + Portaria SAA-SP nº 06/2011 e atualizações.
+
+DIFERENÇAS DO FEDERAL:
+1. IDENTIFICAÇÃO DO FABRICANTE:
+   • Deve constar número de registro SISP no formato: "SISP Nº XXXX" ou "SIE SP XXXX"
+   • Resolução SAA-SP exige declaração do município de fabricação por extenso (não apenas endereço)
+
+2. CAMPO SIE (específico SP):
+   • Carimbo oval: "SISP" + número ou "SIE SP" + número
+   • Cor do carimbo: preferencialmente preto ou azul escuro sobre fundo branco
+   • Não aceita carimbos apenas com número sem sigla SISP ou SIE SP
+
+3. LATICÍNIOS SP:
+   • Queijo Minas Artesanal produzido em SP: pode usar denominação regional se certificado pelo IEA/SP
+   • Manteiga de garrafa: denominação "Manteiga da Terra" aceita em SP conforme Port. SAA
+
+4. PRODUTOS CÁRNEOS SP:
+   • Linguiça "tipo toscana" produzida em SP: deve especificar se suína pura (sem proteína vegetal)
+   • Referências ao "Padrão Paulista" ou regionais são permitidas se tecnicamente corretas
+
+OBSERVAÇÃO: SP tem volume alto de registros SISP em laticínios artesanais e embutidos de pequenos produtores. A maioria dos requisitos espelha o federal."""
+
+IMA_MG_FALLBACK = """NORMAS COMPLEMENTARES IMA-MG (Instituto Mineiro de Agropecuária)
+
+BASE LEGAL: Decreto Estadual MG nº 44.864/2008 + Portarias IMA vigentes.
+
+DIFERENÇAS DO FEDERAL:
+1. IDENTIFICAÇÃO DO FABRICANTE:
+   • Deve constar número de registro IMA-MG: "IMA/MG Nº XXXX" ou "SIE MG XXXX"
+   • Para agroindústria familiar: pode constar DAP (Declaração de Aptidão ao PRONAF) ao invés de CNPJ
+
+2. CAMPO SIE (específico MG):
+   • Carimbo oval: "IMA MG" ou "SIE MG" + número
+   • Queijos artesanais de Minas: carimbo específico "QUEIJO ARTESANAL DE MINAS" + microrregião
+
+3. QUEIJOS ARTESANAIS MINEIROS (Lei Estadual MG 23.157/2018):
+   • Denominação obrigatória: "Queijo Minas Artesanal" + microrregião certificada
+     (Canastra, Serro, Serra da Canastra, Araxá, Cerrado, Campo das Vertentes, etc.)
+   • NÃO precisa de tabela nutricional se embalagem ≤100cm² (mesma isenção federal)
+   • DEVE constar: "Produto artesanal feito de leite cru" se for o caso
+   • Prazo de validade diferenciado conforme maturação (Decreto MG 44.864/2008)
+   • Identificação do produtor rural: pode ser CPF + nome do produtor
+
+4. EMBUTIDOS ARTESANAIS MG:
+   • Linguiça artesanal: pode usar denominação regional ("Linguiça Mineira") se tradicional
+   • Origem animal: espécie obrigatória por extenso
+
+OBSERVAÇÃO: MG tem o maior volume de produtos SIE com queijos artesanais certificados. 
+As normas de queijo artesanal mineiro são as mais específicas do país."""
+
+CIDASC_SC_FALLBACK = """NORMAS COMPLEMENTARES CIDASC-SC (Companhia Integrada de Desenvolvimento Agrícola de SC)
+
+BASE LEGAL: Lei Estadual SC 12.117/2002 + Manual CIDASC de Rotulagem (versão 5.0/2023).
+
+DIFERENÇAS DO FEDERAL:
+1. IDENTIFICAÇÃO DO FABRICANTE:
+   • Deve constar: "SIE/SC Nº XXXX" ou "CIDASC Nº XXXX"
+   • Agroindústria familiar rural: deve constar "Estabelecimento de Agroindústria Rural Familiar"
+
+2. CAMPO SIE (específico SC):
+   • Carimbo oval: "SIE SC" + número ou "CIDASC" + número
+   • SC aceita "SISC" (antigo) para estabelecimentos registrados antes de 2010
+
+3. MEL E APÍCOLA SC:
+   • Mel catarinense com indicação de flora: deve constar "Mel Monofloral" ou "Mel Silvestre/Multifloral"
+   • Não exige tabela nutricional para embalagens ≤100cm²
+
+4. EMBUTIDOS E DEFUMADOS SC:
+   • Linguiça colonial catarinense: pode usar denominação "Colonial" se atender padrão SC
+   • Salame colonial: idem, "Salame Colonial Catarinense" é denominação regional aceita
+
+OBSERVAÇÃO: SC tem manual de rotulagem publicado e atualizado (2023) que é o mais completo 
+do país para nível estadual. Disponível em cidasc.sc.gov.br."""
+
+ADAPAR_PR_FALLBACK = """NORMAS COMPLEMENTARES ADAPAR-PR (Agência de Defesa Agropecuária do Paraná)
+
+BASE LEGAL: Lei Estadual PR 14.978/2006 + Resolução ADAPAR vigente.
+
+DIFERENÇAS DO FEDERAL:
+1. IDENTIFICAÇÃO DO FABRICANTE:
+   • Deve constar: "SIE/PR Nº XXXX" ou "ADAPAR Nº XXXX"
+
+2. CAMPO SIE (específico PR):
+   • Carimbo oval: "SIE PR" + número ou "ADAPAR" + número
+
+3. ESPECIFICIDADES PR:
+   • O PR praticamente espelha o federal — menor diferenciação entre os estados com SIE ativo
+   • Queijos artesanais: mesmas regras federais, sem denominação regional específica certificada
+   • Embutidos: sem adições ao federal
+
+OBSERVAÇÃO: O PR tem exigências mais próximas ao federal. 
+Foco principal em procedimentos de registro, não em conteúdo de rótulo."""
+
+# Mapa de Estado → Fallback
+SIE_ESTADO_MAP = {
+    "RS": CISPOA_RS_FALLBACK,
+    "CISPOA": CISPOA_RS_FALLBACK,
+    "SP": SISP_SP_FALLBACK,
+    "SISP": SISP_SP_FALLBACK,
+    "MG": IMA_MG_FALLBACK,
+    "IMA": IMA_MG_FALLBACK,
+    "SC": CIDASC_SC_FALLBACK,
+    "CIDASC": CIDASC_SC_FALLBACK,
+    "PR": ADAPAR_PR_FALLBACK,
+    "ADAPAR": ADAPAR_PR_FALLBACK,
+}
+
 async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
     """Baixa PDF/HTML do MAPA e extrai texto. Usa fallback para PDFs scanned."""
     if "725" in url and "2022" in url:
@@ -415,6 +810,8 @@ async def pdf_to_images_b64(pdf_bytes: bytes) -> list[dict]:
         import fitz  # PyMuPDF
 
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        if doc.needs_pass:
+            return [{"error": "PDF protegido por senha. Exporte o arquivo sem senha antes de enviar.", "is_error": True}]
         pages = []
         for page_num in range(len(doc)):
             page = doc[page_num]
@@ -518,14 +915,20 @@ CAMPOS_NOME = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # SYSTEM PROMPTS
 # ═══════════════════════════════════════════════════════════════════════════════
-SP_VALIDACAO = """Você é ValidaRótulo IA — o sistema mais preciso de validação de rótulos de produtos de origem animal do Brasil, especialista em SIM, SIE e SIF.
+SP_VALIDACAO = """Você é ValidaRótulo IA — o sistema mais completo de validação de rótulos de alimentos embalados do Brasil.
+Cobre: POA (carnes, laticínios, ovos, pescados, mel), produtos vegetais, industrializados, bebidas e suplementos.
 
 REGRAS ABSOLUTAS:
 1. Analise CADA detalhe visível na imagem — texto, símbolos, formatação, cores, posicionamento
 2. Se um elemento não está visível na arte do rótulo: registre como AUSENTE
-3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na linha de produção. NÃO avalie e NÃO cobre esses campos.
+3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na linha de produção. NÃO avalie esses campos.
 4. Cite sempre a norma específica (número e ano) para cada avaliação
 5. Nunca pule nenhum dos 12 campos obrigatórios
+6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
+7. FONTE ESTILIZADA: se não for possível ler com certeza, descreva o que é visível e indique a incerteza — nunca ignore o campo.
+8. CORTES COM OSSO: valores por 100g de produtos com osso (costela, bisteca, asa de frango) são naturalmente menores que TACO para carne pura — considere antes de alertar plausibilidade.
+9. MIÚDOS/VÍSCERAS: não existe RTIQ de identidade e qualidade para miúdos. Use RIISPOA Art. 227+ e Port. 1485/2025. Não penalize ausência de RTIQ específico.
+6. DETECTE O TIPO DE PRODUTO primeiro (POA / vegetal / industrializado / bebida / suplemento) para aplicar as regras corretas no Campo 8
 
 {kb_section}
 
@@ -543,15 +946,37 @@ Identifique da imagem:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 2 — LEGISLAÇÕES APLICÁVEIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Normas obrigatórias para todos os POA:
+NORMAS BASE — obrigatórias para TODOS os alimentos embalados:
+• RDC 727/2022 (ANVISA) — rotulagem geral (denominação, ingredientes, fabricante, etc.)
+• RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional obrigatória
+• INMETRO Port. 249/2021 — conteúdo líquido e peso líquido
+• Decreto 4.680/2003 + Port. 2658/2003 — transgênicos (símbolo T)
+• Lei 10.674/2003 — glúten (CONTÉM / NÃO CONTÉM)
+• RDC 715/2022 — lactose (CONTÉM LACTOSE)
+• CDC Lei 8.078/1990 — código de defesa do consumidor
+• Decreto-Lei 986/1969 — normas básicas de alimentos
+
+NORMAS ESPECÍFICAS POR TIPO (aplicar conforme produto detectado):
+
+POA — Produtos de Origem Animal:
 • IN 22/2005 + Port. 240/2021 + Port. 449/2022 (MAPA) — rotulagem geral POA
-• RDC 727/2022 (ANVISA) — rotulagem geral alimentos
-• RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional
-• INMETRO Port. 249/2021 + 262/2024 — conteúdo líquido
 • Port. SDA 1485/2025 — nomenclatura POA
-• Decreto 4.680/2003 — transgênicos
-• Lei 10.674/2003 — glúten
-• RDC 715/2022 — lactose
+• RTIQ específico por categoria (IN 4/2000, IN 20/2000, IN 22/2000, Port. 146/1996, etc.)
+
+PRODUTOS VEGETAIS E INDUSTRIALIZADOS:
+• RDC 711/2022 — cereais e derivados (arroz, trigo, milho, aveia, etc.)
+• RDC 712/2022 — cereais integrais e produtos integrais
+• RDC 714/2022 — frutas, hortaliças, cogumelos e similares
+• RDC 713/2022 — açúcares e similares
+• RDC 843/2024 + IN 281/2024 — regularização e isenção de registro ANVISA
+• Decreto 6.871/2009 — bebidas em geral
+• IN MAPA 14/2018 — cerveja
+• IN MAPA 49/2018 — sucos de frutas e néctares
+
+SUPLEMENTOS ALIMENTARES:
+• RDC 243/2018 — suplementos alimentares (definição, categorias, rotulagem)
+• IN 28/2018 — categorias de suplementos
+• IN 76/2020 — proteínas para suplementos
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 3 — VALIDAÇÃO DOS 12 CAMPOS OBRIGATÓRIOS
@@ -640,19 +1065,46 @@ b) Instrução pós-abertura: "Após aberto, consumir em até X dias, mantendo r
 c) Condições específicas do RTIQ devem ser respeitadas
 
 ─────────────────────────────────────────────
-CAMPO 8 — CARIMBO DE INSPEÇÃO (exclusivo POA)
+CAMPO 8 — REGISTRO / INSPEÇÃO / NOTIFICAÇÃO
 ─────────────────────────────────────────────
-a) FORMATO OVAL obrigatório (não redondo, não retangular)
-b) Conteúdo por órgão:
-   • SIF: "SIF" + número do estabelecimento
-   • SIE: sigla estadual (SISP, SIE-MG, CISPOA, etc.) + número
-   • SIM: "SIM" + número municipal
-c) Número e sigla legíveis
-d) Posicionado em destaque no rótulo
+Este campo se adapta conforme o tipo de produto detectado:
+
+▶ PRODUTO DE ORIGEM ANIMAL — POA (carnes, embutidos, laticínios, ovos, pescados, mel):
+   a) CARIMBO DE INSPEÇÃO OVAL obrigatório (não redondo, não retangular)
+   b) Conteúdo por órgão:
+      • SIF (federal): "SIF" + número do estabelecimento
+      • SIE (estadual): sigla estadual (SISP, SIE-MG, CISPOA, etc.) + número
+      • SIM (municipal): "SIM" + número municipal
+   c) Número e sigla legíveis, posicionado em destaque
+
+▶ BEBIDAS ALCOÓLICAS (vinho, cerveja, cachaça, destilados):
+   a) Registro obrigatório no MAPA — Decreto 6.871/2009
+   b) Número de registro MAPA deve constar no rótulo
+   c) Para cerveja: "Registro no MAPA nº XXXXX" ou número de lote com rastreabilidade
+
+▶ SUPLEMENTOS ALIMENTARES:
+   a) Notificação ANVISA obrigatória — RDC 243/2018
+   b) Deve constar: "Notificado ANVISA" + número ou "Dispensado de Registro" conforme RDC 843/2024
+   c) Para produtos com alegações de saúde: registro ANVISA obrigatório
+
+▶ ALIMENTOS INDUSTRIALIZADOS GERAIS (biscoito, macarrão, pão, chocolate, conservas, etc.):
+   a) MAIORIA é isenta de registro ANVISA — RDC 843/2024 e IN 281/2024
+   b) Verificar se há número de registro ANVISA (formato: XX.XXXX.XXXXX.XXX-X) ou
+      informação de isenção — ambos são aceitos
+   c) Produtos que EXIGEM registro: alegações funcionais/saúde, enriquecidos, para fins especiais,
+      suplementos, fórmulas infantis
+   d) Se não há menção de registro e produto é isento: ✅ CONFORME (maioria dos alimentos)
+
+▶ PRODUTOS VEGETAIS IN NATURA (frutas, hortaliças, grãos, cereais não processados):
+   a) Isentos de registro ANVISA — campos de registro/notificação não aplicáveis
+   b) Verificar se há código de rastreabilidade ou identificação do produtor/embalador
+   c) Registrar como ✅ N/A — Produto isento de registro
 
 ─────────────────────────────────────────────
 CAMPO 9 — TABELA NUTRICIONAL (RDC 429/2020 + IN 75/2020)
 ─────────────────────────────────────────────
+
+NÍVEL 1 — ESTRUTURA OBRIGATÓRIA
 PORÇÃO PADRÃO por categoria:
 • Queijos/Requeijão: 30g | Manteiga/creme de leite: 10g
 • Embutidos fatiados (presunto, salame): 30g
@@ -672,8 +1124,769 @@ NUTRIENTES OBRIGATÓRIOS (verificar se todos presentes):
 ☐ Gorduras trans: g — OBRIGATÓRIO declarar "0g" mesmo se ausente
 ☐ Fibra alimentar: g
 ☐ Sódio: mg
+Valores por porção E por 100g/mL obrigatórios. Fundo BRANCO, letras PRETAS.
 
-Valores por porção E por 100g/mL obrigatórios.
+NÍVEL 2 — COERÊNCIA MATEMÁTICA
+Calcule o valor energético esperado usando os valores por 100g declarados:
+  kcal esperado = (Proteínas × 4) + (Carboidratos × 4) + (Gorduras totais × 9)
+Compare com o kcal declarado. Tolerância: ±20% (permitido pela RDC 429/2020).
+• Dentro de ±20% → ✅ CONFORME — valores coerentes
+• Fora de ±20%   → ❌ NÃO CONFORME — valor energético não bate com os macros declarados
+Se os valores por 100g não estiverem visíveis, calcule pela porção.
+
+NÍVEL 3 — PLAUSIBILIDADE POR CATEGORIA (TACO 4ª ed. UNICAMP + RTIQ/MAPA)
+Compare os valores declarados POR 100g com as faixas abaixo.
+• Faixa TACO = valores analíticos reais (mín–máx esperado)
+• Limite RTIQ = exigência legal (mínimo ou máximo)
+• ✅ dentro da faixa | ⚠️ fora da faixa típica mas dentro do RTIQ | ❌ viola limite RTIQ
+• 🔍 NÃO VERIFICÁVEL se os valores por 100g não estiverem legíveis
+
+━━━ EMBUTIDOS CÁRNEOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LINGUIÇA SUÍNA / PORCO (IN 4/2000):
+• kcal: TACO 220-290 | Proteínas: mín 12g RTIQ, típico TACO 14-20g
+• Gorduras totais: máx 30g RTIQ, típico TACO 17-25g | Gord.sat: típico TACO 6-9g
+• Carboidratos: típico TACO 0-3g (>8g é incomum) | Sódio: típico TACO 700-1200mg
+
+LINGUIÇA DE FRANGO (IN 4/2000):
+• kcal: TACO 215-250 | Proteínas: mín 12g RTIQ, típico TACO 13-19g
+• Gorduras totais: máx 30g RTIQ, típico TACO 15-22g
+• Carboidratos: típico TACO 0-4g | Sódio: típico TACO 600-1100mg
+
+LINGUIÇA BOVINA (IN 4/2000):
+• kcal: TACO 200-270 | Proteínas: mín 12g RTIQ, típico TACO 14-20g
+• Gorduras totais: máx 30g RTIQ, típico TACO 14-22g | Sódio: típico TACO 600-1000mg
+
+SALSICHA (IN 4/2000):
+• kcal: TACO 220-280 | Proteínas: mín 12g RTIQ, típico TACO 12-15g
+• Gorduras totais: máx 30g RTIQ, típico TACO 18-26g | Gord.sat: típico TACO 6-9g
+• Sódio: típico TACO 600-1100mg | Carboidratos: típico TACO 2-6g
+
+MORTADELA (IN 4/2000):
+• kcal: TACO 250-310 | Proteínas: mín 12g RTIQ, típico TACO 12-16g
+• Gorduras totais: máx 30g RTIQ, típico TACO 20-28g | Gord.sat: típico TACO 8-11g
+• Sódio: típico TACO 700-1200mg | Carboidratos: típico TACO 2-5g
+
+HAMBÚRGUER BOVINO (IN 20/2000):
+• kcal: TACO 200-260 | Proteínas: mín 15g RTIQ, típico TACO 13-20g
+• Gorduras totais: máx 23g RTIQ, típico TACO 12-21g | Sódio: típico TACO 300-700mg
+• Carboidratos: típico TACO 0-3g
+
+HAMBÚRGUER DE FRANGO (IN 20/2000):
+• kcal: TACO 170-230 | Proteínas: mín 15g RTIQ, típico TACO 14-20g
+• Gorduras totais: máx 23g RTIQ, típico TACO 8-18g | Sódio: típico TACO 300-650mg
+
+PRESUNTO COZIDO (IN 20/2000):
+• kcal: TACO 120-160 | Proteínas: mín 14g RTIQ, típico TACO 17-21g
+• Gorduras totais: máx 4g RTIQ presunto cozido, típico TACO 2-5g
+• Sódio: típico TACO 900-1300mg | Carboidratos: típico TACO 0-2g
+
+APRESUNTADO (IN 20/2000):
+• kcal: TACO 150-200 | Proteínas: mín 14g RTIQ, típico TACO 15-19g
+• Gorduras totais: máx 30g RTIQ apresuntado, típico TACO 6-15g | Sódio: típico TACO 900-1400mg
+
+SALAME (IN 22/2000):
+• kcal: TACO 340-420 | Proteínas: mín 20g RTIQ, típico TACO 22-28g
+• Gorduras totais: máx 42g RTIQ, típico TACO 28-40g | Gord.sat: típico TACO 12-18g
+• Sódio: típico TACO 1500-2400mg | Carboidratos: típico TACO 0-3g
+
+COPA / COPPA (IN 22/2000):
+• kcal: TACO 300-400 | Proteínas: mín 20g RTIQ, típico TACO 20-26g
+• Gorduras totais: típico TACO 24-36g | Sódio: típico TACO 1400-2200mg
+
+BACON / BARRIGA CURADA (IN 89/2003):
+• kcal: TACO 380-520 | Proteínas: típico TACO 10-15g
+• Gorduras totais: típico TACO 38-52g | Gord.sat: típico TACO 14-20g
+• Sódio: típico TACO 1000-1600mg | Carboidratos: típico TACO 0-2g
+
+CHARQUE / CARNE SECA (RIISPOA):
+• kcal: TACO 250-330 | Proteínas: típico TACO 30-40g (concentrada pela desidratação)
+• Gorduras totais: típico TACO 10-20g | Sódio: típico TACO 1500-3000mg (produto salgado)
+• Carboidratos: típico TACO 0-1g
+
+CMS — CARNE MECANICAMENTE SEPARADA DE AVES (IN 4/2000):
+• kcal: TACO 200-260 | Proteínas: mín 12g RTIQ, típico TACO 12-16g
+• Gorduras totais: máx 30g RTIQ, típico TACO 15-25g | Sódio: típico TACO 60-120mg (in natura)
+
+━━━ LATICÍNIOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEITE PASTEURIZADO INTEGRAL (Port. 146/1996):
+• kcal: TACO 59-63 | Proteínas: mín 2,9g RTIQ, típico TACO 2,9-3,2g
+• Gorduras totais: mín 3g RTIQ integral, típico TACO 3,0-3,5g | Gord.sat: típico TACO 1,9-2,2g
+• Carboidratos: típico TACO 4,6-5,0g | Sódio: típico TACO 40-55mg
+
+LEITE PASTEURIZADO SEMIDESNATADO (Port. 146/1996):
+• kcal: TACO 42-50 | Proteínas: mín 2,9g RTIQ, típico TACO 3,0-3,3g
+• Gorduras totais: 0,6-2,9g RTIQ, típico TACO 1,0-2,0g | Sódio: típico TACO 40-55mg
+
+LEITE PASTEURIZADO DESNATADO (Port. 146/1996):
+• kcal: TACO 33-40 | Proteínas: mín 2,9g RTIQ, típico TACO 3,0-3,4g
+• Gorduras totais: máx 0,5g RTIQ, típico TACO 0,1-0,4g | Sódio: típico TACO 40-55mg
+
+LEITE EM PÓ INTEGRAL (Port. 146/1996):
+• kcal: TACO 490-510 | Proteínas: mín 24g RTIQ, típico TACO 25-28g
+• Gorduras totais: mín 26g RTIQ, típico TACO 26-30g | Carboidratos: típico TACO 37-42g
+• Sódio: típico TACO 340-400mg
+
+QUEIJO MINAS FRESCAL (Port. 146/1996 + IN 68/2019):
+• kcal: TACO 255-275 | Proteínas: mín 17g RTIQ, típico TACO 17-20g
+• Gorduras totais: máx 20g RTIQ (integral), típico TACO 17-22g | Gord.sat: típico TACO 10-14g
+• Sódio: típico TACO 290-550mg | Carboidratos: típico TACO 2-4g
+
+QUEIJO MUSSARELA (Port. 146/1996):
+• kcal: TACO 295-320 | Proteínas: mín 18g RTIQ, típico TACO 20-25g
+• Gorduras totais: típico TACO 20-26g | Gord.sat: típico TACO 12-17g
+• Sódio: típico TACO 500-800mg | Carboidratos: típico TACO 1-4g
+
+QUEIJO PRATO (Port. 146/1996):
+• kcal: TACO 345-375 | Proteínas: típico TACO 24-28g
+• Gorduras totais: típico TACO 26-32g | Gord.sat: típico TACO 16-20g
+• Sódio: típico TACO 500-750mg | Carboidratos: típico TACO 1-3g
+
+QUEIJO COALHO (Port. 146/1996):
+• kcal: TACO 265-300 | Proteínas: típico TACO 20-24g
+• Gorduras totais: típico TACO 18-24g | Sódio: típico TACO 700-1100mg
+
+QUEIJO PARMESÃO (Port. 146/1996):
+• kcal: TACO 440-470 | Proteínas: mín 32g RTIQ, típico TACO 33-38g
+• Gorduras totais: típico TACO 30-37g | Sódio: típico TACO 1300-1800mg
+
+RICOTA (Port. 146/1996):
+• kcal: TACO 128-145 | Proteínas: típico TACO 11-15g
+• Gorduras totais: típico TACO 7-10g | Sódio: típico TACO 150-300mg | Carboidratos: típico TACO 2-4g
+
+REQUEIJÃO CREMOSO (Port. 146/1996):
+• kcal: TACO 245-265 | Proteínas: típico TACO 10-13g
+• Gorduras totais: típico TACO 20-24g | Sódio: típico TACO 400-700mg | Carboidratos: típico TACO 3-5g
+
+IOGURTE NATURAL INTEGRAL (Port. 146/1996):
+• kcal: TACO 58-66 | Proteínas: mín 2,9g RTIQ, típico TACO 3,0-4,0g
+• Gorduras totais: típico TACO 2,5-3,5g | Sódio: típico TACO 40-60mg
+• Carboidratos: típico TACO 4,5-6g (da lactose)
+
+MANTEIGA (Port. 146/1996):
+• kcal: TACO 720-750 | Proteínas: típico TACO 0,5-1,0g
+• Gorduras totais: mín 80g RTIQ, típico TACO 80-85g | Gord.sat: típico TACO 50-60g
+• Sódio: típico TACO 580-700mg (com sal) / 10-30mg (sem sal)
+
+CREME DE LEITE (Port. 146/1996):
+• kcal: TACO 260-300 | Proteínas: típico TACO 2,0-2,8g
+• Gorduras totais: mín 20g RTIQ, típico TACO 25-35g | Sódio: típico TACO 30-60mg
+• Carboidratos: típico TACO 3-5g
+
+━━━ PESCADOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TILÁPIA / PEIXE MAGRO (Port. 185/1997):
+• kcal: TACO 82-100 | Proteínas: típico TACO 18-22g
+• Gorduras totais: típico TACO 1-3g | Sódio: típico TACO 50-120mg | Carboidratos: típico 0g
+
+SALMÃO / PEIXE GORDO (Port. 185/1997):
+• kcal: TACO 170-200 | Proteínas: típico TACO 18-22g
+• Gorduras totais: típico TACO 8-14g | Gord.sat: típico TACO 2-4g
+• Sódio: típico TACO 50-120mg | Carboidratos: típico 0g
+
+ATUM EM CONSERVA — ÁGUA (Port. 185/1997):
+• kcal: TACO 100-130 | Proteínas: típico TACO 22-28g
+• Gorduras totais: típico TACO 1-4g | Sódio: típico TACO 300-500mg
+
+ATUM EM CONSERVA — ÓLEO:
+• kcal: TACO 180-220 | Proteínas: típico TACO 22-28g
+• Gorduras totais: típico TACO 8-14g | Sódio: típico TACO 300-500mg
+
+SARDINHA EM CONSERVA (Port. 185/1997):
+• kcal: TACO 180-220 | Proteínas: típico TACO 20-26g
+• Gorduras totais: típico TACO 8-14g | Sódio: típico TACO 350-600mg
+
+CAMARÃO CRU (Port. 185/1997):
+• kcal: TACO 85-100 | Proteínas: típico TACO 18-22g
+• Gorduras totais: típico TACO 0,5-2g | Sódio: típico TACO 130-250mg
+
+BACALHAU SECO SALGADO:
+• kcal: TACO 340-380 | Proteínas: típico TACO 70-80g (concentrada)
+• Gorduras totais: típico TACO 2-5g | Sódio: típico TACO 4000-8000mg (produto salgado)
+
+━━━ CARNES IN NATURA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARNE BOVINA MAGRA (patinho, coxão mole) crua (RIISPOA):
+• kcal: TACO 125-160 | Proteínas: típico TACO 19-22g
+• Gorduras totais: típico TACO 4-9g | Sódio: típico TACO 55-75mg | Carboidratos: típico 0g
+
+CARNE BOVINA GORDA (costela, acém) crua:
+• kcal: TACO 220-330 | Proteínas: típico TACO 14-18g
+• Gorduras totais: típico TACO 18-30g | Sódio: típico TACO 55-75mg
+
+FRANGO PEITO SEM PELE cru (RIISPOA):
+• kcal: TACO 115-125 | Proteínas: típico TACO 20-23g
+• Gorduras totais: típico TACO 2-4g | Sódio: típico TACO 50-70mg | Carboidratos: típico 0g
+
+FRANGO COXA/SOBRECOXA SEM PELE cru:
+• kcal: TACO 155-175 | Proteínas: típico TACO 16-19g
+• Gorduras totais: típico TACO 8-13g | Sódio: típico TACO 65-90mg
+
+CARNE SUÍNA PERNIL / LOMBO cru (RIISPOA):
+• kcal: TACO 130-170 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 6-14g | Sódio: típico TACO 50-75mg
+
+━━━ OVOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OVO DE GALINHA inteiro cru (IN 29/2008):
+• kcal: TACO 138-148 | Proteínas: típico TACO 12-14g
+• Gorduras totais: típico TACO 8-11g | Gord.sat: típico TACO 2,5-3,5g
+• Sódio: típico TACO 120-160mg | Carboidratos: típico TACO 0,5-1,5g
+
+━━━ MEL E APÍCOLAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MEL (IN 11/2000):
+• kcal: TACO 295-320 | Carboidratos: mín 65g RTIQ, típico TACO 78-82g
+• Proteínas: típico TACO 0,2-0,8g | Gorduras totais: típico TACO 0g
+• Sódio: típico TACO 2-15mg — sódio alto em mel é sinal de adulteração
+• Umidade: máx 20% RTIQ (importante para detectar mel adulterado diluído = kcal < 295)
+
+━━━ PRODUTOS VEGETAIS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARROZ BRANCO COZIDO (TACO / RDC 711/2022):
+• kcal: TACO 128-135 | Carboidratos: típico TACO 28-30g
+• Proteínas: típico TACO 2,5-3,0g | Gorduras totais: típico TACO 0-0,3g
+• Fibras: típico TACO 1,5-2,5g | Sódio: típico TACO 0-5mg (sem sal)
+
+ARROZ INTEGRAL COZIDO:
+• kcal: TACO 124-132 | Carboidratos: típico TACO 25-28g
+• Proteínas: típico TACO 2,5-3,0g | Fibras: típico TACO 1,8-3,0g
+
+FEIJÃO COZIDO (TACO):
+• kcal: TACO 76-86 | Carboidratos: típico TACO 13-16g
+• Proteínas: típico TACO 4,5-5,5g | Fibras: típico TACO 8-11g
+• Sódio: típico TACO 2-5mg (sem sal)
+
+FARINHA DE TRIGO (TACO / RDC 711/2022):
+• kcal: TACO 355-365 | Carboidratos: típico TACO 75-78g
+• Proteínas: típico TACO 9-11g | Gorduras totais: típico TACO 1-2g
+• Fibras: típico TACO 2-4g | Sódio: típico TACO 0-5mg
+
+ÓLEO VEGETAL (soja, girassol, canola — RDC 714/2022):
+• kcal: TACO 880-900 | Gorduras totais: típico TACO 99-100g
+• Proteínas: típico TACO 0g | Carboidratos: típico TACO 0g
+• Sódio: típico TACO 0mg — sódio em óleo = adulteração
+
+AZEITE DE OLIVA:
+• kcal: TACO 880-900 | Gorduras totais: típico TACO 99-100g
+• Gord.sat: típico TACO 14-16g | Gord.mono: típico TACO 70-76g
+• Sódio: típico TACO 0mg
+
+AÇÚCAR CRISTAL/REFINADO (TACO / RDC 713/2022):
+• kcal: TACO 387-400 | Carboidratos: típico TACO 99-100g
+• Proteínas: típico TACO 0g | Gorduras totais: típico TACO 0g
+• Sódio: típico TACO 0-2mg
+
+SAL (cloreto de sódio puro):
+• Sódio: ~39.000mg/100g (puro) — porção típica 1g → 390mg sódio
+• Isento de tabela nutricional conforme ANVISA
+
+━━━ INDUSTRIALIZADOS MISTOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BISCOITO SALGADO / CRACKER (TACO):
+• kcal: TACO 420-460 | Carboidratos: típico TACO 65-72g
+• Proteínas: típico TACO 8-12g | Gorduras totais: típico TACO 12-20g
+• Fibras: típico TACO 2-4g | Sódio: típico TACO 700-1200mg
+
+BISCOITO DOCE / RECHEADO (TACO):
+• kcal: TACO 450-490 | Carboidratos: típico TACO 68-75g
+• Proteínas: típico TACO 5-8g | Gorduras totais: típico TACO 15-22g
+• Açúcares totais: típico TACO 25-40g | Sódio: típico TACO 300-600mg
+
+PÃO DE FORMA / FATIADO (TACO):
+• kcal: TACO 255-275 | Carboidratos: típico TACO 45-52g
+• Proteínas: típico TACO 7-10g | Gorduras totais: típico TACO 3-6g
+• Fibras: típico TACO 2-4g | Sódio: típico TACO 450-700mg
+
+MACARRÃO (MASSA SECA, CRU):
+• kcal: TACO 368-376 | Carboidratos: típico TACO 73-77g
+• Proteínas: típico TACO 10-12g | Gorduras totais: típico TACO 1-2g
+• Fibras: típico TACO 2-4g | Sódio: típico TACO 0-10mg (sem sal)
+
+CHOCOLATE AO LEITE (TACO):
+• kcal: TACO 540-570 | Carboidratos: típico TACO 57-62g
+• Proteínas: típico TACO 7-9g | Gorduras totais: típico TACO 30-36g
+• Gord.sat: típico TACO 16-22g | Açúcares totais: típico TACO 48-56g
+• Sódio: típico TACO 80-150mg
+
+CHOCOLATE MEIO AMARGO / AMARGO (TACO):
+• kcal: TACO 530-565 | Carboidratos: típico TACO 45-55g
+• Proteínas: típico TACO 4-6g | Gorduras totais: típico TACO 35-42g
+• Açúcares totais: típico TACO 28-42g | Sódio: típico TACO 5-30mg
+
+MOLHO DE TOMATE INDUSTRIALIZADO (TACO):
+• kcal: TACO 35-55 | Carboidratos: típico TACO 6-10g
+• Proteínas: típico TACO 1-2g | Gorduras totais: típico TACO 0,5-2g
+• Sódio: típico TACO 400-700mg — acima de 800mg é alto
+
+MAIONESE TRADICIONAL (TACO):
+• kcal: TACO 295-320 | Gorduras totais: típico TACO 30-33g
+• Proteínas: típico TACO 1-2g | Carboidratos: típico TACO 2-4g
+• Sódio: típico TACO 500-800mg
+
+MARGARINA (TACO):
+• kcal: TACO 720-750 | Gorduras totais: mín 80g típico TACO 80-85g
+• Gord.sat: típico TACO 18-28g | Gord.trans: verificar (deve ser declarado)
+• Sódio: típico TACO 400-700mg (com sal)
+
+LEITE EM PÓ / ACHOCOLATADO EM PÓ (TACO):
+• kcal: TACO 380-420 | Carboidratos: típico TACO 72-78g (achocolatado)
+• Proteínas: típico TACO 5-8g | Gorduras totais: típico TACO 4-7g
+• Sódio: típico TACO 180-300mg
+
+GRANOLA / CEREAL MATINAL (TACO):
+• kcal: TACO 390-430 | Carboidratos: típico TACO 65-72g
+• Proteínas: típico TACO 8-12g | Gorduras totais: típico TACO 8-14g
+• Fibras: típico TACO 5-9g | Sódio: típico TACO 100-300mg
+
+━━━ BEBIDAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUCO DE LARANJA 100% (TACO / IN MAPA 49/2018):
+• kcal: TACO 43-50 | Carboidratos: típico TACO 9-12g
+• Proteínas: típico TACO 0,5-1g | Gorduras totais: típico TACO 0g
+• Sódio: típico TACO 0-5mg — sódio alto = adulteração
+
+SUCO DE UVA 100%:
+• kcal: TACO 60-72 | Carboidratos: típico TACO 14-18g
+• Açúcares totais: típico TACO 14-17g | Sódio: típico TACO 0-5mg
+
+NÉCTAR (frutas, mín 30-50% suco dependendo da fruta):
+• kcal: TACO 40-65 | Carboidratos: típico TACO 9-16g (pode ter açúcar adicionado)
+• Proteínas: típico TACO 0-0,5g | Sódio: típico TACO 0-30mg
+
+REFRIGERANTE (cola, guaraná, laranja):
+• kcal: TACO 38-45 (normal) / 0-2 (zero/light)
+• Carboidratos: típico TACO 9-11g (normal) / 0-0,5g (zero)
+• Sódio: típico TACO 10-30mg
+
+ÁGUA MINERAL (Decreto 7841/2012):
+• kcal: TACO 0 | Carboidratos: TACO 0g | Sódio: variável por fonte
+• Água com sódio >200mg/L deve declarar "ALTO TEOR DE SÓDIO"
+
+CERVEJA (IN MAPA 14/2018):
+• kcal: TACO 43-48 (lata/garrafa) | Carboidratos: típico TACO 3-4g
+• Proteínas: típico TACO 0,3-0,5g | Álcool: 4-5% v/v (regular)
+• Sódio: típico TACO 10-20mg | Fibras: 0g
+
+VINHO TINTO SECO (Lei 7678/1988):
+• kcal: TACO 70-85 | Carboidratos: típico TACO 2-4g (seco)
+• Álcool: 11-14% v/v | Sódio: típico TACO 5-10mg
+
+━━━ SUPLEMENTOS ALIMENTARES (RDC 243/2018) ━━━━━━━━━━━
+PROTEÍNA WHEY (concentrado/isolado):
+• Proteínas: min 10g/porção RTIQ, típico 20-30g/30-40g porção
+• Carboidratos: concentrado típico 3-8g | isolado típico 0-3g
+• Gorduras totais: concentrado típico 2-6g | isolado típico 0-2g
+• Sódio: típico 50-200mg/porção
+
+PROTEÍNA VEGETAL (soja, ervilha):
+• Proteínas: típico 18-25g/porção | Carboidratos: típico 3-8g
+• Gorduras totais: típico 1-4g | Sódio: típico 100-300mg/porção
+
+CREATINA MONOIDRATADA:
+• Porção: 3-5g | Proteínas: 0g | Carboidratos: 0g | Gorduras: 0g
+• Sódio: 0mg — qualquer nutriente acima de 0 é incomum em creatina pura
+
+VITAMINAS/MINERAIS (complexo multivitamínico):
+• Porção muito variável | Verificar se % VD está declarado
+• Vitaminas lipossolúveis (A, D, E, K): podem ser perigosas em excesso — verificar se % VD < 300%
+
+━━━ PRODUTOS VEGETAIS E INDUSTRIALIZADOS — GAPS POA ━━━━━
+━━━ PRODUTOS CÁRNEOS — GAPS POA ━━━━━━━━━━━━━━━━━━━━━━━
+PATÊ (IN 20/2000 + Almôndega/Kibe):
+• kcal: TACO 180-280 | Proteínas: mín 8g típico TACO 10-18g
+• Gorduras totais: típico TACO 14-25g | Sódio: típico TACO 600-1100mg
+• Carboidratos: típico TACO 2-8g (pode ter amido/farinha)
+
+ALMÔNDEGA / QUIBE / KIBE (IN 20/2000):
+• kcal: TACO 170-250 | Proteínas: típico TACO 12-18g
+• Gorduras totais: típico TACO 10-20g | Sódio: típico TACO 400-800mg
+• Carboidratos: típico TACO 4-12g (quibe tem trigo)
+
+FIAMBRE (Port. 706/2022):
+• kcal: TACO 130-180 | Proteínas: mín 14g RTIQ, típico TACO 14-18g
+• Gorduras totais: típico TACO 5-12g | Sódio: típico TACO 900-1300mg
+
+JERKED BEEF / CARNE CURADA (IN 22/2000):
+• kcal: TACO 220-290 | Proteínas: típico TACO 25-35g
+• Gorduras totais: típico TACO 8-16g | Sódio: típico TACO 1000-2000mg
+• Diferença do charque: menor teor de sal (processo de cura vs salga)
+
+CARNE DE SOL (RIISPOA):
+• kcal: TACO 200-260 | Proteínas: típico TACO 22-30g
+• Gorduras totais: típico TACO 8-15g | Sódio: típico TACO 800-1800mg
+
+FRANGO TEMPERADO / MARINADO (IN 17/2018):
+• kcal: TACO 130-200 | Proteínas: típico TACO 16-21g
+• Gorduras totais: típico TACO 5-15g | Sódio: típico TACO 400-900mg (sal + tempero)
+
+CORNED BEEF (IN 83/2003):
+• kcal: TACO 220-280 | Proteínas: típico TACO 18-24g
+• Gorduras totais: típico TACO 12-20g | Sódio: típico TACO 900-1400mg
+
+━━━ LATICÍNIOS — GAPS POA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUEIJO SUÍÇO / GRUYÈRE / EMMENTAL (Port. 146/1996):
+• kcal: TACO 370-410 | Proteínas: típico TACO 26-30g
+• Gorduras totais: típico TACO 28-34g | Gord.sat: típico TACO 18-22g
+• Sódio: típico TACO 200-400mg (menor que queijos brasileiros)
+
+QUEIJO GOUDA / EDAM (Port. 146/1996):
+• kcal: TACO 340-380 | Proteínas: típico TACO 24-28g
+• Gorduras totais: típico TACO 27-32g | Sódio: típico TACO 600-900mg
+
+DOCE DE LEITE (Port. 354/1997):
+• kcal: TACO 295-330 | Carboidratos: típico TACO 54-60g
+• Proteínas: típico TACO 6-8g | Gorduras totais: típico TACO 6-10g
+• Sódio: típico TACO 80-160mg
+
+LEITE CONDENSADO (IN 47/2018):
+• kcal: TACO 320-350 | Carboidratos: típico TACO 54-58g
+• Proteínas: mín 6,5g RTIQ, típico TACO 7-9g
+• Gorduras totais: mín 8g RTIQ, típico TACO 8-12g | Sódio: típico TACO 100-160mg
+
+BEBIDA LÁCTEA (IN 16/2005):
+• kcal: TACO 55-80 | Proteínas: mín 1,2g RTIQ, típico TACO 1,5-3g
+• Gorduras totais: típico TACO 1,5-3,5g | Sódio: típico TACO 40-80mg
+• Carboidratos: típico TACO 8-14g (pode ter açúcar adicionado)
+
+COMPOSTO LÁCTEO (IN 28/2007):
+• kcal: TACO 400-450 | Proteínas: mín 10g RTIQ, típico TACO 12-18g
+• Gorduras totais: típico TACO 10-18g | Carboidratos: típico TACO 55-65g
+• Sódio: típico TACO 200-400mg
+
+CREME AZEDO / SOUR CREAM (IN 23/2012):
+• kcal: TACO 195-230 | Proteínas: típico TACO 3-4g
+• Gorduras totais: mín 17g RTIQ, típico TACO 18-24g
+• Sódio: típico TACO 30-80mg | Carboidratos: típico TACO 3-5g
+
+━━━ CORTES BOVINOS ESPECÍFICOS ━━━━━━━━━━━━━━━━━━━━━━━━
+ALCATRA / CONTRA-FILÉ / FILÉ MIGNON (cortes nobres) crus:
+• kcal: TACO 120-160 | Proteínas: típico TACO 20-23g
+• Gorduras totais: típico TACO 3-8g | Sódio: típico TACO 50-65mg | Carboidratos: típico 0g
+
+PICANHA crua:
+• kcal: TACO 155-200 | Proteínas: típico TACO 18-21g
+• Gorduras totais: típico TACO 9-15g (capa de gordura) | Sódio: típico TACO 55-70mg
+
+MÚSCULO / ACÉM / PALETA BOVINA crus (cortes de segunda):
+• kcal: TACO 110-145 | Proteínas: típico TACO 20-23g
+• Gorduras totais: típico TACO 2-6g | Sódio: típico TACO 55-75mg
+
+COSTELA BOVINA crua:
+• kcal: TACO 240-320 | Proteínas: típico TACO 14-18g
+• Gorduras totais: típico TACO 18-28g | Sódio: típico TACO 60-80mg
+
+COXÃO DURO / COXÃO MOLE / PATINHO / FRALDINHA / MAMINHA / LAGARTO / CUPIM crus:
+• kcal: TACO 115-160 | Proteínas: típico TACO 19-23g
+• Gorduras totais: típico TACO 3-9g | Sódio: típico TACO 50-70mg
+
+━━━ CORTES SUÍNOS ESPECÍFICOS ━━━━━━━━━━━━━━━━━━━━━━━
+BISTECA SUÍNA / COSTELINHA crua:
+• kcal: TACO 155-220 | Proteínas: típico TACO 16-20g
+• Gorduras totais: típico TACO 9-16g | Sódio: típico TACO 55-75mg
+
+LOMBO SUÍNO cru:
+• kcal: TACO 130-160 | Proteínas: típico TACO 19-22g
+• Gorduras totais: típico TACO 5-10g | Sódio: típico TACO 50-70mg
+
+PALETA SUÍNA crua:
+• kcal: TACO 135-170 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 7-13g | Sódio: típico TACO 55-75mg
+
+TOUCINHO cru:
+• kcal: TACO 560-650 | Proteínas: típico TACO 4-8g
+• Gorduras totais: típico TACO 60-72g | Gord.sat: típico TACO 22-28g | Sódio: típico TACO 40-60mg
+
+━━━ AVES — CORTES E MIÚDOS ━━━━━━━━━━━━━━━━━━━━━━━━━
+FRANGO ASA crua:
+• kcal: TACO 175-220 | Proteínas: típico TACO 17-20g
+• Gorduras totais: típico TACO 10-15g | Sódio: típico TACO 65-90mg
+
+FRANGO SOBRECOXA COM PELE crua:
+• kcal: TACO 250-275 | Proteínas: típico TACO 15-18g
+• Gorduras totais: típico TACO 18-23g | Sódio: típico TACO 65-90mg
+
+FRANGO FÍGADO cru:
+• kcal: TACO 95-115 | Proteínas: típico TACO 17-20g
+• Gorduras totais: típico TACO 3-5g | Carboidratos: típico TACO 1-3g (glicogênio)
+• Sódio: típico TACO 65-90mg | Rico em vitamina A e ferro
+
+FRANGO CORAÇÃO cru:
+• kcal: TACO 145-175 | Proteínas: típico TACO 16-20g
+• Gorduras totais: típico TACO 7-12g | Sódio: típico TACO 65-90mg
+
+FRANGO MOELA crua:
+• kcal: TACO 85-110 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 1-4g | Sódio: típico TACO 60-85mg
+
+PERU PEITO cru:
+• kcal: TACO 100-120 | Proteínas: típico TACO 22-25g
+• Gorduras totais: típico TACO 1-3g | Sódio: típico TACO 55-75mg
+
+PATO cru:
+• kcal: TACO 190-240 | Proteínas: típico TACO 16-20g
+• Gorduras totais: típico TACO 13-20g | Sódio: típico TACO 65-85mg
+
+━━━ MIÚDOS / VÍSCERAS BOVINAS ━━━━━━━━━━━━━━━━━━━━━━━
+FÍGADO BOVINO cru:
+• kcal: TACO 130-145 | Proteínas: típico TACO 19-22g
+• Gorduras totais: típico TACO 3-5g | Carboidratos: típico TACO 2-4g (glicogênio)
+• Sódio: típico TACO 65-85mg | ⚠️ Carboidratos > 0g é normal em fígado (glicogênio)
+
+CORAÇÃO BOVINO cru:
+• kcal: TACO 110-135 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 4-7g | Sódio: típico TACO 80-110mg
+
+RIM BOVINO cru:
+• kcal: TACO 95-115 | Proteínas: típico TACO 16-20g
+• Gorduras totais: típico TACO 3-6g | Sódio: típico TACO 180-250mg (naturalmente alto)
+
+LÍNGUA BOVINA crua:
+• kcal: TACO 195-230 | Proteínas: típico TACO 14-18g
+• Gorduras totais: típico TACO 13-19g | Sódio: típico TACO 65-85mg
+
+━━━ PESCADOS REGIONAIS BRASILEIROS ━━━━━━━━━━━━━━━━━━
+PEIXE MAGRO REGIONAL — Corvina / Pescada / Linguado / Badejo:
+• kcal: TACO 75-100 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 0,5-2g | Sódio: típico TACO 50-120mg
+
+PEIXE MÉDIO REGIONAL — Dourado / Robalo / Tainha / Surubim / Pintado:
+• kcal: TACO 90-130 | Proteínas: típico TACO 17-21g
+• Gorduras totais: típico TACO 2-6g | Sódio: típico TACO 50-120mg
+
+PEIXE REGIONAL AMAZÔNICO — Tambaqui / Pirarucu / Pacu / Tucunaré / Traíra:
+• kcal: TACO 90-140 | Proteínas: típico TACO 17-22g
+• Gorduras totais: típico TACO 2-8g | Sódio: típico TACO 50-120mg
+• ⚠️ Pirarucu tem proteína alta (22-26g) — produto muito magro
+
+CAÇÃO / TUBARÃO:
+• kcal: TACO 80-100 | Proteínas: típico TACO 18-22g
+• Gorduras totais: típico TACO 0,5-2g | Sódio: típico TACO 60-130mg
+
+GAROUPA / BADEJO (peixes nobres):
+• kcal: TACO 80-100 | Proteínas: típico TACO 18-22g
+• Gorduras totais: típico TACO 0,5-2g | Sódio: típico TACO 50-100mg
+
+MERLUZA:
+• kcal: TACO 70-90 | Proteínas: típico TACO 16-20g
+• Gorduras totais: típico TACO 0,5-1,5g | Sódio: típico TACO 50-110mg
+
+━━━ MOLUSCOS E CRUSTÁCEOS ━━━━━━━━━━━━━━━━━━━━━━━━━
+MEXILHÃO cru (Port. 1022/2024):
+• kcal: TACO 70-90 | Proteínas: típico TACO 11-14g
+• Gorduras totais: típico TACO 1,5-3g | Carboidratos: típico TACO 2-4g
+• Sódio: típico TACO 280-400mg | ⚠️ Carboidratos > 0g é normal em moluscos
+
+OSTRA crua (Port. 1022/2024):
+• kcal: TACO 65-85 | Proteínas: típico TACO 8-12g
+• Gorduras totais: típico TACO 1-3g | Carboidratos: típico TACO 3-5g
+• Sódio: típico TACO 400-600mg
+
+LULA crua (Port. 1022/2024):
+• kcal: TACO 75-95 | Proteínas: típico TACO 15-18g
+• Gorduras totais: típico TACO 1-2g | Sódio: típico TACO 200-350mg
+
+POLVO cru (Port. 1022/2024):
+• kcal: TACO 75-95 | Proteínas: típico TACO 14-18g
+• Gorduras totais: típico TACO 0,5-2g | Sódio: típico TACO 230-380mg
+
+━━━ OVOS ESPECÍFICOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OVO DE CODORNA cru (Port. 01/2020):
+• kcal: TACO 155-170 | Proteínas: típico TACO 13-15g
+• Gorduras totais: típico TACO 11-13g | Gord.sat: típico TACO 3-4g
+• Sódio: típico TACO 130-180mg | Carboidratos: típico TACO 0,5-1g
+
+CLARA DE OVO crua:
+• kcal: TACO 45-55 | Proteínas: típico TACO 10-12g
+• Gorduras totais: típico TACO 0g | Sódio: típico TACO 160-200mg
+• Carboidratos: típico TACO 0,5-1g
+
+GEMA DE OVO crua:
+• kcal: TACO 320-360 | Proteínas: típico TACO 15-17g
+• Gorduras totais: típico TACO 28-32g | Gord.sat: típico TACO 9-11g
+• Sódio: típico TACO 45-65mg
+
+━━━ LATICÍNIOS ESPECÍFICOS ━━━━━━━━━━━━━━━━━━━━━━━━━
+QUEIJO PROVOLONE (IN 73/2020):
+• kcal: TACO 355-385 | Proteínas: mín 20g RTIQ, típico TACO 25-30g
+• Gorduras totais: típico TACO 28-35g | Gord.sat: típico TACO 18-22g
+• Sódio: típico TACO 800-1100mg | Carboidratos: típico TACO 0-2g
+
+QUEIJO BRIE / CAMEMBERT (Port. 146/1996):
+• kcal: TACO 295-335 | Proteínas: típico TACO 17-22g
+• Gorduras totais: típico TACO 23-28g | Gord.sat: típico TACO 14-18g
+• Sódio: típico TACO 400-600mg
+
+KEFIR (IN 46/2007):
+• kcal: TACO 50-70 | Proteínas: típico TACO 3-4g
+• Gorduras totais: típico TACO 1-4g | Sódio: típico TACO 40-60mg
+• Carboidratos: típico TACO 4-6g (menor que iogurte — fermentação consome lactose)
+
+IOGURTE GREGO / GREGO ESTILO (Port. 146/1996):
+• kcal: TACO 90-140 | Proteínas: típico TACO 6-10g (concentrado, mais proteína)
+• Gorduras totais: típico TACO 5-10g | Sódio: típico TACO 40-70mg
+• Carboidratos: típico TACO 3-7g
+
+LEITE DE CABRA (Port. 146/1996):
+• kcal: TACO 65-75 | Proteínas: mín 2,8g RTIQ, típico TACO 3,0-3,5g
+• Gorduras totais: típico TACO 3,5-4,5g | Sódio: típico TACO 40-55mg
+• Carboidratos: típico TACO 4,4-4,8g
+
+QUEIJO PARMESÃO RALADO:
+• kcal: TACO 450-480 | Proteínas: típico TACO 35-42g
+• Gorduras totais: típico TACO 28-35g | Sódio: típico TACO 1400-1900mg
+• ⚠️ Mais concentrado que bloco por conta da desidratação
+
+━━━ PRODUTOS APÍCOLAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRÓPOLIS EXTRATO LÍQUIDO / TINTURA (IN 03/2001):
+• kcal: tipicamente 150-300 (varia com concentração de álcool/propóleos)
+• Proteínas: traços | Gorduras: traços | Carboidratos: 0-5g por 100mL
+• ⚠️ Produto com alto teor alcoólico — verificar se declara "contém álcool"
+• Sódio: típico <10mg
+
+GELEIA REAL (IN 03/2001):
+• kcal: TACO 130-170 | Proteínas: típico TACO 12-16g
+• Gorduras totais: típico TACO 5-8g | Carboidratos: típico TACO 8-14g
+• Sódio: típico TACO 50-100mg
+
+PÓLEN APÍCOLA (IN 03/2001):
+• kcal: TACO 340-400 | Proteínas: típico TACO 20-28g
+• Carboidratos: típico TACO 40-55g | Gorduras totais: típico TACO 4-8g
+• Sódio: típico TACO 30-80mg
+
+━━━ CONSIDERAÇÕES PARA PRODUTOS TEMPERADOS/PROCESSADOS ━━
+Para produtos temperados (IN 17/2018) os valores de sódio podem ser 10-40% maiores que
+o corte in natura pelo sal e condimentos adicionados. Considere isso na avaliação.
+Carboidratos acima de 10g/100g em embutidos puros (sem amido declarado) = incomum.
+Fibra alimentar acima de 0g/100g em carnes puras in natura = incomum (indica erro ou vegetal).
+⚠️ EXCEÇÕES onde Carboidratos > 0g são NORMAIS: fígado (glicogênio), moluscos, ovos (traços).
+⚠️ Rim bovino tem sódio naturalmente alto (~200mg) — não confundir com sal adicionado.
+
+━━━ PRODUTOS VEGETAIS — CEREAIS E DERIVADOS ━━━━━━━━━━━━
+ARROZ BRANCO cru (TACO):
+• kcal: 358-368 | Carboidratos: típico 79-82g | Proteínas: típico 7-9g
+• Gorduras totais: típico 0,5-1g | Sódio: típico 1-5mg | Fibra: típico 1,5-2,5g
+
+ARROZ INTEGRAL cru:
+• kcal: 355-368 | Carboidratos: típico 75-78g | Proteínas: típico 7-9g
+• Gorduras totais: típico 1,5-3g | Fibra: típico 4-6g
+
+FARINHA DE TRIGO:
+• kcal: 355-365 | Carboidratos: típico 75-80g | Proteínas: típico 9-12g
+• Gorduras totais: típico 1-2g | Fibra: típico 2-3g | Sódio: típico 1-5mg
+
+PÃO FRANCÊS / DE FORMA:
+• kcal: 245-285 | Carboidratos: típico 50-58g | Proteínas: típico 7-10g
+• Gorduras totais: típico 2-5g | Sódio: típico 400-700mg | Fibra: típico 2-4g
+
+MACARRÃO (massa seca):
+• kcal: 365-380 | Carboidratos: típico 75-80g | Proteínas: típico 10-13g
+• Gorduras totais: típico 1-2g | Sódio: típico 5-15mg (sem sal) / 300-600mg (com sal)
+
+BISCOITO SALGADO / CRACKER:
+• kcal: 380-430 | Carboidratos: típico 60-70g | Proteínas: típico 8-12g
+• Gorduras totais: típico 12-20g | Sódio: típico 500-900mg
+
+BISCOITO DOCE / COOKIE:
+• kcal: 430-480 | Carboidratos: típico 65-72g | Proteínas: típico 5-8g
+• Gorduras totais: típico 18-26g | Açúcares: típico 25-40g | Sódio: típico 200-500mg
+
+GRANOLA / CEREAL MATINAL:
+• kcal: 380-430 | Carboidratos: típico 60-70g | Proteínas: típico 8-12g
+• Gorduras totais: típico 10-18g | Fibra: típico 5-9g | Açúcares: típico 15-30g
+
+━━━ ÓLEOS, GORDURAS E MARGARINAS ━━━━━━━━━━━━━━━━━━━━━
+ÓLEO VEGETAL (soja, girassol, canola, milho):
+• kcal: 882-900 | Gorduras totais: 100g | Proteínas: 0g | Carboidratos: 0g
+• Gord.sat: soja 15g | girassol 10g | canola 7g | milho 13g | Sódio: 0mg
+• ⚠️ Óleo com proteínas ou carboidratos declarados = erro ou adulteração
+
+AZEITE DE OLIVA:
+• kcal: 884-900 | Gorduras totais: 100g | Gord.sat: típico 14g | Gord.mono: típico 73g
+• Proteínas: 0g | Carboidratos: 0g | Sódio: 0mg
+
+MARGARINA:
+• kcal: 540-720 | Gorduras totais: 60-80g | Gord.sat: típico 20-35g
+• Trans: máx 2g/dia recomendado ANVISA | Sódio: típico 350-600mg
+
+━━━ AÇÚCAR E PRODUTOS AÇUCARADOS ━━━━━━━━━━━━━━━━━━━━
+AÇÚCAR REFINADO / CRISTAL:
+• kcal: 385-390 | Carboidratos: 99-100g (quase tudo sacarose)
+• Proteínas: 0g | Gorduras: 0g | Sódio: 0-2mg
+
+CHOCOLATE AO LEITE:
+• kcal: 520-560 | Carboidratos: típico 57-62g | Açúcares: típico 50-55g
+• Gorduras totais: típico 28-33g | Gord.sat: típico 16-20g
+• Proteínas: típico 7-9g | Sódio: típico 80-120mg
+
+CHOCOLATE AMARGO (>70% cacau):
+• kcal: 550-600 | Carboidratos: típico 32-45g | Açúcares: típico 20-35g
+• Gorduras totais: típico 38-45g | Proteínas: típico 8-12g | Sódio: típico 10-30mg
+
+SORVETE (base leite):
+• kcal: 180-250 | Carboidratos: típico 25-35g | Açúcares: típico 20-28g
+• Gorduras totais: típico 8-14g | Proteínas: típico 3-5g | Sódio: típico 60-100mg
+
+━━━ CONDIMENTOS, MOLHOS E TEMPEROS ━━━━━━━━━━━━━━━━━━
+KETCHUP:
+• kcal: 90-115 | Carboidratos: típico 20-27g | Açúcares: típico 15-22g
+• Gorduras totais: típico 0g | Sódio: típico 900-1300mg
+
+MAIONESE:
+• kcal: 280-320 | Gorduras totais: típico 30-35g | Proteínas: típico 1-2g
+• Carboidratos: típico 2-5g | Sódio: típico 500-800mg
+
+SHOYU / MOLHO DE SOJA:
+• kcal: 50-70 | Proteínas: típico 5-8g | Carboidratos: típico 6-10g
+• Gorduras: típico 0g | Sódio: típico 4000-7000mg ⚠️ MUITO ALTO em sódio — normal
+
+━━━ BEBIDAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUCO DE LARANJA (100% integral):
+• kcal: 40-48 | Carboidratos: típico 9-11g | Açúcares: típico 8-10g
+• Proteínas: típico 0,5-1g | Gorduras: 0g | Sódio: típico 0-5mg
+• ⚠️ Suco com sódio >20mg/100mL indica adição irregular
+
+SUCO DE UVA INTEGRAL:
+• kcal: 65-75 | Carboidratos: típico 15-18g | Açúcares: típico 14-17g
+• Proteínas: típico 0,5g | Gorduras: 0g | Sódio: típico 3-10mg
+
+NÉCTAR DE FRUTA (>30% polpa):
+• kcal: 40-65 | Carboidratos: típico 10-16g (com açúcar adicionado)
+• Proteínas: típico 0-0,5g | Sódio: típico 5-30mg
+
+REFRIGERANTE REGULAR:
+• kcal: 36-45/100mL | Carboidratos: típico 9-12g | Açúcares: típico 9-12g
+• Gorduras: 0g | Proteínas: 0g | Sódio: típico 5-20mg
+
+REFRIGERANTE DIET/ZERO:
+• kcal: 0-5/100mL | Carboidratos: típico 0g | Adoçantes: verificar declaração
+
+CERVEJA:
+• kcal: 40-50/100mL | Carboidratos: típico 3-5g | Proteínas: típico 0,3-0,5g
+• Gorduras: 0g | Sódio: típico 3-12mg | Teor alcoólico: declarar em %vol
+
+VINHO TINTO/BRANCO:
+• kcal: 68-85/100mL | Carboidratos: típico 2-4g (seco) / 5-10g (suave)
+• Gorduras: 0g | Sódio: típico 5-15mg | Teor alcoólico: declarar em %vol
+
+━━━ SUPLEMENTOS ALIMENTARES (RDC 243/2018) ━━━━━━━━━
+WHEY PROTEIN CONCENTRADO (70-80% prot):
+• kcal: 350-400/100g | Proteínas: típico 70-80g | Carboidratos: típico 8-15g
+• Gorduras totais: típico 5-8g | Sódio: típico 200-500mg
+
+WHEY PROTEIN ISOLADO (>90% prot):
+• kcal: 350-380/100g | Proteínas: típico 88-95g | Carboidratos: típico 2-5g
+• Gorduras totais: típico 0,5-2g | Sódio: típico 150-400mg
+
+CREATINA MONOHIDRATADA:
+• kcal: 0 | Proteínas: 0g | Carboidratos: 0g | Gorduras: 0g
+• ⚠️ Creatina com calorias declaradas = erro ou produto adulterado
+
+━━━ LEGUMINOSAS E GRÃOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEIJÃO CARIOCA / PRETO cru:
+• kcal: 340-355 | Carboidratos: típico 60-65g | Proteínas: típico 20-23g
+• Gorduras totais: típico 1-2g | Fibra: típico 15-20g | Sódio: típico 5-10mg
+
+GRÃO DE BICO cru:
+• kcal: 360-380 | Carboidratos: típico 60-65g | Proteínas: típico 18-22g
+• Gorduras totais: típico 5-7g | Fibra: típico 15-18g
+
+Formato de saída para o Campo 9 (USE SEMPRE AS 3 LINHAS):
+✅/❌/⚠️/🔍 Nível 1 — Estrutura: [resultado detalhado]
+✅/❌/⚠️/🔍 Nível 2 — Coerência matemática: (Prot×4) + (Carb×4) + (Gord×9) = Xkcal esperado | declarado: Ykcal | variação: Z% | [resultado]
+✅/❌/⚠️/🔍 Nível 3 — Plausibilidade [categoria detectada]: [nutriente]: valor declarado | faixa típica TACO: min-max | limite RTIQ/ANVISA: X | [resultado]
 
 ─────────────────────────────────────────────
 CAMPO 10 — ROTULAGEM NUTRICIONAL FRONTAL (LUPA)
@@ -897,7 +2110,21 @@ async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str
     detected = {}
 
     # Carrega KB baseado em obs (Phase 1 agora está dentro do prompt principal)
-    categories = detect_categories(obs) if obs else []
+    # Gap A: se obs vazia, usa Phase 1 para detectar categoria automaticamente
+    if not obs and mime_type != "application/pdf":
+        try:
+            detected_auto = await detect_product_phase1(image_b64, mime_type, "")
+            if detected_auto.get("categoria_kb") and detected_auto["categoria_kb"] != "outro":
+                obs = detected_auto.get("produto", "")
+                categories = [detected_auto["categoria_kb"]]
+                if detected_auto.get("orgao") and not orgao_final:
+                    orgao_final = detected_auto["orgao"]
+            else:
+                categories = []
+        except Exception:
+            categories = []
+    else:
+        categories = detect_categories(obs) if obs else []
     kb_text = await get_kb_for_categories(categories) if categories else ""
 
     if kb_text:
@@ -920,6 +2147,21 @@ Use como referência primária na validação:
     }
     orgao_context = orgao_map.get(orgao_final.upper(), "")
 
+    # Injetar norma estadual SIE quando estado detectado
+    sie_context = ""
+    if orgao_final.upper() == "SIE" and sigla_sie:
+        # Detectar estado pelo carimbo/sigla
+        for estado_key, fallback_text in SIE_ESTADO_MAP.items():
+            if estado_key.upper() in sigla_sie.upper():
+                sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {sigla_sie.upper()}\n{fallback_text}"
+                break
+    # Também detectar pelo obs do usuário (ex: "CISPOA", "SISP")
+    if not sie_context and obs:
+        for estado_key, fallback_text in SIE_ESTADO_MAP.items():
+            if estado_key.upper() in obs.upper():
+                sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {estado_key}\n{fallback_text}"
+                break
+
     # Contexto da detecção automática
     detection_context = ""
     if detected:
@@ -937,6 +2179,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
+    if sie_context:
+        system_prompt += sie_context
     if detection_context:
         system_prompt += f"\n\n{detection_context}"
 
@@ -1006,6 +2250,38 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     yield "data: [DONE]\n\n"
 
+
+
+def check_image_readability(image_bytes: bytes) -> dict:
+    """
+    Verifica se a imagem tem resolução e contraste suficientes para leitura de texto.
+    Retorna {"ok": bool, "warning": str, "dim": tuple}
+    """
+    try:
+        from PIL import Image as PILImage, ImageFilter
+        import statistics
+        img = PILImage.open(__import__("io").BytesIO(image_bytes))
+        w, h = img.size
+        maior = max(w, h)
+        # Resolução mínima para rótulo legível antes do zoom
+        if maior < 300:
+            return {"ok": False,
+                    "warning": f"⚠️ Imagem muito pequena ({w}×{h}px). Envie uma foto com pelo menos 800px no maior lado para garantir leitura do texto.",
+                    "dim": (w, h)}
+        # Verifica se imagem não é completamente branca/preta (PDF em branco, etc.)
+        gray = img.convert("L")
+        pixels = list(gray.getdata())
+        try:
+            stdev = statistics.stdev(pixels[:10000])  # amostra
+        except Exception:
+            stdev = 50
+        if stdev < 8:
+            return {"ok": False,
+                    "warning": "⚠️ Imagem sem contraste detectável. Verifique se o arquivo está correto e tente novamente.",
+                    "dim": (w, h)}
+        return {"ok": True, "warning": "", "dim": (w, h)}
+    except Exception:
+        return {"ok": True, "warning": "", "dim": (0, 0)}
 
 
 def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
@@ -1080,6 +2356,12 @@ async def validar_rotulo(
             return JSONResponse({"error": "Não foi possível processar o PDF."},
                                 headers={"Access-Control-Allow-Origin": "*"})
 
+        # Gap H: verificar se houve erro de senha
+        if pages and pages[0].get("is_error"):
+            return JSONResponse(
+                {"error": pages[0]["error"]},
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
         first = pages[0]
         if first.get("is_pdf"):
             # PDF nativo — envia direto para API Anthropic como documento
@@ -1130,7 +2412,13 @@ async def validar_rotulo(
             "image/bmp": "image/jpeg",
         }
         raw_mime = mime_map.get(content_type, "image/jpeg")
-        # Pré-processa: garante resolução mínima 1500px para leitura de texto
+        # Gap B: verifica legibilidade antes de processar
+        quality = check_image_readability(contents)
+        if not quality["ok"]:
+            return JSONResponse(
+                {"error": quality["warning"]},
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
         processed_bytes, mime_type = preprocess_image(contents, raw_mime)
         image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
 
