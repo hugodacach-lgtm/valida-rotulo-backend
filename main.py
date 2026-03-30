@@ -985,44 +985,48 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
 def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
     """
-    Garante que a imagem tenha resolução adequada para leitura de texto pequeno.
-    - Se menor que 1500px no maior lado → upscale para 1500px
-    - Se maior que 3000px no maior lado → downscale para 3000px (evita payload gigante)
-    - Converte para JPEG para uniformidade e compressão controlada
-    Retorna (bytes, mime_type) processados.
+    Zoom máximo na imagem — simula o que um humano faz ao dar zoom para ler letra pequena.
+    Estratégia:
+    - Sempre amplia para 4500px no maior lado (zoom máximo)
+    - Aplica UnsharpMask após interpolação para recuperar bordas de letras
+    - Aumenta contraste levemente para melhorar leitura de texto
+    - Imagens já grandes (>4500px): mantém tamanho, aplica só sharpening
     """
     try:
-        from PIL import Image as PILImage
+        from PIL import Image as PILImage, ImageFilter, ImageEnhance
+
         img = PILImage.open(io.BytesIO(image_bytes))
 
-        # Converte RGBA/P para RGB
+        # Normaliza modo de cor
         if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        elif img.mode == "L":
             img = img.convert("RGB")
 
         w, h = img.size
         maior = max(w, h)
+        TARGET = 4500  # zoom máximo — equivalente a dar zoom total na imagem
 
-        # Upscale se muito pequena (texto ilegível)
-        if maior < 1500:
-            scale = 1500 / maior
-            new_w = int(w * scale)
-            new_h = int(h * scale)
-            img = img.resize((new_w, new_h), PILImage.LANCZOS)
+        if maior < TARGET:
+            # Upscale: amplia proporcionalmente até TARGET px
+            scale = TARGET / maior
+            img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
+            # UnsharpMask agressivo: recupera nitidez das letras após interpolação
+            # radius=2 → afeta bordas finas de texto; percent=200 → sharpening forte
+            img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=200, threshold=1))
+        elif maior > TARGET:
+            # Imagens já grandes: só downscale leve para não explodir payload
+            scale = TARGET / maior
+            img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
 
-        # Downscale se muito grande (economiza tokens)
-        elif maior > 3000:
-            scale = 3000 / maior
-            new_w = int(w * scale)
-            new_h = int(h * scale)
-            img = img.resize((new_w, new_h), PILImage.LANCZOS)
+        # Contraste +20%: melhora legibilidade de texto cinza em fundo claro
+        img = ImageEnhance.Contrast(img).enhance(1.2)
 
-        # Salva como JPEG com qualidade alta
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=92, optimize=True)
+        img.save(buf, format="JPEG", quality=95)
         return buf.getvalue(), "image/jpeg"
 
     except Exception:
-        # Se Pillow não disponível ou erro, retorna original
         return image_bytes, mime_type
 
 @app.post("/validar")
@@ -1103,10 +1107,11 @@ async def avaliar_rotulo(
                             headers={"Access-Control-Allow-Origin": "*"})
 
     contents = await imagem.read()
-    image_b64 = base64.b64encode(contents).decode("utf-8")
     mime_map = {"image/jpeg": "image/jpeg", "image/jpg": "image/jpeg",
                 "image/png": "image/png", "image/webp": "image/webp"}
-    mime_type = mime_map.get(imagem.content_type, "image/jpeg")
+    raw_mime = mime_map.get(imagem.content_type, "image/jpeg")
+    processed_bytes, mime_type = preprocess_image(contents, raw_mime)
+    image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
 
     obs = f"{gab.get('produto', '')} {gab.get('categoria', '')}".strip()
     orgao = gab.get("orgao", "")
