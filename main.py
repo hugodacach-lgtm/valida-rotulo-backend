@@ -2427,6 +2427,11 @@ Confiança da detecção: {detected.get('confianca', 'media')}
 Use essas informações como ponto de partida — confirme ou corrija com base no que você vê na imagem.
 ---"""
 
+    # Injeta exemplos few-shot de validações anteriores (Sistema 2)
+    fewshot = ""
+    if categories:
+        fewshot = get_fewshot_examples(categories[0])
+
     system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
@@ -2436,6 +2441,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += funcional_context
     if prato_pronto_context:
         system_prompt += prato_pronto_context
+    if fewshot:
+        system_prompt += fewshot
     if detection_context:
         system_prompt += f"\n\n{detection_context}"
 
@@ -2444,6 +2451,9 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         user_text += f"\nObservação adicional: {obs}"
     if produto_detectado:
         user_text += f"\nProduto identificado automaticamente: {produto_detectado}"
+
+    # Gera case_id para este rótulo (usado pelo feedback endpoint)
+    case_id = _case_id(image_b64)
 
     payload = {
         "model": "claude-sonnet-4-20250514",
@@ -2503,6 +2513,40 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     if revisao:
         yield f"data: {json.dumps({'text': revisao})}\n\n"
 
+    # ── Auto-aprendizado: armazena resultado sem precisar de feedback RT ───────
+    # Extrai automaticamente: produto, erros encontrados, score
+    import re as _re2
+    score_match  = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
+    score_auto   = int(score_match.group(1)) if score_match else None
+    prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
+    prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
+    # Extrai campos NÃO CONFORME e AUSENTE para identificar erros
+    erros_auto_list = _re2.findall(
+        r"CAMPO (\d+)[^\n]*(?:NÃO CONFORME|AUSENTE)[^\n]*\n([^\n]{0,120})",
+        relatorio, _re2.IGNORECASE
+    )
+    erros_auto = "; ".join(f"C{num}: {desc[:60]}" for num, desc in erros_auto_list[:5])
+
+    auto_case = {
+        "case_id":      case_id,
+        "produto":      prod_auto or obs[:50] if obs else "",
+        "categoria":    categories[0] if categories else "",
+        "feedback":     None,          # sem feedback RT ainda
+        "erros_auto":   erros_auto,    # extraído automaticamente do relatório
+        "erros_encontrados": erros_auto,
+        "score_agente": score_auto,
+        "timestamp":    __import__("datetime").datetime.now().isoformat(),
+        "auto_stored":  True,
+    }
+    existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
+    if not existing:
+        _cases_db.append(auto_case)
+        if len(_cases_db) > _MAX_CASES:
+            _cases_db.pop(0)
+    # ────────────────────────────────────────────────────────────────────────────
+
+    # Emite case_id para o frontend usar no feedback
+    yield f"data: {json.dumps({'case_id': case_id, 'fewshot_used': bool(fewshot), 'produto': prod_auto})}\n\n"
     yield "data: [DONE]\n\n"
 
 
@@ -2789,6 +2833,354 @@ async def avaliar_rotulo(
 # ═══════════════════════════════════════════════════════════════════════════════
 # HEALTH + KB PRELOAD
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SISTEMA 1 — MONITORAMENTO LEGISLATIVO CONTÍNUO
+# Verifica o DOU diariamente por novas normas relevantes a POA
+# ══════════════════════════════════════════════════════════════════════════════
+
+_monitor_lock = asyncio.Lock()
+
+MONITOR_KEYWORDS = [
+    "rotulagem", "RTIQ", "produto de origem animal", "embutido", "laticínio",
+    "pescado", "mel", "ovos", "inspeção industrial", "DIPOA", "SIGSIF",
+    "alergênicos", "aditivos alimentares", "informação nutricional",
+    "denominação de venda", "transgênico", "glúten", "lactose",
+]
+MONITOR_ORGANS = ["MAPA", "ANVISA", "INMETRO", "DIPOA", "SDA", "SNVS"]
+MONITOR_DOC_TYPES = ["instrução normativa", "portaria", "resolução", "decreto",
+                     "instrução de serviço", "circular"]
+
+async def fetch_dou_recent(query: str, days_back: int = 2) -> list[dict]:
+    """Busca publicações recentes no DOU via API pública."""
+    from datetime import datetime, timedelta
+    end_date   = datetime.now()
+    start_date = end_date - timedelta(days=days_back)
+    url = (
+        "https://www.in.gov.br/consulta/-/buscar/dou"
+        f"?q={query.replace(' ', '+')}"
+        f"&s=todos"
+        f"&exactDate=&startDate={start_date.strftime('%d-%m-%Y')}"
+        f"&endDate={end_date.strftime('%d-%m-%Y')}"
+        f"&sortType=0"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.get(url, headers={"User-Agent": "ValidaRotuloMonitor/1.0"})
+            if r.status_code != 200:
+                return []
+            import re as _re
+            # Extrai títulos e links dos resultados
+            titles = _re.findall(r'class="title-marker[^"]*"[^>]*>([^<]+)<', r.text)
+            links  = _re.findall(r'href="(/web/dou/-/[^"]+)"', r.text)
+            results = []
+            for i, title in enumerate(titles[:10]):
+                link = f"https://www.in.gov.br{links[i]}" if i < len(links) else ""
+                results.append({"title": title.strip(), "link": link})
+            return results
+    except Exception:
+        return []
+
+def is_relevant_publication(title: str) -> bool:
+    """Verifica se uma publicação do DOU é relevante para POA."""
+    t = title.lower()
+    has_keyword = any(kw.lower() in t for kw in MONITOR_KEYWORDS)
+    has_doctype = any(dt.lower() in t for dt in MONITOR_DOC_TYPES)
+    return has_keyword and has_doctype
+
+async def send_monitor_alert(findings: list[dict], webhook_url: str = "") -> bool:
+    """Envia alerta por webhook quando norma relevante é detectada."""
+    if not findings:
+        return False
+    payload = {
+        "text": f"🚨 *ValidaRótulo — Nova norma POA detectada*\n"
+                + "\n".join(f"• {f['title']}\n  {f['link']}" for f in findings),
+        "findings": findings,
+        "timestamp": __import__("datetime").datetime.now().isoformat(),
+    }
+    # Webhook (Slack, Discord, n8n, Zapier — qualquer URL)
+    if webhook_url:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(webhook_url, json=payload)
+        except Exception:
+            pass
+    # Também armazena localmente para o endpoint /monitor/status
+    _monitor_history.append(payload)
+    if len(_monitor_history) > 100:
+        _monitor_history.pop(0)
+    return True
+
+_monitor_history: list[dict] = []
+
+@app.post("/monitor/check")
+async def monitor_check(request: Request):
+    """
+    Endpoint chamado diariamente pelo cron job.
+    Busca novas publicações relevantes no DOU e envia alertas.
+    Configurar cron em: https://cron-job.org (grátis)
+    URL: POST https://valida-rotulo-backend.onrender.com/monitor/check
+    Frequência: diária às 09:00 BRT
+    """
+    async with _monitor_lock:
+        all_findings = []
+        for kw in ["rotulagem produto origem animal", "RTIQ MAPA", "ANVISA rotulagem"]:
+            results = await fetch_dou_recent(kw, days_back=2)
+            for r in results:
+                if is_relevant_publication(r["title"]) and r not in all_findings:
+                    all_findings.append(r)
+
+        webhook_url = os.environ.get("MONITOR_WEBHOOK_URL", "")
+        alerted = await send_monitor_alert(all_findings, webhook_url)
+
+        return JSONResponse({
+            "status": "ok",
+            "checked_at": __import__("datetime").datetime.now().isoformat(),
+            "findings": len(all_findings),
+            "alerted": alerted,
+            "publications": all_findings,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+@app.get("/monitor/status")
+async def monitor_status():
+    """Mostra histórico de alertas enviados."""
+    return JSONResponse({
+        "total_alerts": len(_monitor_history),
+        "recent": _monitor_history[-5:] if _monitor_history else [],
+        "webhook_configured": bool(os.environ.get("MONITOR_WEBHOOK_URL")),
+        "setup_instructions": {
+            "cron": "https://cron-job.org → POST /monitor/check diariamente às 09:00",
+            "webhook": "Render dashboard → Environment → MONITOR_WEBHOOK_URL=<sua URL>",
+            "slack_example": "https://hooks.slack.com/services/XXX/YYY/ZZZ",
+        }
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+@app.post("/kb/update")
+async def kb_update(request: Request):
+    """
+    Recebe texto de nova norma e atualiza o cache da KB.
+    Usar quando uma norma nova for detectada e revisada.
+    Body: { "categoria": "embutidos", "texto": "...", "fonte": "IN XX/AAAA" }
+    """
+    try:
+        body = await request.json()
+        categoria = body.get("categoria", "manual")
+        texto     = body.get("texto", "")
+        fonte     = body.get("fonte", "")
+        if not texto:
+            return JSONResponse({"error": "texto obrigatório"},
+                                headers={"Access-Control-Allow-Origin": "*"})
+        _kb_cache[categoria] = f"[Atualizado manualmente — {fonte}]\n{texto}"
+        return JSONResponse({
+            "status": "ok",
+            "categoria": categoria,
+            "chars": len(texto),
+            "fonte": fonte,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SISTEMA 2 — APRENDIZADO POR USO (FEW-SHOT LOOP)
+# Armazena validações + feedback do RT → melhora próximas validações
+# ══════════════════════════════════════════════════════════════════════════════
+
+import hashlib as _hashlib
+
+# Banco de casos em memória (persiste durante o processo, reset no redeploy)
+# Para produção: substituir por Supabase/PlanetScale (gratuitos)
+_cases_db: list[dict] = []
+_MAX_CASES = 500  # máximo de casos em memória
+
+def _case_id(image_b64: str) -> str:
+    """Gera ID único para uma imagem."""
+    return _hashlib.md5(image_b64[:500].encode()).hexdigest()[:12]
+
+def get_fewshot_examples(categoria: str, max_examples: int = 3) -> str:
+    """
+    Recupera exemplos para few-shot injection.
+    Usa TODOS os casos armazenados — com ou sem feedback do RT.
+    Prioridade:
+      1. Mesma categoria + feedback RT positivo (mais confiável)
+      2. Mesma categoria + auto-validado com score alto (≥10/12)
+      3. Qualquer categoria + alta confiança
+    Extrai padrões de erros recorrentes para alertar proativamente.
+    """
+    if not _cases_db:
+        return ""
+
+    # Tier 1: feedback RT explícito + mesma categoria
+    tier1 = [c for c in _cases_db
+             if c.get("categoria") == categoria
+             and c.get("feedback") in ("correto", "parcialmente_correto")]
+
+    # Tier 2: auto-validado com score ≥10 + mesma categoria (confiança alta)
+    tier2 = [c for c in _cases_db
+             if c.get("categoria") == categoria
+             and c.get("feedback") is None
+             and (c.get("score_agente") or 0) >= 10
+             and c.get("erros_auto")]
+
+    # Tier 3: qualquer categoria com score alto
+    tier3 = [c for c in _cases_db
+             if c.get("feedback") is None
+             and (c.get("score_agente") or 0) >= 10]
+
+    pool = (tier1 + tier2 + tier3)[:max_examples * 4]
+    if not pool:
+        return ""
+
+    # Detecta erros RECORRENTES na categoria (aparece em >30% dos casos)
+    from collections import Counter
+    cat_cases = [c for c in _cases_db if c.get("categoria") == categoria]
+    erros_recorrentes = ""
+    if len(cat_cases) >= 3:
+        all_erros = " ".join(
+            (c.get("erros_auto") or "") + " " + (c.get("erros_encontrados") or "")
+            for c in cat_cases
+        ).lower()
+        palavras = Counter(w for w in all_erros.split()
+                           if len(w) > 5 and w not in {"campo","nenhum","conforme","verificar"})
+        top = [w for w, n in palavras.most_common(5) if n >= max(2, len(cat_cases) * 0.3)]
+        if top:
+            erros_recorrentes = (
+                f"\nPADRÕES DE ERRO RECORRENTES nesta categoria "
+                f"(detectados em {len(cat_cases)} validações anteriores):\n"
+                f"Fique especialmente atento a: {', '.join(top)}\n"
+            )
+
+    # Exemplos concretos
+    examples = pool[:max_examples]
+    parts = []
+    for ex in examples:
+        origem = "RT" if ex.get("feedback") else "auto-validado"
+        score  = ex.get("score_agente")
+        erros  = ex.get("erros_auto") or ex.get("erros_encontrados") or "nenhum registrado"
+        parts.append(
+            f"[{ex.get('produto','produto')} — {ex.get('categoria','?')} | origem: {origem}"
+            + (f" | score: {score}/12" if score else "") + "]\n"
+            f"Não-conformidades encontradas: {erros[:200]}"
+        )
+
+    header = f"\n## BASE DE CONHECIMENTO PRÁTICO ({len(_cases_db)} validações reais)"
+    if erros_recorrentes:
+        header += erros_recorrentes
+    if parts:
+        header += "\nEXEMPLOS RECENTES:\n" + "\n---\n".join(parts)
+    return header
+
+@app.post("/feedback")
+async def store_feedback(request: Request):
+    """
+    Armazena feedback do RT após uma validação.
+    Body: {
+      "case_id": "abc123",
+      "produto": "Linguiça Suína Frescal",
+      "categoria": "embutidos",
+      "feedback": "correto" | "incorreto" | "parcialmente_correto",
+      "erros_encontrados": "campo 11 errado, campo 9 ok",
+      "rt_comment": "O agente não percebeu que...",
+      "score_agente": 10,
+      "score_real": 9
+    }
+    """
+    try:
+        body = await request.json()
+        case = {
+            "case_id":          body.get("case_id", ""),
+            "produto":          body.get("produto", ""),
+            "categoria":        body.get("categoria", ""),
+            "feedback":         body.get("feedback", ""),
+            "erros_encontrados":body.get("erros_encontrados", ""),
+            "rt_comment":       body.get("rt_comment", ""),
+            "score_agente":     body.get("score_agente"),
+            "score_real":       body.get("score_real"),
+            "timestamp":        __import__("datetime").datetime.now().isoformat(),
+        }
+        # Atualiza caso existente ou adiciona novo
+        existing = next((c for c in _cases_db if c["case_id"] == case["case_id"]), None)
+        if existing:
+            existing.update(case)
+        else:
+            _cases_db.append(case)
+            if len(_cases_db) > _MAX_CASES:
+                _cases_db.pop(0)
+
+        return JSONResponse({
+            "status": "ok",
+            "total_cases": len(_cases_db),
+            "case_id": case["case_id"],
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+@app.get("/admin/stats")
+async def admin_stats():
+    """Painel de aprendizado: métricas de qualidade por categoria."""
+    if not _cases_db:
+        return JSONResponse({
+            "total_cases": 0,
+            "message": "Nenhuma validação com feedback ainda."
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    from collections import Counter, defaultdict
+    categorias = Counter(c["categoria"] for c in _cases_db if c.get("categoria"))
+    feedbacks  = Counter(c["feedback"]  for c in _cases_db if c.get("feedback"))
+
+    # Precisão por categoria
+    precisao = {}
+    by_cat = defaultdict(list)
+    for c in _cases_db:
+        if c.get("categoria") and c.get("feedback"):
+            by_cat[c["categoria"]].append(c["feedback"])
+    for cat, fbs in by_cat.items():
+        corretos = sum(1 for f in fbs if f in ("correto", "parcialmente_correto"))
+        precisao[cat] = round(corretos / len(fbs) * 100) if fbs else 0
+
+    # Erros mais comuns
+    erros_text = " ".join(c.get("erros_encontrados", "") for c in _cases_db)
+    erros_comuns = Counter(w for w in erros_text.lower().split()
+                           if len(w) > 4 and w not in {"campo","nenhum","ok","sim","não","para"})
+
+    auto_stored   = sum(1 for x in _cases_db if x.get("auto_stored"))
+    com_feedback  = sum(1 for x in _cases_db if x.get("feedback"))
+    score_medio   = None
+    scores = [x["score_agente"] for x in _cases_db if x.get("score_agente") is not None]
+    if scores:
+        score_medio = round(sum(scores) / len(scores), 1)
+
+    return JSONResponse({
+        "total_cases":        len(_cases_db),
+        "auto_armazenados":   auto_stored,
+        "com_feedback_rt":    com_feedback,
+        "score_medio_agente": score_medio,
+        "feedbacks":          dict(feedbacks),
+        "precisao_pct":       precisao,
+        "top_categorias":     dict(categorias.most_common(8)),
+        "erros_mais_comuns":  dict(erros_comuns.most_common(10)),
+        "fewshot_por_categoria": {
+            cat: {
+                "total": sum(1 for x in _cases_db if x.get("categoria") == cat),
+                "com_feedback": sum(1 for x in _cases_db if x.get("categoria") == cat and x.get("feedback")),
+                "auto_alta_confianca": sum(1 for x in _cases_db
+                                           if x.get("categoria") == cat
+                                           and (x.get("score_agente") or 0) >= 10),
+            }
+            for cat in set(x.get("categoria","") for x in _cases_db) if cat
+        },
+        "como_melhorar": {
+            "proxima_melhoria": "Adicione feedback RT em 10+ casos para ativar exemplos mais precisos",
+            "status_fewshot": (
+                "Ativo — injetando exemplos" if len(_cases_db) >= 5
+                else f"Aguardando {5 - len(_cases_db)} validações para ativar"
+            ),
+        }
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
 @app.get("/")
 def health():
     return {
