@@ -3771,6 +3771,170 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
                  "X-Accel-Buffering": "no"})
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXTRAÇÃO DE RECEITA — Fase 2 do criador de rótulos
+# ══════════════════════════════════════════════════════════════════════════════
+
+SP_EXTRAIR_RECEITA = """Voce e um especialista em rotulagem de alimentos brasileira.
+Analise o documento/imagem fornecido (ficha tecnica, receita ou formulacao do produto) e extraia TODAS as informacoes relevantes para um rotulo.
+
+RETORNE SOMENTE JSON valido, sem markdown, sem texto fora do JSON.
+
+Estrutura:
+{
+  "produto": "nome comercial identificado ou sugerido",
+  "categoria": "categoria: embutidos|laticinios|pescado|carnes|ovos|mel|prato_pronto_poa|outro",
+  "especie": "especie animal (bovino, suino, frango, etc.) ou null",
+  "ingredientes": "lista completa em ordem decrescente formatada para rotulo",
+  "peso": "peso/volume encontrado ou null",
+  "conservacao": "instrucao de conservacao encontrada ou inferida, ou null",
+  "nutricional": {
+    "porcao": "porcao encontrada ou padrao",
+    "energia_kcal": "valor ou null",
+    "carboidratos": "valor ou null",
+    "proteinas": "valor ou null",
+    "gorduras_totais": "valor ou null",
+    "gorduras_saturadas": "valor ou null",
+    "gorduras_trans": "0g",
+    "fibra": "valor ou null",
+    "sodio": "valor ou null",
+    "acucares_totais": "valor ou null",
+    "acucares_adicionados": "valor ou null"
+  },
+  "alergenos_identificados": ["lista de alergenos encontrados"],
+  "orgao": "SIF|SIE|SIM se identificado, senao null",
+  "observacoes": "outras informacoes relevantes",
+  "campos_nao_encontrados": ["campos que nao foram encontrados e precisam ser preenchidos manualmente"],
+  "confianca": "alta|media|baixa"
+}
+
+Use null para campos nao encontrados. Nunca invente valores."""
+
+
+@app.post("/extrair-receita")
+async def extrair_receita(
+    arquivo: UploadFile = File(...),
+):
+    """Le documento de receita/ficha tecnica e extrai campos para pre-preencher o formulario."""
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "API nao configurada"}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    contents = await arquivo.read()
+    content_type = (arquivo.content_type or "").lower()
+    filename = (arquivo.filename or "").lower()
+
+    try:
+        is_pdf = content_type == "application/pdf" or filename.endswith(".pdf")
+        is_word = filename.endswith(".docx") or filename.endswith(".doc")
+        msg_content = []
+
+        if is_pdf:
+            pages = await pdf_to_images_b64(contents)
+            if pages and pages[0].get("is_error"):
+                return JSONResponse({"error": pages[0]["error"]}, status_code=400,
+                                    headers={"Access-Control-Allow-Origin": "*"})
+            if pages and pages[0].get("is_pdf"):
+                msg_content = [
+                    {"type": "document", "source": {"type": "base64",
+                     "media_type": "application/pdf", "data": pages[0]["b64"]}},
+                    {"type": "text", "text": "Extraia todas as informacoes desta receita/ficha tecnica."}
+                ]
+            elif pages:
+                raw = base64.b64decode(pages[0]["b64"])
+                proc, _ = preprocess_image(raw, pages[0]["mime"])
+                msg_content = [
+                    {"type": "image", "source": {"type": "base64",
+                     "media_type": "image/jpeg", "data": base64.b64encode(proc).decode()}},
+                    {"type": "text", "text": "Extraia todas as informacoes desta receita/ficha tecnica."}
+                ]
+        elif is_word:
+            try:
+                import zipfile, io as _io, re as _re
+                with zipfile.ZipFile(_io.BytesIO(contents)) as z:
+                    xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
+                text_content = " ".join(_re.findall(r"<w:t[^>]*>([^<]+)</w:t>", xml))[:8000]
+                msg_content = [{"type": "text",
+                    "text": "Extraia informacoes desta receita:\n\n" + text_content}]
+            except Exception:
+                return JSONResponse(
+                    {"error": "Nao foi possivel ler o Word. Tente PDF ou imagem."},
+                    status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+        else:
+            # Imagem
+            ext = filename.rsplit(".", 1)[-1] if "." in filename else "jpg"
+            mime_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                        "png": "image/png", "webp": "image/webp"}
+            mime = mime_map.get(ext, "image/jpeg")
+            proc, mime = preprocess_image(contents, mime)
+            msg_content = [
+                {"type": "image", "source": {"type": "base64",
+                 "media_type": mime, "data": base64.b64encode(proc).decode()}},
+                {"type": "text", "text": "Extraia todas as informacoes desta receita/ficha tecnica."}
+            ]
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY,
+                         "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 2000,
+                      "system": SP_EXTRAIR_RECEITA,
+                      "messages": [{"role": "user", "content": msg_content}]}
+            )
+            raw = r.json()["content"][0]["text"].strip()
+
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        campos = json.loads(raw.strip().rstrip("`"))
+        return JSONResponse(campos, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/perfil-empresa")
+async def salvar_perfil_empresa(request: Request):
+    """Salva perfil da empresa no Supabase."""
+    try:
+        body = await request.json()
+        import datetime as _dt_pf
+        perfil = {
+            "perfil_id": body.get("perfil_id", "default"),
+            "razao_social": body.get("razao_social", ""),
+            "cnpj": body.get("cnpj", ""),
+            "endereco": body.get("endereco", ""),
+            "cidade_uf": body.get("cidade_uf", ""),
+            "cep": body.get("cep", ""),
+            "orgao_padrao": body.get("orgao_padrao", "SIF"),
+            "logo_b64": body.get("logo_b64", ""),
+            "updated_at": _dt_pf.datetime.now().isoformat(),
+        }
+        salvo = await _sb_upsert("perfis_empresa", perfil)
+        return JSONResponse({"status": "ok", "supabase": salvo},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/perfil-empresa/{perfil_id}")
+async def carregar_perfil_empresa(perfil_id: str = "default"):
+    """Carrega perfil da empresa do Supabase."""
+    try:
+        rows = await _sb_get("perfis_empresa", {"perfil_id": perfil_id}, limit=1)
+        return JSONResponse(rows[0] if rows else {},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
 @app.on_event("startup")
 async def startup_load():
     """No startup, carrega dados persistidos do Supabase em background."""
