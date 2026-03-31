@@ -4085,9 +4085,17 @@ async def gerar_design_rotulo(request: Request):
             lactose=campos.get("lactose", ""),
         )
 
-        # Monta a mensagem com logo se disponível
+        # Sistema 1: busca referências visuais da categoria
+        categoria_design = campos.get("categoria", "outro")
+        refs = await _get_referencias_para_design(categoria_design, campos.get("orgao_sigla", ""))
+        
+        # Sistema 2: carrega regras EVITE acumuladas do feedback
+        evite_rules = await _get_evite_rules(categoria_design, campos.get("orgao_sigla", ""))
+        if evite_rules:
+            prompt += evite_rules
+
+        # Monta a mensagem com logo + referências se disponíveis
         if logo_b64:
-            # Redimensiona logo para nao explodir o contexto
             try:
                 from PIL import Image as _PIL
                 import io as _io
@@ -4097,7 +4105,7 @@ async def gerar_design_rotulo(request: Request):
                 logo_img.save(buf, "PNG")
                 logo_b64_small = base64.b64encode(buf.getvalue()).decode()
             except Exception:
-                logo_b64_small = logo_b64[:50000]  # fallback
+                logo_b64_small = logo_b64[:50000]
 
             msg_content = [
                 {"type": "image", "source": {"type": "base64",
@@ -4108,6 +4116,21 @@ async def gerar_design_rotulo(request: Request):
             ]
         else:
             msg_content = [{"type": "text", "text": prompt}]
+
+        # Sistema 1: injeta referências visuais como imagens no prompt
+        if refs:
+            ref_texts = []
+            for i, ref_b64 in enumerate(refs[:2]):
+                try:
+                    ref_small = ref_b64[:40000]  # limite seguro
+                    msg_content.insert(0, {"type": "image", "source": {
+                        "type": "base64", "media_type": "image/png", "data": ref_small}})
+                    ref_texts.append(f"Imagem {i+1}: rotulo de referencia aprovado para a categoria {categoria_design}")
+                except Exception:
+                    pass
+            if ref_texts:
+                ref_intro = {"type": "text", "text": "ROTULOS DE REFERENCIA APROVADOS (use como inspiracao de layout e qualidade):\n" + "\n".join(ref_texts)}
+                msg_content.insert(0, ref_intro)
 
         async with httpx.AsyncClient(timeout=90.0) as client:
             r = await client.post(
@@ -4158,6 +4181,146 @@ async def gerar_design_rotulo(request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)[:300]}, status_code=500,
                             headers={"Access-Control-Allow-Origin": "*"})
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SISTEMA 1 — Banco de referências visuais de design
+# SISTEMA 2 — Feedback loop de design
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Cache em memória para referências e restrições acumuladas
+_referencias_cache: dict = {}   # {categoria_orgao: [lista de imagens b64]}
+_evite_cache: dict = {}         # {categoria_orgao: [lista de restrições]}
+
+
+@app.post("/referencias-design")
+async def salvar_referencia_design(request: Request):
+    """Upload de rótulo aprovado como referência visual."""
+    try:
+        body = await request.json()
+        ref = {
+            "categoria":  body.get("categoria", "outro"),
+            "orgao":      body.get("orgao", "SIF"),
+            "estilo":     body.get("estilo", "moderno"),
+            "imagem_b64": body.get("imagem_b64", ""),
+            "descricao":  body.get("descricao", ""),
+            "aprovado":   True,
+        }
+        if not ref["imagem_b64"]:
+            return JSONResponse({"error": "imagem_b64 obrigatoria"}, status_code=400,
+                                headers={"Access-Control-Allow-Origin": "*"})
+
+        salvo = await _sb_upsert("referencias_design", ref)
+
+        # Invalida cache para essa categoria
+        key = f"{ref['categoria']}_{ref['orgao']}"
+        _referencias_cache.pop(key, None)
+
+        return JSONResponse({"status": "ok", "supabase": salvo},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/referencias-design/{categoria}")
+async def listar_referencias(categoria: str, orgao: str = ""):
+    """Lista referências disponíveis para uma categoria."""
+    try:
+        filtros = {"categoria": categoria, "aprovado": True}
+        if orgao:
+            filtros["orgao"] = orgao
+        rows = await _sb_get("referencias_design", filtros, limit=10)
+        # Retorna sem imagem_b64 para não explodir a resposta
+        return JSONResponse(
+            [{"id": r.get("id"), "categoria": r.get("categoria"),
+              "orgao": r.get("orgao"), "estilo": r.get("estilo"),
+              "descricao": r.get("descricao")} for r in (rows or [])],
+            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse([], headers={"Access-Control-Allow-Origin": "*"})
+
+
+async def _get_referencias_para_design(categoria: str, orgao: str) -> list[str]:
+    """Busca até 2 imagens de referência para injetar no prompt de design."""
+    key = f"{categoria}_{orgao}"
+    if key in _referencias_cache:
+        return _referencias_cache[key]
+    try:
+        filtros = {"categoria": categoria, "aprovado": True}
+        if orgao:
+            filtros["orgao"] = orgao
+        rows = await _sb_get("referencias_design", filtros, limit=2)
+        imgs = [r["imagem_b64"] for r in (rows or []) if r.get("imagem_b64")]
+        _referencias_cache[key] = imgs
+        return imgs
+    except Exception:
+        return []
+
+
+@app.post("/feedback-design")
+async def salvar_feedback_design(request: Request):
+    """Salva avaliação de design. Restrições ruins viram regras EVITE."""
+    try:
+        body = await request.json()
+        categoria = body.get("categoria", "outro")
+        orgao     = body.get("orgao", "SIF")
+        rating    = body.get("rating", "")      # "perfeito" | "bom" | "ruim"
+        problema  = body.get("problema", "")    # texto livre quando ruim
+
+        fb = {
+            "categoria": categoria,
+            "orgao":     orgao,
+            "rating":    rating,
+            "problema":  problema,
+            "timestamp": __import__("datetime").datetime.now().isoformat(),
+        }
+        await _sb_upsert("design_feedback", fb)
+
+        # Se ruim com descrição, adiciona ao cache de restrições
+        if rating == "ruim" and problema.strip():
+            key = f"{categoria}_{orgao}"
+            if key not in _evite_cache:
+                _evite_cache[key] = []
+            _evite_cache[key].append(problema.strip()[:120])
+            # Mantém no máximo 10 restrições por categoria
+            _evite_cache[key] = _evite_cache[key][-10:]
+
+        return JSONResponse({"status": "ok"},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/feedback-design/stats")
+async def stats_feedback_design():
+    """Retorna restrições acumuladas por categoria (para debug/admin)."""
+    return JSONResponse(_evite_cache,
+                        headers={"Access-Control-Allow-Origin": "*"})
+
+
+async def _get_evite_rules(categoria: str, orgao: str) -> str:
+    """Monta bloco EVITE para injetar no prompt com base nos feedbacks."""
+    # Tenta carregar do Supabase se cache vazio
+    key = f"{categoria}_{orgao}"
+    if key not in _evite_cache:
+        try:
+            rows = await _sb_get("design_feedback",
+                                  {"categoria": categoria, "orgao": orgao, "rating": "ruim"},
+                                  limit=15)
+            problemas = [r["problema"] for r in (rows or [])
+                         if r.get("problema") and r["problema"].strip()]
+            _evite_cache[key] = problemas[-10:]
+        except Exception:
+            _evite_cache[key] = []
+
+    regras = _evite_cache.get(key, [])
+    if not regras:
+        return ""
+    return "\n\nRESTRIÇÕES BASEADAS EM FEEDBACKS ANTERIORES — OBRIGATÓRIO RESPEITAR:\n" + \
+           "\n".join(f"- EVITE: {r}" for r in regras)
 
 
 @app.on_event("startup")
