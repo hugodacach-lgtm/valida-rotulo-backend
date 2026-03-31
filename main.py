@@ -2362,7 +2362,10 @@ async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str
             categories = []
     else:
         categories = detect_categories(obs) if obs else []
-    kb_text = await get_kb_for_categories(categories) if categories else ""
+    try:
+        kb_text = await get_kb_for_categories(categories) if categories else ""
+    except Exception:
+        kb_text = ""
 
     if kb_text:
         cats_str = ", ".join(categories[:3]).upper().replace("_", " ")
@@ -2432,7 +2435,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     if categories:
         fewshot = get_fewshot_examples(categories[0])
 
-    system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
+    system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
     if sie_context:
@@ -2506,7 +2509,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     # Segunda leitura crítica
     yield f"data: {json.dumps({'text': '\n\n---\n\n## REVISÃO CRÍTICA\n'})}\n\n"
     revisao = await call_claude_simple(
-        SP_REVISAO.format(relatorio=relatorio),
+        SP_REVISAO.replace("{relatorio}", relatorio),
         "Revise com rigor técnico.",
         350
     )
@@ -2514,39 +2517,38 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         yield f"data: {json.dumps({'text': revisao})}\n\n"
 
     # ── Auto-aprendizado: armazena resultado sem precisar de feedback RT ───────
-    # Extrai automaticamente: produto, erros encontrados, score
-    import re as _re2
-    score_match  = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
-    score_auto   = int(score_match.group(1)) if score_match else None
-    prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
-    prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
-    # Extrai campos NÃO CONFORME e AUSENTE para identificar erros
-    erros_auto_list = _re2.findall(
-        r"CAMPO (\d+)[^\n]*(?:NÃO CONFORME|AUSENTE)[^\n]*\n([^\n]{0,120})",
-        relatorio, _re2.IGNORECASE
-    )
-    erros_auto = "; ".join(f"C{num}: {desc[:60]}" for num, desc in erros_auto_list[:5])
-
-    auto_case = {
-        "case_id":      case_id,
-        "produto":      prod_auto or obs[:50] if obs else "",
-        "categoria":    categories[0] if categories else "",
-        "feedback":     None,          # sem feedback RT ainda
-        "erros_auto":   erros_auto,    # extraído automaticamente do relatório
-        "erros_encontrados": erros_auto,
-        "score_agente": score_auto,
-        "timestamp":    __import__("datetime").datetime.now().isoformat(),
-        "auto_stored":  True,
-    }
-    existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
-    if not existing:
-        _cases_db.append(auto_case)
-        if len(_cases_db) > _MAX_CASES:
-            _cases_db.pop(0)
-        # Persiste no Supabase (fire-and-forget)
-        import datetime as _dt
-        supabase_case = {**auto_case, "created_at": _dt.datetime.now().isoformat()}
-        asyncio.ensure_future(_sb_upsert("validacoes", supabase_case))
+    try:
+        import re as _re2
+        score_match  = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
+        score_auto   = int(score_match.group(1)) if score_match else None
+        prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
+        prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
+        erros_auto_list = _re2.findall(
+            r"CAMPO (\d+)[^\n]*(?:NÃO CONFORME|AUSENTE)[^\n]*\n([^\n]{0,120})",
+            relatorio, _re2.IGNORECASE
+        )
+        erros_auto = "; ".join(f"C{num}: {desc[:60]}" for num, desc in erros_auto_list[:5])
+        auto_case = {
+            "case_id":      case_id,
+            "produto":      prod_auto or (obs[:50] if obs else ""),
+            "categoria":    categories[0] if categories else "",
+            "feedback":     None,
+            "erros_auto":   erros_auto,
+            "erros_encontrados": erros_auto,
+            "score_agente": score_auto,
+            "timestamp":    __import__("datetime").datetime.now().isoformat(),
+            "auto_stored":  True,
+        }
+        existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
+        if not existing:
+            _cases_db.append(auto_case)
+            if len(_cases_db) > _MAX_CASES:
+                _cases_db.pop(0)
+            import datetime as _dt
+            supabase_case = {**auto_case, "created_at": _dt.datetime.now().isoformat()}
+            asyncio.ensure_future(_sb_upsert("validacoes", supabase_case))
+    except Exception:
+        pass  # auto-store nunca deve quebrar o relatório
     # ────────────────────────────────────────────────────────────────────────────
 
     # Emite case_id para o frontend usar no feedback
@@ -2640,7 +2642,7 @@ async def validar_rotulo(
     orgao: str = Form(default=""),
 ):
     if not ANTHROPIC_API_KEY:
-        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"},
+        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
                             headers={"Access-Control-Allow-Origin": "*"})
 
     contents = await imagem.read()
@@ -2656,13 +2658,13 @@ async def validar_rotulo(
     if is_pdf:
         pages = await pdf_to_images_b64(contents)
         if not pages:
-            return JSONResponse({"error": "Não foi possível processar o PDF."},
+            return JSONResponse({"error": "Não foi possível processar o PDF."}, status_code=400,
                                 headers={"Access-Control-Allow-Origin": "*"})
 
         # Gap H: verificar se houve erro de senha
         if pages and pages[0].get("is_error"):
             return JSONResponse(
-                {"error": pages[0]["error"]},
+                {"error": pages[0]["error"]}, status_code=400,
                 headers={"Access-Control-Allow-Origin": "*"}
             )
         first = pages[0]
@@ -2719,7 +2721,7 @@ async def validar_rotulo(
         quality = check_image_readability(contents)
         if not quality["ok"]:
             return JSONResponse(
-                {"error": quality["warning"]},
+                {"error": quality["warning"]}, status_code=400,
                 headers={"Access-Control-Allow-Origin": "*"}
             )
         processed_bytes, mime_type = preprocess_image(contents, raw_mime)
@@ -2741,7 +2743,7 @@ async def avaliar_rotulo(
     gabarito: str = Form(...),
 ):
     if not ANTHROPIC_API_KEY:
-        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"},
+        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
                             headers={"Access-Control-Allow-Origin": "*"})
     try:
         gab = json.loads(gabarito)
@@ -2759,9 +2761,12 @@ async def avaliar_rotulo(
     obs = f"{gab.get('produto', '')} {gab.get('categoria', '')}".strip()
     orgao = gab.get("orgao", "")
     categories = detect_categories(obs)
-    kb_text = await get_kb_for_categories(categories) if categories else ""
+    try:
+        kb_text = await get_kb_for_categories(categories) if categories else ""
+    except Exception:
+        kb_text = ""
     kb_section = f"## LEGISLAÇÃO ESPECÍFICA\n{kb_text}\n---" if kb_text else ""
-    system_prompt = SP_VALIDACAO.format(kb_section=kb_section)
+    system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
 
     payload = {
         "model": "claude-sonnet-4-20250514",
@@ -3272,6 +3277,498 @@ async def admin_stats():
             ),
         }
     }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CRIADOR DE RÓTULOS — Gera conteúdo + PDF/PNG profissional
+# ══════════════════════════════════════════════════════════════════════════════
+
+SP_CRIAR_ROTULO = """Você é um especialista em rotulagem de alimentos brasileira.
+Sua tarefa é gerar TODOS os campos obrigatórios de um rótulo de alimento conforme a legislação vigente.
+
+RETORNE SOMENTE JSON válido, sem markdown, sem texto fora do JSON.
+
+Estrutura obrigatória:
+{
+  "denominacao": "Denominação de venda exata conforme RTIQ",
+  "ingredientes": "Lista completa em ordem decrescente com INS e funções tecnológicas",
+  "conteudo_liquido": "Conteúdo líquido formatado com símbolo INMETRO (ex: 200 g ℮)",
+  "fabricante": "Razão Social\nCNPJ: XX.XXX.XXX/XXXX-XX\nEndereço completo\nCidade - UF CEP",
+  "carimbo": "SIF/SIE/SIM + número (ex: SIF 3456)",
+  "conservacao": "Instrução de conservação com temperatura específica",
+  "lote": "Veja fundo da embalagem",
+  "validade": "Veja fundo da embalagem",
+  "alergenos": "CONTÉM: X, Y E DERIVADOS. / PODE CONTER: Z.",
+  "transgenicos": "(Não contém transgênicos)" ou texto conforme aplicável,
+  "lupa_necessaria": true/false,
+  "lupa_motivo": "ALTO EM SÓDIO" / "ALTO EM GORDURAS SATURADAS" / "ALTO EM AÇÚCAR" ou null,
+  "porcao": "100g (porção padrão conforme IN 75/2020)",
+  "tabela_nutricional": {
+    "porcao": "100g",
+    "energia_kcal": "XXX kcal",
+    "energia_kj": "XXX kJ",
+    "carboidratos": "Xg",
+    "acucares_totais": "Xg",
+    "acucares_adicionados": "Xg",
+    "proteinas": "Xg",
+    "gorduras_totais": "Xg",
+    "gorduras_saturadas": "Xg",
+    "gorduras_trans": "0g",
+    "fibra": "Xg",
+    "sodio": "XXmg"
+  },
+  "gluten": "CONTÉM GLÚTEN" ou "NÃO CONTÉM GLÚTEN",
+  "lactose": "CONTÉM LACTOSE" ou "NÃO CONTÉM LACTOSE" ou null,
+  "observacoes_rt": "Orientações específicas ao RT sobre este produto",
+  "legislacoes": ["IN 4/2000", "RDC 727/2022"]
+}
+
+REGRAS OBRIGATÓRIAS:
+1. Denominação: use exatamente o nome técnico do RTIQ aplicável + espécie animal
+2. Ingredientes: ordem decrescente, aditivos com INS e função tecnológica
+3. Tabela nutricional: use valores TACO para a categoria se não informado
+4. Alérgenos: 14 grupos da RDC 727/2022, CONTÉM para intencionais, PODE CONTER para cruzada
+5. Lupa: obrigatória se sódio >= 600mg, gordura saturada >= 6g, ou açúcar adicionado >= 15g por 100g
+6. Lote e validade: sempre "Veja fundo/tampa da embalagem" pois são impressos na linha
+7. Conteúdo líquido: incluir símbolo ℮ (INMETRO) e unidade correta
+"""
+
+import tempfile as _tempfile, uuid as _uuid
+
+def _gerar_pdf_label(campos: dict, formato: str, tema: str) -> tuple[bytes, bytes]:
+    """
+    Gera PDF profissional do rótulo e converte para PNG.
+    Retorna (pdf_bytes, png_bytes).
+    Formatos: retangular (210x100mm), quadrado (100x100mm), circular (90x90mm)
+    Temas: moderno, classico, premium
+    """
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import Paragraph, Table, TableStyle
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import io as _io
+
+    # ── Dimensões por formato ──────────────────────────────────────────────────
+    dims = {
+        "retangular": (210*mm, 100*mm),
+        "quadrado":   (100*mm, 100*mm),
+        "circular":   (90*mm,  90*mm),
+    }
+    W, H = dims.get(formato, dims["retangular"])
+
+    # ── Paletas de tema ────────────────────────────────────────────────────────
+    temas = {
+        "moderno":  {"bg": colors.HexColor("#111827"), "acc": colors.HexColor("#16a34a"),
+                     "txt": colors.white, "light": colors.HexColor("#f9fafb"),
+                     "dark": colors.HexColor("#1f2937"), "border": colors.HexColor("#374151")},
+        "classico": {"bg": colors.HexColor("#1e3a5f"), "acc": colors.HexColor("#c9922a"),
+                     "txt": colors.white, "light": colors.HexColor("#f8f5f0"),
+                     "dark": colors.HexColor("#1e3a5f"), "border": colors.HexColor("#2d5a8e")},
+        "premium":  {"bg": colors.HexColor("#1a0a2e"), "acc": colors.HexColor("#c9a227"),
+                     "txt": colors.white, "light": colors.HexColor("#fdf9f0"),
+                     "dark": colors.HexColor("#2d1457"), "border": colors.HexColor("#4a1a7a")},
+    }
+    T = temas.get(tema, temas["moderno"])
+
+    buf = _io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(W, H))
+
+    # ── Fundo ──────────────────────────────────────────────────────────────────
+    c.setFillColor(colors.white)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # ── Funções auxiliares ─────────────────────────────────────────────────────
+    def rect_fill(x, y, w, h, color):
+        c.setFillColor(color); c.rect(x, y, w, h, fill=1, stroke=0)
+
+    def text(txt, x, y, size=7, bold=False, color=None, align="left", max_w=None):
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        c.setFillColor(color or colors.HexColor("#111827"))
+        if align == "center":
+            c.drawCentredString(x, y, str(txt)[:80])
+        elif align == "right":
+            c.drawRightString(x, y, str(txt)[:80])
+        else:
+            txt_str = str(txt)
+            if max_w:
+                # Truncate to fit
+                while len(txt_str) > 3 and c.stringWidth(txt_str, "Helvetica-Bold" if bold else "Helvetica", size) > max_w:
+                    txt_str = txt_str[:-4] + "..."
+            c.drawString(x, y, txt_str)
+
+    def wrap_text(txt, x, y, max_w, size=6.5, line_h=8, color=None, max_lines=6):
+        """Simple word wrap."""
+        c.setFont("Helvetica", size)
+        c.setFillColor(color or colors.HexColor("#374151"))
+        words = str(txt).split()
+        lines, line = [], ""
+        for w in words:
+            test = (line + " " + w).strip()
+            if c.stringWidth(test, "Helvetica", size) <= max_w:
+                line = test
+            else:
+                if line: lines.append(line)
+                line = w
+        if line: lines.append(line)
+        for i, ln in enumerate(lines[:max_lines]):
+            c.drawString(x, y - i*line_h, ln)
+        return len(lines[:max_lines]) * line_h
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # LAYOUT RETANGULAR (210 x 100mm)
+    # ══════════════════════════════════════════════════════════════════════════
+    if formato == "retangular":
+        margin = 3*mm
+        # Cabeçalho escuro
+        rect_fill(0, H - 22*mm, W, 22*mm, T["bg"])
+        # Nome produto grande
+        prod = (campos.get("denominacao") or "Produto")[:45]
+        c.setFont("Helvetica-Bold", 14)
+        c.setFillColor(T["txt"])
+        c.drawString(margin, H - 14*mm, prod)
+        # Carimbo no canto direito
+        carimbo = campos.get("carimbo", "SIF 000")
+        rect_fill(W - 28*mm, H - 19*mm, 25*mm, 16*mm, colors.white)
+        c.setFont("Helvetica-Bold", 7)
+        c.setFillColor(T["bg"])
+        c.drawCentredString(W - 15.5*mm, H - 12*mm, carimbo)
+        c.setFont("Helvetica", 5.5)
+        c.drawCentredString(W - 15.5*mm, H - 16*mm, "INSPECIONADO")
+        # Linha accent
+        rect_fill(0, H - 24*mm, W, 2*mm, T["acc"])
+
+        # ── Coluna esquerda (ingredientes + fabricante + conservação) ──────────
+        col_w = W * 0.52
+        y = H - 27*mm
+        text("INGREDIENTES", margin, y, size=6, bold=True, color=T["dark"])
+        y -= 2*mm
+        wrap_text(campos.get("ingredientes", ""), margin, y, col_w - 2*margin, size=6, line_h=7.5, max_lines=5)
+        y -= 42
+
+        text("FABRICANTE", margin, y, size=6, bold=True, color=T["dark"])
+        y -= 2*mm
+        wrap_text(campos.get("fabricante", ""), margin, y, col_w - 2*margin, size=6, line_h=7.5, max_lines=3)
+        y -= 26
+
+        text("CONSERVAR: " + (campos.get("conservacao","") or "")[:60],
+             margin, y, size=5.5, color=colors.HexColor("#6b7280"), max_w=col_w-2*margin)
+        y -= 7
+        text(campos.get("gluten","") + " · " + (campos.get("lactose","") or ""),
+             margin, y, size=5.5, bold=True, color=colors.HexColor("#dc2626"), max_w=col_w-2*margin)
+        y -= 7
+        alergs = campos.get("alergenos","")[:100]
+        text(alergs, margin, y, size=5.5, color=colors.HexColor("#374151"), max_w=col_w-2*margin)
+
+        # Lote / validade / conteúdo
+        y = 4*mm
+        text(campos.get("conteudo_liquido",""), margin, y, size=7, bold=True, color=T["dark"])
+        text("LOTE: Veja embalagem   VALIDADE: Veja embalagem",
+             margin + 30*mm, y, size=5.5, color=colors.HexColor("#9ca3af"))
+
+        # ── Divisória vertical ─────────────────────────────────────────────────
+        c.setStrokeColor(colors.HexColor("#e5e7eb"))
+        c.setLineWidth(0.5)
+        c.line(col_w, H - 25*mm, col_w, 2*mm)
+
+        # ── Tabela nutricional (coluna direita) ────────────────────────────────
+        tx = col_w + 2*mm
+        tw = W - col_w - margin
+        tn = campos.get("tabela_nutricional", {})
+
+        ty = H - 27*mm
+        # Header tabela
+        rect_fill(tx, ty - 5*mm, tw, 5*mm, T["dark"])
+        c.setFont("Helvetica-Bold", 7); c.setFillColor(T["txt"])
+        c.drawCentredString(tx + tw/2, ty - 3.5*mm, "Informação Nutricional")
+        ty -= 5*mm
+        rect_fill(tx, ty - 4*mm, tw, 4*mm, colors.HexColor("#f3f4f6"))
+        c.setFont("Helvetica", 5.5); c.setFillColor(colors.HexColor("#374151"))
+        c.drawString(tx + 1*mm, ty - 3*mm, f"Porção: {tn.get('porcao', '100g')} (1 porção)")
+        ty -= 4*mm
+
+        rows_nut = [
+            ("Valor energético", f"{tn.get('energia_kcal','?')} = {tn.get('energia_kj','?')} kJ"),
+            ("Carboidratos", tn.get("carboidratos","?")),
+            ("   Acucares totais", tn.get("acucares_totais","?")),
+            ("   Acucares adicionados", tn.get("acucares_adicionados","?")),
+            ("Proteinas", tn.get("proteinas","?")),
+            ("Gorduras totais", tn.get("gorduras_totais","?")),
+            ("   Gord. saturadas", tn.get("gorduras_saturadas","?")),
+            ("   Gord. trans", tn.get("gorduras_trans","0g")),
+            ("Fibra alimentar", tn.get("fibra","?")),
+            ("Sodio", tn.get("sodio","?")),
+        ]
+        for i, (nm, vl) in enumerate(rows_nut):
+            row_bg = colors.HexColor("#ffffff") if i%2==0 else colors.HexColor("#f9fafb")
+            rect_fill(tx, ty - 5*mm, tw, 5*mm, row_bg)
+            c.setStrokeColor(colors.HexColor("#e5e7eb")); c.setLineWidth(0.3)
+            c.line(tx, ty - 5*mm, tx + tw, ty - 5*mm)
+            c.setFont("Helvetica", 5.5); c.setFillColor(colors.HexColor("#374151"))
+            c.drawString(tx + 1*mm, ty - 3.5*mm, nm[:28])
+            c.setFont("Helvetica-Bold", 5.5); c.setFillColor(colors.HexColor("#111827"))
+            c.drawRightString(tx + tw - 1*mm, ty - 3.5*mm, str(vl)[:12])
+            ty -= 5*mm
+
+        # Lupa se necessário
+        if campos.get("lupa_necessaria") and campos.get("lupa_motivo"):
+            rect_fill(tx, ty - 6*mm, tw, 6*mm, colors.HexColor("#111827"))
+            c.setFont("Helvetica-Bold", 7); c.setFillColor(colors.white)
+            c.drawCentredString(tx + tw/2, ty - 4*mm, campos["lupa_motivo"][:25])
+            ty -= 6*mm
+
+        # Borda do rótulo inteiro
+        c.setStrokeColor(colors.HexColor("#374151")); c.setLineWidth(1)
+        c.rect(0.5, 0.5, W - 1, H - 1, fill=0, stroke=1)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # LAYOUT QUADRADO (100 x 100mm)
+    # ══════════════════════════════════════════════════════════════════════════
+    elif formato == "quadrado":
+        m = 3*mm
+        rect_fill(0, H - 20*mm, W, 20*mm, T["bg"])
+        prod = (campos.get("denominacao") or "Produto")[:30]
+        c.setFont("Helvetica-Bold", 11); c.setFillColor(T["txt"])
+        c.drawCentredString(W/2, H - 13*mm, prod)
+        c.setFont("Helvetica", 7); c.setFillColor(colors.HexColor("#9ca3af"))
+        c.drawCentredString(W/2, H - 17*mm, campos.get("carimbo","SIF 000"))
+        rect_fill(0, H - 22*mm, W, 2*mm, T["acc"])
+
+        # Conteúdo líquido proeminente
+        c.setFont("Helvetica-Bold", 14); c.setFillColor(T["dark"])
+        c.drawCentredString(W/2, H - 28*mm, campos.get("conteudo_liquido",""))
+
+        # Ingredientes
+        y = H - 34*mm
+        text("INGREDIENTES", m, y, size=5.5, bold=True, color=T["dark"])
+        y -= 2*mm
+        wrap_text(campos.get("ingredientes",""), m, y, W - 2*m, size=5.5, line_h=7, max_lines=4)
+        y -= 34
+
+        # Fabricante em uma linha
+        fab = (campos.get("fabricante","") or "").split("\n")[0][:40]
+        text("Fab: " + fab, m, y, size=5.5, color=colors.HexColor("#6b7280"), max_w=W-2*m)
+        y -= 7
+
+        # Alérgenos
+        text(campos.get("gluten","") + " · " + (campos.get("lactose","") or ""),
+             m, y, size=5.5, bold=True, color=colors.HexColor("#dc2626"), max_w=W-2*m)
+        y -= 7
+        text((campos.get("alergenos",""))[:80], m, y, size=5, color=colors.HexColor("#374151"), max_w=W-2*m)
+
+        # Tabela nutricional compacta no rodapé
+        tn = campos.get("tabela_nutricional", {})
+        ty = 22*mm
+        rect_fill(m, ty, W - 2*m, 4*mm, T["dark"])
+        c.setFont("Helvetica-Bold", 6); c.setFillColor(T["txt"])
+        c.drawCentredString(W/2, ty + 2.5*mm, f"Informacao Nutricional | Porcao: {tn.get('porcao','100g')}")
+        ty += 4*mm
+        cols_nut = [
+            ("Energia", f"{tn.get('energia_kcal','?')}"),
+            ("Prot.", tn.get("proteinas","?")),
+            ("Carb.", tn.get("carboidratos","?")),
+            ("Gord.", tn.get("gorduras_totais","?")),
+            ("Sodio", tn.get("sodio","?")),
+        ]
+        cw = (W - 2*m) / len(cols_nut)
+        for i, (nm, vl) in enumerate(cols_nut):
+            cx = m + i*cw
+            bg = colors.HexColor("#f9fafb") if i%2==0 else colors.white
+            rect_fill(cx, m, cw, ty - m, bg)
+            c.setFont("Helvetica", 5); c.setFillColor(colors.HexColor("#6b7280"))
+            c.drawCentredString(cx + cw/2, ty - 4*mm, nm)
+            c.setFont("Helvetica-Bold", 6); c.setFillColor(colors.HexColor("#111827"))
+            c.drawCentredString(cx + cw/2, ty - 9*mm, str(vl)[:8])
+
+        c.setStrokeColor(colors.HexColor("#374151")); c.setLineWidth(1)
+        c.rect(0.5, 0.5, W-1, H-1, fill=0, stroke=1)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # LAYOUT CIRCULAR (90 x 90mm — renderizado em quadrado, circular via borda)
+    # ══════════════════════════════════════════════════════════════════════════
+    else:
+        cx, cy, r = W/2, H/2, W/2 - 1*mm
+        # Círculo de fundo
+        c.setFillColor(T["bg"]); c.circle(cx, cy, r, fill=1, stroke=0)
+        # Círculo accent externo
+        c.setStrokeColor(T["acc"]); c.setLineWidth(3)
+        c.circle(cx, cy, r - 1, fill=0, stroke=1)
+        # Arco interno branco para conteúdo
+        c.setFillColor(colors.white); c.circle(cx, cy, r - 8*mm, fill=1, stroke=0)
+
+        # Produto no topo do círculo
+        prod = (campos.get("denominacao") or "Produto")[:22]
+        c.setFont("Helvetica-Bold", 9); c.setFillColor(T["txt"])
+        c.drawCentredString(cx, H - 14*mm, prod)
+        c.setFont("Helvetica", 6); c.setFillColor(T["acc"])
+        c.drawCentredString(cx, H - 18*mm, campos.get("carimbo","SIF 000"))
+
+        # Conteúdo líquido central
+        c.setFont("Helvetica-Bold", 18); c.setFillColor(T["dark"])
+        c.drawCentredString(cx, cy + 6*mm, campos.get("conteudo_liquido",""))
+
+        # Fabricante
+        fab = (campos.get("fabricante","") or "").split("\n")[0][:28]
+        c.setFont("Helvetica", 6); c.setFillColor(colors.HexColor("#6b7280"))
+        c.drawCentredString(cx, cy - 2*mm, fab)
+
+        # Glúten/lactose
+        c.setFont("Helvetica-Bold", 6); c.setFillColor(colors.HexColor("#dc2626"))
+        c.drawCentredString(cx, cy - 8*mm, campos.get("gluten",""))
+
+        # Conservação
+        conserv = (campos.get("conservacao","") or "")[:35]
+        c.setFont("Helvetica", 5.5); c.setFillColor(colors.HexColor("#374151"))
+        c.drawCentredString(cx, 14*mm, conserv)
+        c.setFont("Helvetica", 5); c.setFillColor(colors.HexColor("#9ca3af"))
+        c.drawCentredString(cx, 10*mm, "LOTE e VALIDADE: veja embalagem")
+
+    c.save()
+    pdf_bytes = buf.getvalue()
+
+    # ── Converte para PNG usando PyMuPDF ──────────────────────────────────────
+    png_bytes = b""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(stream=pdf_bytes, filetype="pdf")
+        page = doc[0]
+        mat = _fitz.Matrix(4, 4)  # 4x zoom = alta resolução
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        png_bytes = pix.tobytes("png")
+    except Exception:
+        pass
+
+    return pdf_bytes, png_bytes
+
+
+@app.post("/criar")
+async def criar_rotulo(request: Request):
+    """
+    Gera rótulo completo: conteúdo via Claude + validação automática.
+    Retorna SSE stream com campos JSON e depois validação streaming.
+    """
+    form = await request.form()
+    produto     = form.get("produto", "")
+    categoria   = form.get("categoria", "")
+    especie     = form.get("especie", "")
+    orgao       = form.get("orgao", "SIF")
+    num_reg     = form.get("num_registro", "")
+    peso        = form.get("peso", "")
+    fabricante  = form.get("fabricante", "")
+    endereco    = form.get("endereco", "")
+    cnpj        = form.get("cnpj", "")
+    ingredientes= form.get("ingredientes", "")
+    nutricional = form.get("nutricional", "")
+    obs         = form.get("obs", "")
+    formato     = form.get("formato", "retangular")
+    tema        = form.get("tema", "moderno")
+
+    if not produto or not categoria:
+        return JSONResponse({"error": "Produto e categoria são obrigatórios"},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    user_msg = f"""Gere o rótulo para:
+PRODUTO: {produto}
+CATEGORIA: {categoria}
+ESPÉCIE: {especie or "não informado"}
+ÓRGÃO DE INSPEÇÃO: {orgao} {num_reg}
+PESO/VOLUME: {peso}
+FABRICANTE: {fabricante}
+ENDEREÇO: {endereco}
+CNPJ: {cnpj}
+INGREDIENTES FORNECIDOS: {ingredientes or "gerar com base na categoria"}
+INFO NUTRICIONAL: {nutricional or "calcular pela tabela TACO"}
+OBSERVAÇÕES: {obs}
+
+Retorne SOMENTE o JSON conforme especificado."""
+
+    async def stream_criar():
+        headers_cors = {"Access-Control-Allow-Origin": "*",
+                        "Content-Type": "text/event-stream",
+                        "Cache-Control": "no-cache"}
+        try:
+            # ── Fase 1: Gerar campos via Claude ──────────────────────────────
+            resp = httpx.AsyncClient(timeout=60.0)
+            async with resp as client:
+                r = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
+                             "anthropic-version": "2023-06-01",
+                             "content-type": "application/json"},
+                    json={"model": "claude-sonnet-4-20250514",
+                          "max_tokens": 2000,
+                          "system": SP_CRIAR_ROTULO,
+                          "messages": [{"role": "user", "content": user_msg}]}
+                )
+                data = r.json()
+                raw_json = data["content"][0]["text"]
+
+            # Limpa markdown se veio
+            raw_json = raw_json.strip()
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("```")[1]
+                if raw_json.startswith("json"):
+                    raw_json = raw_json[4:]
+            raw_json = raw_json.strip().rstrip("```")
+
+            campos = json.loads(raw_json)
+
+            # Emite campos para o frontend renderizar preview
+            yield f"data: {json.dumps({'tipo': 'campos', 'dados': json.dumps(campos)})}\n\n"
+
+            # ── Fase 2: Gerar PDF + PNG ───────────────────────────────────────
+            try:
+                pdf_bytes, png_bytes = _gerar_pdf_label(campos, formato, tema)
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                png_b64 = base64.b64encode(png_bytes).decode() if png_bytes else ""
+                yield f"data: {json.dumps({'tipo': 'arquivos', 'pdf': pdf_b64, 'png': png_b64, 'produto': produto})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'tipo': 'aviso', 'msg': 'Preview gerado; PDF indisponível: ' + str(e)[:60]})}\n\n"
+
+            # ── Fase 3: Validação automática do rótulo gerado ─────────────────
+            yield f"data: {json.dumps({'tipo': 'validacao_inicio'})}\n\n"
+
+            kb_text = await get_kb_for_categories(detect_categories(categoria + " " + produto))
+            kb_section = f"\n\nCONTEXTO LEGISLATIVO:\n{kb_text}" if kb_text else ""
+
+            val_system = SP_VALIDACAO.replace("{kb_section}", kb_section)
+            val_msg = f"""Valide este rótulo que acabou de ser GERADO automaticamente.
+Produto: {campos.get('denominacao', produto)}
+Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
+
+            async with httpx.AsyncClient(timeout=120.0) as client2:
+                async with client2.stream("POST",
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
+                             "anthropic-version": "2023-06-01",
+                             "content-type": "application/json"},
+                    json={"model": "claude-sonnet-4-20250514",
+                          "max_tokens": 3000, "stream": True,
+                          "system": val_system,
+                          "messages": [{"role": "user", "content": val_msg}]}
+                ) as resp2:
+                    async for line in resp2.aiter_lines():
+                        if line.startswith("data:"):
+                            ev = json.loads(line[5:].strip())
+                            if ev.get("type") == "content_block_delta":
+                                chunk = ev.get("delta",{}).get("text","")
+                                if chunk:
+                                    yield f"data: {json.dumps({'tipo': 'validacao_texto', 'text': chunk})}\n\n"
+
+            yield "data: [DONE]\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'tipo': 'erro', 'msg': str(e)[:200]})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(stream_criar(),
+        media_type="text/event-stream",
+        headers={"Access-Control-Allow-Origin": "*",
+                 "Cache-Control": "no-cache",
+                 "X-Accel-Buffering": "no"})
 
 
 @app.on_event("startup")
