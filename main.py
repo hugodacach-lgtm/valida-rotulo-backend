@@ -3945,6 +3945,221 @@ async def carregar_perfil_empresa(perfil_id: str = "default"):
                             headers={"Access-Control-Allow-Origin": "*"})
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FASE 4 — GERADOR DE DESIGN PROFISSIONAL DE RÓTULO
+# Claude atua como designer sênior e gera SVG criativo com logo integrada
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _extrair_cores_logo(logo_b64: str) -> dict:
+    """Extrai cores dominantes da logo para usar no design."""
+    try:
+        from PIL import Image as _PIL
+        import io as _io, collections as _col
+        img = _PIL.open(_io.BytesIO(base64.b64decode(logo_b64))).convert("RGB")
+        img.thumbnail((80, 80))
+        pixels = list(img.getdata())
+        cnt = _col.Counter()
+        for r, g, b in pixels:
+            bri = (r + g + b) / 3
+            if 30 < bri < 220:
+                cnt[((r//40)*40, (g//40)*40, (b//40)*40)] += 1
+        top = cnt.most_common(3)
+        primaria = top[0][0] if top else (30, 30, 30)
+        return {
+            "primaria": "#{:02x}{:02x}{:02x}".format(*primaria),
+            "r": primaria[0], "g": primaria[1], "b": primaria[2],
+        }
+    except Exception:
+        return {"primaria": "#1a1a2e", "r": 26, "g": 26, "b": 46}
+
+
+SP_DESIGN_ROTULO = """Voce e um designer senior especializado em embalagens alimenticias brasileiras.
+Sua tarefa e gerar um SVG profissional de rotulo de alimento, com qualidade grafica de agencia.
+
+REGRAS ABSOLUTAS DE DESIGN:
+1. O SVG deve ter viewBox="0 0 600 600" para formato circular ou "0 0 800 400" para retangular
+2. Inclua a logo como <image> usando href="data:image/png;base64,{logo_b64}"
+3. Use as cores da marca: cor primaria {cor_primaria}
+4. Todos os textos devem ser legíveis (fonte minima 10px no SVG)
+5. Inclua OBRIGATORIAMENTE todos os campos legais fornecidos
+6. O design deve ter hierarquia clara: nome do produto > fabricante > ingredientes > nutricional
+7. Use formas geometricas, gradientes suaves e composicao profissional
+8. Retorne SOMENTE o codigo SVG, sem markdown, sem texto antes ou depois
+
+FORMATO DO ROTULO: {formato}
+
+CAMPOS DO ROTULO:
+Denominacao: {denominacao}
+Carimbo SIF/SIE/SIM: {carimbo}
+Fabricante: {fabricante}
+Ingredientes: {ingredientes}
+Conservacao: {conservacao}
+Conteudo liquido: {conteudo_liquido}
+Alérgenos: {alergenos}
+Transgenicos: {transgenicos}
+Porcao: {porcao}
+Kcal: {energia_kcal}
+Proteinas: {proteinas}
+Carboidratos: {carboidratos}
+Gorduras totais: {gorduras_totais}
+Gorduras saturadas: {gorduras_saturadas}
+Gorduras trans: {gorduras_trans}
+Fibra: {fibra}
+Sodio: {sodio}
+Gluten: {gluten}
+Lactose: {lactose}
+
+INSTRUCOES POR FORMATO:
+
+SE CIRCULAR (viewBox 0 0 600 600):
+- Circulo externo com cor primaria da marca como borda
+- Circulo interno branco para conteudo
+- Logo no topo centralizada (x=200 y=20 width=200 height=120)
+- Nome do produto em destaque com fonte bold 28-36px
+- Tabela nutricional no centro-esquerda
+- Carimbo de inspecao como elemento grafico no canto
+- Ingredientes na parte inferior
+- Alérgenos na borda inferior
+- Lote/Validade: "Veja embalagem" posicionado lateralmente
+
+SE RETANGULAR (viewBox 0 0 800 400):
+- Faixa colorida na esquerda (0,0,220,400) com logo e nome do produto
+- Area branca direita (220,0,580,400) com ingredientes, nutricional e legal
+- Tabela nutricional com header escuro, linhas alternadas cinza/branco
+- Carimbo oval no canto superior direito
+- Alergenicos e transgenicos no rodape
+
+ELEMENTOS GRAFICOS OBRIGATORIOS:
+- Tabela nutricional com header colorido e linhas de dados legíveis
+- Carimbo oval de inspecao (SIF/SIE/SIM + numero)
+- Linha horizontal separando alergenicos
+- Lote e validade: "Veja fundo/tampa da embalagem"
+
+Gere o SVG completo agora. Apenas o codigo SVG, nada mais."""
+
+
+@app.post("/gerar-design")
+async def gerar_design_rotulo(request: Request):
+    """
+    Fase 4 — Gera design profissional do rotulo como SVG.
+    Claude atua como designer senior, produz SVG criativo com logo integrada.
+    Body JSON: { campos: {...}, logo_b64: "...", formato: "circular|retangular|quadrado" }
+    """
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "API nao configurada"}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body = await request.json()
+        campos = body.get("campos", {})
+        logo_b64 = body.get("logo_b64", "")
+        formato = body.get("formato", "retangular")
+
+        # Extrai cores da logo
+        cores = _extrair_cores_logo(logo_b64) if logo_b64 else {"primaria": "#1a1a2e"}
+
+        tn = campos.get("tabela_nutricional") or {}
+
+        prompt = SP_DESIGN_ROTULO.format(
+            logo_b64=logo_b64[:200] + "..." if logo_b64 else "",
+            cor_primaria=cores["primaria"],
+            formato=formato.upper(),
+            denominacao=campos.get("denominacao", ""),
+            carimbo=campos.get("carimbo", ""),
+            fabricante=(campos.get("fabricante") or "").replace("\n", " | "),
+            ingredientes=campos.get("ingredientes", ""),
+            conservacao=campos.get("conservacao", ""),
+            conteudo_liquido=campos.get("conteudo_liquido", ""),
+            alergenos=campos.get("alergenos", ""),
+            transgenicos=campos.get("transgenicos", ""),
+            porcao=tn.get("porcao", "100g"),
+            energia_kcal=tn.get("energia_kcal", ""),
+            proteinas=tn.get("proteinas", ""),
+            carboidratos=tn.get("carboidratos", ""),
+            gorduras_totais=tn.get("gorduras_totais", ""),
+            gorduras_saturadas=tn.get("gorduras_saturadas", ""),
+            gorduras_trans=tn.get("gorduras_trans", "0g"),
+            fibra=tn.get("fibra", ""),
+            sodio=tn.get("sodio", ""),
+            gluten=campos.get("gluten", ""),
+            lactose=campos.get("lactose", ""),
+        )
+
+        # Monta a mensagem com logo se disponível
+        if logo_b64:
+            # Redimensiona logo para nao explodir o contexto
+            try:
+                from PIL import Image as _PIL
+                import io as _io
+                logo_img = _PIL.open(_io.BytesIO(base64.b64decode(logo_b64)))
+                logo_img.thumbnail((400, 400))
+                buf = _io.BytesIO()
+                logo_img.save(buf, "PNG")
+                logo_b64_small = base64.b64encode(buf.getvalue()).decode()
+            except Exception:
+                logo_b64_small = logo_b64[:50000]  # fallback
+
+            msg_content = [
+                {"type": "image", "source": {"type": "base64",
+                 "media_type": "image/png", "data": logo_b64_small}},
+                {"type": "text", "text": prompt + "\n\nA imagem acima é a LOGO DA EMPRESA. "
+                 "Use-a como <image href='data:image/png;base64," + logo_b64_small + "' .../> no SVG. "
+                 "Extraia as cores dominantes da logo para o esquema de cores do rotulo."}
+            ]
+        else:
+            msg_content = [{"type": "text", "text": prompt}]
+
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY,
+                         "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514",
+                      "max_tokens": 8000,
+                      "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
+                      "messages": [{"role": "user", "content": msg_content}]}
+            )
+            data = r.json()
+            svg_raw = data["content"][0]["text"].strip()
+
+        # Limpa markdown se vier
+        if "```svg" in svg_raw:
+            svg_raw = svg_raw.split("```svg")[1].split("```")[0].strip()
+        elif "```xml" in svg_raw:
+            svg_raw = svg_raw.split("```xml")[1].split("```")[0].strip()
+        elif "```" in svg_raw:
+            svg_raw = svg_raw.split("```")[1].split("```")[0].strip()
+
+        # Garante que comeca com <svg
+        if not svg_raw.startswith("<svg"):
+            idx = svg_raw.find("<svg")
+            if idx >= 0:
+                svg_raw = svg_raw[idx:]
+
+        # Converte SVG para PNG usando PyMuPDF
+        png_b64 = ""
+        try:
+            import fitz as _fitz
+            doc = _fitz.open(stream=svg_raw.encode(), filetype="svg")
+            page = doc[0]
+            mat = _fitz.Matrix(3, 3)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            png_b64 = base64.b64encode(pix.tobytes("png")).decode()
+        except Exception:
+            pass
+
+        return JSONResponse({
+            "svg": svg_raw,
+            "png": png_b64,
+            "cores": cores,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:300]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
 @app.on_event("startup")
 async def startup_load():
     """No startup, carrega dados persistidos do Supabase em background."""
