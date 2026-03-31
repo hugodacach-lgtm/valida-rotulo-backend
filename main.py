@@ -3779,18 +3779,28 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
 SP_EXTRAIR_RECEITA = """Voce e um especialista em rotulagem de alimentos brasileira.
 Analise o documento/imagem fornecido (ficha tecnica, receita ou formulacao do produto) e extraia TODAS as informacoes relevantes para um rotulo.
 
+IMPORTANTE: Se o documento NAO for uma receita, ficha tecnica ou formulacao de produto alimenticio (ex: e um guia, manual, legislacao, apresentacao), retorne todos os campos como null e coloque "documento_invalido": true.
+
 RETORNE SOMENTE JSON valido, sem markdown, sem texto fora do JSON.
 
-Estrutura:
+INSTRUCOES DE EXTRACAO:
+- ingredientes: procure por "ingredientes:", "composicao:", "formula:", "formulacao:", lista de materia-prima. Ordene decrescente por quantidade.
+- conservacao: procure "conservar", "armazenar", "manter refrigerado", "temperatura", "validade", "vida util". Inclua temperatura se encontrada.
+- nutricional: procure tabela nutricional, "informacao nutricional", valores por 100g ou por porcao.
+- peso: procure "peso liquido", "peso liq.", "g", "kg", "mL", "L" proximo ao nome do produto.
+- produto: nome ou denominacao do produto alimenticio.
+- Se encontrar informacoes parciais, extraia o que houver e liste o resto em campos_nao_encontrados.
+
 {
-  "produto": "nome comercial identificado ou sugerido",
-  "categoria": "categoria: embutidos|laticinios|pescado|carnes|ovos|mel|prato_pronto_poa|outro",
-  "especie": "especie animal (bovino, suino, frango, etc.) ou null",
-  "ingredientes": "lista completa em ordem decrescente formatada para rotulo",
-  "peso": "peso/volume encontrado ou null",
-  "conservacao": "instrucao de conservacao encontrada ou inferida, ou null",
+  "documento_invalido": false,
+  "produto": "nome do produto ou null",
+  "categoria": "embutidos|laticinios|pescado|carnes|ovos|mel|prato_pronto_poa|outro|null",
+  "especie": "especie animal ou null",
+  "ingredientes": "lista completa em ordem decrescente ou null",
+  "peso": "peso/volume ou null",
+  "conservacao": "instrucao de conservacao com temperatura ou null",
   "nutricional": {
-    "porcao": "porcao encontrada ou padrao",
+    "porcao": "porcao encontrada ou null",
     "energia_kcal": "valor ou null",
     "carboidratos": "valor ou null",
     "proteinas": "valor ou null",
@@ -3802,10 +3812,10 @@ Estrutura:
     "acucares_totais": "valor ou null",
     "acucares_adicionados": "valor ou null"
   },
-  "alergenos_identificados": ["lista de alergenos encontrados"],
-  "orgao": "SIF|SIE|SIM se identificado, senao null",
-  "observacoes": "outras informacoes relevantes",
-  "campos_nao_encontrados": ["campos que nao foram encontrados e precisam ser preenchidos manualmente"],
+  "alergenos_identificados": [],
+  "orgao": "SIF|SIE|SIM|null",
+  "observacoes": "outras informacoes relevantes ou null",
+  "campos_nao_encontrados": ["lista dos campos nao encontrados"],
   "confianca": "alta|media|baixa"
 }
 
