@@ -3773,15 +3773,24 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
 
 @app.on_event("startup")
 async def startup_load():
-    """No startup, carrega dados persistidos do Supabase para memória."""
+    """No startup, carrega dados persistidos do Supabase em background."""
+    asyncio.ensure_future(_startup_background())
+
+async def _startup_background():
+    """Carrega Supabase em background sem bloquear o health check."""
     global _cases_db, _monitor_history
-    if _SUPABASE_ON:
-        rows = await load_cases_from_supabase()
+    if not _SUPABASE_ON:
+        return
+    try:
+        import asyncio as _aio
+        rows = await _aio.wait_for(load_cases_from_supabase(), timeout=8.0)
         if rows:
             _cases_db = rows
-        alerts = await load_monitor_from_supabase()
+        alerts = await _aio.wait_for(load_monitor_from_supabase(), timeout=8.0)
         if alerts:
             _monitor_history = alerts
+    except Exception:
+        pass  # Supabase lento — continua in-memory
 
 @app.get("/")
 def health():
