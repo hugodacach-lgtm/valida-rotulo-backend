@@ -2543,6 +2543,10 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         _cases_db.append(auto_case)
         if len(_cases_db) > _MAX_CASES:
             _cases_db.pop(0)
+        # Persiste no Supabase (fire-and-forget)
+        import datetime as _dt
+        supabase_case = {**auto_case, "created_at": _dt.datetime.now().isoformat()}
+        asyncio.ensure_future(_sb_upsert("validacoes", supabase_case))
     # ────────────────────────────────────────────────────────────────────────────
 
     # Emite case_id para o frontend usar no feedback
@@ -2909,6 +2913,10 @@ async def send_monitor_alert(findings: list[dict], webhook_url: str = "") -> boo
     _monitor_history.append(payload)
     if len(_monitor_history) > 100:
         _monitor_history.pop(0)
+    import datetime as _dt3
+    asyncio.ensure_future(_sb_insert("monitor_alertas", {
+        **payload, "created_at": _dt3.datetime.now().isoformat()
+    }))
     return True
 
 _monitor_history: list[dict] = []
@@ -2991,6 +2999,85 @@ import hashlib as _hashlib
 
 # Banco de casos em memória (persiste durante o processo, reset no redeploy)
 # Para produção: substituir por Supabase/PlanetScale (gratuitos)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUPABASE — PERSISTÊNCIA DE DADOS
+# Configurar no Render: SUPABASE_URL e SUPABASE_KEY (anon key)
+# Se variáveis não existirem, cai em fallback in-memory (desenvolvimento)
+# ══════════════════════════════════════════════════════════════════════════════
+
+_SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+_SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+_SUPABASE_ON  = bool(_SUPABASE_URL and _SUPABASE_KEY)
+
+async def _sb_get(table: str, filters: dict = None, limit: int = 500) -> list[dict]:
+    """Lê registros do Supabase. Retorna [] se Supabase não configurado."""
+    if not _SUPABASE_ON:
+        return []
+    url = f"{_SUPABASE_URL}/rest/v1/{table}?limit={limit}&order=created_at.desc"
+    if filters:
+        for k, v in filters.items():
+            url += f"&{k}=eq.{v}"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(url, headers={
+                "apikey": _SUPABASE_KEY,
+                "Authorization": f"Bearer {_SUPABASE_KEY}",
+            })
+            return r.json() if r.status_code == 200 else []
+    except Exception:
+        return []
+
+async def _sb_upsert(table: str, data: dict) -> bool:
+    """Insere ou atualiza registro no Supabase. Retorna True se OK."""
+    if not _SUPABASE_ON:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(
+                f"{_SUPABASE_URL}/rest/v1/{table}",
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates",
+                },
+                json=data,
+            )
+            return r.status_code in (200, 201)
+    except Exception:
+        return False
+
+async def _sb_insert(table: str, data: dict) -> bool:
+    """Insere registro no Supabase."""
+    if not _SUPABASE_ON:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(
+                f"{_SUPABASE_URL}/rest/v1/{table}",
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json=data,
+            )
+            return r.status_code in (200, 201)
+    except Exception:
+        return False
+
+async def load_cases_from_supabase() -> list[dict]:
+    """Carrega casos do Supabase para memória no startup."""
+    rows = await _sb_get("validacoes", limit=500)
+    return rows
+
+async def load_monitor_from_supabase() -> list[dict]:
+    """Carrega histórico de alertas do Supabase."""
+    rows = await _sb_get("monitor_alertas", limit=100)
+    return rows
+
 _cases_db: list[dict] = []
 _MAX_CASES = 500  # máximo de casos em memória
 
@@ -3108,10 +3195,16 @@ async def store_feedback(request: Request):
             if len(_cases_db) > _MAX_CASES:
                 _cases_db.pop(0)
 
+        # Persiste feedback no Supabase
+        import datetime as _dt2
+        asyncio.ensure_future(_sb_upsert("validacoes", {
+            **case, "created_at": _dt2.datetime.now().isoformat()
+        }))
         return JSONResponse({
             "status": "ok",
             "total_cases": len(_cases_db),
             "case_id": case["case_id"],
+            "persistido": _SUPABASE_ON,
         }, headers={"Access-Control-Allow-Origin": "*"})
     except Exception as e:
         return JSONResponse({"error": str(e)},
@@ -3181,14 +3274,28 @@ async def admin_stats():
     }, headers={"Access-Control-Allow-Origin": "*"})
 
 
+@app.on_event("startup")
+async def startup_load():
+    """No startup, carrega dados persistidos do Supabase para memória."""
+    global _cases_db, _monitor_history
+    if _SUPABASE_ON:
+        rows = await load_cases_from_supabase()
+        if rows:
+            _cases_db = rows
+        alerts = await load_monitor_from_supabase()
+        if alerts:
+            _monitor_history = alerts
+
 @app.get("/")
 def health():
     return {
         "status": "ok",
         "service": "ValidaRótulo IA v6",
+        "supabase": "conectado" if _SUPABASE_ON else "não configurado (in-memory)",
+        "cases_em_memoria": len(_cases_db),
         "kb_categories": len(MAPA_URLS),
         "kb_cached": list(_kb_cache.keys()),
-        "endpoints": ["/validar", "/eval", "/kb/preload", "/kb/status"],
+        "endpoints": ["/validar", "/eval", "/feedback", "/admin/stats", "/monitor/check"],
     }
 
 
