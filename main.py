@@ -3974,32 +3974,52 @@ def _extrair_cores_logo(logo_b64: str) -> dict:
         return {"primaria": "#1a1a2e", "r": 26, "g": 26, "b": 46}
 
 
-SP_DESIGN_ROTULO = """Voce e um designer senior especializado em embalagens alimenticias brasileiras.
-Sua tarefa e gerar um SVG profissional de rotulo de alimento, com qualidade grafica de agencia.
+SP_DESIGN_ROTULO = """Voce e um designer senior de nivel internacional especializado em embalagens de alimentos brasileiros para prateleira de supermercado.
 
-REGRAS ABSOLUTAS DE DESIGN:
-1. O SVG deve ter viewBox="0 0 600 600" para formato circular ou "0 0 800 400" para retangular
-2. Inclua a logo como <image> usando href="data:image/png;base64,{logo_b64}"
-3. Use as cores da marca: cor primaria {cor_primaria}
-4. Todos os textos devem ser legíveis (fonte minima 10px no SVG)
-5. Inclua OBRIGATORIAMENTE todos os campos legais fornecidos
-6. O design deve ter hierarquia clara: nome do produto > fabricante > ingredientes > nutricional
-7. Use formas geometricas, gradientes suaves e composicao profissional
-8. Retorne SOMENTE o codigo SVG, sem markdown, sem texto antes ou depois
+Sua tarefa: gerar um SVG de rotulo profissional que parece ter sido feito por uma agencia de branding, nao por software. Pense em rotulos como os da Sadia, Perdigao, Friboi - hierarquia visual clara, logo dominante, composicao equilibrada.
 
-FORMATO DO ROTULO: {formato}
+RETORNE APENAS O CODIGO SVG. Nada antes, nada depois.
 
-CAMPOS DO ROTULO:
+== FORMATO: {formato} ==
+
+SE CIRCULAR (viewBox="0 0 600 600"):
+Estrutura obrigatoria de dentro para fora:
+1. Circulo de fundo branco (cx=300 cy=300 r=295) com borda grossa na cor primaria da marca
+2. Faixa superior colorida (arco ou retangulo curvo no topo) com a LOGO DA EMPRESA como elemento central dominante - use <image href="data:image/png;base64,{logo_b64}" x="..." y="..." width="..." height="..."/> 
+3. Nome do produto em tipografia bold grande (28-36px) abaixo da logo
+4. Area central clara com tabela nutricional compacta e ingredientes em fonte pequena
+5. Carimbo de inspecao ({carimbo}) como elemento grafico oval no canto inferior direito
+6. Faixa de alergenicos na borda inferior do circulo
+7. Fabricante e conservacao em texto pequeno nas laterais
+
+SE RETANGULAR (viewBox="0 0 800 400"):
+Layout dividido verticalmente:
+- Faixa esquerda colorida (0 a 240px) com logo grande no centro, nome do produto bold abaixo
+- Area direita branca (240 a 780px) dividida em:
+  * Topo: ingredientes em fonte 9-10px, maximo 3 linhas
+  * Centro: tabela nutricional com header colorido, rows alternados cinza/branco
+  * Rodape: alergenicos + transgenicos + carimbo oval
+
+REGRAS DE DESIGN (nao negociaveis):
+- Logo: usar <image href="data:image/png;base64,{logo_b64}" .../> - coloque com tamanho minimo 120x80px para ser visivel
+- Cor primaria da marca: {cor_primaria} - usar em headers, bordas, acentos
+- Tipografia: sans-serif, peso variado (bold para produto, regular para ingredientes)
+- Tabela nutricional: header com fundo {cor_primaria} e texto branco, linhas alternadas #f5f5f5/#ffffff
+- Carimbo: oval com borda dupla, texto "INSPECIONADO", orgao e numero
+- Todos os campos legais DEVEM aparecer - nao omita nenhum
+- Dimensoes de texto: produto 28-36px, fabricante 10px, ingredientes 9px, tabela 9-10px
+
+DADOS DO ROTULO:
 Denominacao: {denominacao}
-Carimbo SIF/SIE/SIM: {carimbo}
+Carimbo: {carimbo}
 Fabricante: {fabricante}
 Ingredientes: {ingredientes}
 Conservacao: {conservacao}
 Conteudo liquido: {conteudo_liquido}
-Alérgenos: {alergenos}
+Alergenos: {alergenos}
 Transgenicos: {transgenicos}
 Porcao: {porcao}
-Kcal: {energia_kcal}
+Energia: {energia_kcal} kcal
 Proteinas: {proteinas}
 Carboidratos: {carboidratos}
 Gorduras totais: {gorduras_totais}
@@ -4010,33 +4030,9 @@ Sodio: {sodio}
 Gluten: {gluten}
 Lactose: {lactose}
 
-INSTRUCOES POR FORMATO:
+{evite_rules}
 
-SE CIRCULAR (viewBox 0 0 600 600):
-- Circulo externo com cor primaria da marca como borda
-- Circulo interno branco para conteudo
-- Logo no topo centralizada (x=200 y=20 width=200 height=120)
-- Nome do produto em destaque com fonte bold 28-36px
-- Tabela nutricional no centro-esquerda
-- Carimbo de inspecao como elemento grafico no canto
-- Ingredientes na parte inferior
-- Alérgenos na borda inferior
-- Lote/Validade: "Veja embalagem" posicionado lateralmente
-
-SE RETANGULAR (viewBox 0 0 800 400):
-- Faixa colorida na esquerda (0,0,220,400) com logo e nome do produto
-- Area branca direita (220,0,580,400) com ingredientes, nutricional e legal
-- Tabela nutricional com header escuro, linhas alternadas cinza/branco
-- Carimbo oval no canto superior direito
-- Alergenicos e transgenicos no rodape
-
-ELEMENTOS GRAFICOS OBRIGATORIOS:
-- Tabela nutricional com header colorido e linhas de dados legíveis
-- Carimbo oval de inspecao (SIF/SIE/SIM + numero)
-- Linha horizontal separando alergenicos
-- Lote e validade: "Veja fundo/tampa da embalagem"
-
-Gere o SVG completo agora. Apenas o codigo SVG, nada mais."""
+Gere o SVG completo agora. APENAS o codigo SVG."""
 
 
 @app.post("/gerar-design")
@@ -4060,29 +4056,31 @@ async def gerar_design_rotulo(request: Request):
 
         tn = campos.get("tabela_nutricional") or {}
 
-        prompt = SP_DESIGN_ROTULO.format(
-            logo_b64=logo_b64[:200] + "..." if logo_b64 else "",
-            cor_primaria=cores["primaria"],
-            formato=formato.upper(),
-            denominacao=campos.get("denominacao", ""),
-            carimbo=campos.get("carimbo", ""),
-            fabricante=(campos.get("fabricante") or "").replace("\n", " | "),
-            ingredientes=campos.get("ingredientes", ""),
-            conservacao=campos.get("conservacao", ""),
-            conteudo_liquido=campos.get("conteudo_liquido", ""),
-            alergenos=campos.get("alergenos", ""),
-            transgenicos=campos.get("transgenicos", ""),
-            porcao=tn.get("porcao", "100g"),
-            energia_kcal=tn.get("energia_kcal", ""),
-            proteinas=tn.get("proteinas", ""),
-            carboidratos=tn.get("carboidratos", ""),
-            gorduras_totais=tn.get("gorduras_totais", ""),
-            gorduras_saturadas=tn.get("gorduras_saturadas", ""),
-            gorduras_trans=tn.get("gorduras_trans", "0g"),
-            fibra=tn.get("fibra", ""),
-            sodio=tn.get("sodio", ""),
-            gluten=campos.get("gluten", ""),
-            lactose=campos.get("lactose", ""),
+        _logo_placeholder = logo_b64_small if logo_b64 else ""
+        prompt = (SP_DESIGN_ROTULO
+            .replace("{logo_b64}", _logo_placeholder)
+            .replace("{cor_primaria}", cores["primaria"])
+            .replace("{formato}", formato.upper())
+            .replace("{denominacao}", campos.get("denominacao", ""))
+            .replace("{carimbo}", campos.get("carimbo", ""))
+            .replace("{fabricante}", (campos.get("fabricante") or "").replace("\n", " | "))
+            .replace("{ingredientes}", campos.get("ingredientes", ""))
+            .replace("{conservacao}", campos.get("conservacao", ""))
+            .replace("{conteudo_liquido}", campos.get("conteudo_liquido", ""))
+            .replace("{alergenos}", campos.get("alergenos", ""))
+            .replace("{transgenicos}", campos.get("transgenicos", ""))
+            .replace("{porcao}", tn.get("porcao", "100g"))
+            .replace("{energia_kcal}", tn.get("energia_kcal", ""))
+            .replace("{proteinas}", tn.get("proteinas", ""))
+            .replace("{carboidratos}", tn.get("carboidratos", ""))
+            .replace("{gorduras_totais}", tn.get("gorduras_totais", ""))
+            .replace("{gorduras_saturadas}", tn.get("gorduras_saturadas", ""))
+            .replace("{gorduras_trans}", tn.get("gorduras_trans", "0g"))
+            .replace("{fibra}", tn.get("fibra", ""))
+            .replace("{sodio}", tn.get("sodio", ""))
+            .replace("{gluten}", campos.get("gluten", ""))
+            .replace("{lactose}", campos.get("lactose", ""))
+            .replace("{evite_rules}", "")
         )
 
         # Sistema 1: busca referências visuais da categoria
