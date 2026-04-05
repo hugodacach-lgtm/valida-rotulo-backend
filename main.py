@@ -2569,9 +2569,14 @@ def check_image_readability(image_bytes: bytes) -> dict:
         w, h = img.size
         maior = max(w, h)
         # Resolução mínima para rótulo legível antes do zoom
-        if maior < 300:
+        if maior < 80:
             return {"ok": False,
-                    "warning": f"⚠️ Imagem muito pequena ({w}×{h}px). Envie uma foto com pelo menos 800px no maior lado para garantir leitura do texto.",
+                    "warning": f"⚠️ Imagem ilegível ({w}×{h}px). Envie uma foto com pelo menos 200px no maior lado.",
+                    "dim": (w, h)}
+        # Aviso não-bloqueante para imagens pequenas (Claude tenta mesmo assim com zoom)
+        if maior < 300:
+            return {"ok": True,
+                    "warning": f"⚠️ Imagem pequena ({w}×{h}px) — qualidade pode ser limitada, mas vamos tentar.",
                     "dim": (w, h)}
         # Verifica se imagem não é completamente branca/preta (PDF em branco, etc.)
         gray = img.convert("L")
@@ -2724,9 +2729,14 @@ async def validar_rotulo(
                 {"error": quality["warning"]}, status_code=400,
                 headers={"Access-Control-Allow-Origin": "*"}
             )
+        # Aviso não-bloqueante: imagem pequena mas Claude tenta mesmo assim
+        quality_warning = quality.get("warning", "")
         processed_bytes, mime_type = preprocess_image(contents, raw_mime)
         image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
 
+    # Anexa aviso de qualidade às observações se existir
+    if quality_warning:
+        obs = (obs + "\n\n[SISTEMA: " + quality_warning + " O agente deve tentar mesmo assim e informar se não conseguir ler algum campo.]").strip()
     return StreamingResponse(
         stream_validation(image_b64, mime_type, obs, orgao),
         media_type="text/event-stream",
