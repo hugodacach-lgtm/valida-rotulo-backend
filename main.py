@@ -1104,7 +1104,8 @@ Cobre: POA (carnes, laticínios, ovos, pescados, mel), produtos vegetais, indust
 REGRAS ABSOLUTAS:
 1. Analise CADA detalhe visível na imagem — texto, símbolos, formatação, cores, posicionamento
 2. Se um elemento não está visível na arte do rótulo: registre como AUSENTE
-3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na linha de produção. NÃO avalie esses campos.
+3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na
+4. SOBRE "NÃO VERIFICÁVEL": Use SOMENTE quando for IMPOSSÍVEL ler o texto mesmo após zoom máximo e sharpening. Se você consegue distinguir qualquer letra ou número, TENTE LER e informe o que leu. Prefira uma leitura aproximada com ressalva ("leitura parcial: X") a marcar como NÃO VERIFICÁVEL. Imagens pequenas são ampliadas automaticamente para 4500px — faça esforço máximo de leitura antes de marcar NÃO VERIFICÁVEL. linha de produção. NÃO avalie esses campos.
 4. Cite sempre a norma específica (número e ano) para cada avaliação
 5. Nunca pule nenhum dos 12 campos obrigatórios
 6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
@@ -2366,7 +2367,10 @@ PASSO 4 — RELATÓRIO FINAL
 
 SP_REVISAO = """Você é um auditor sênior de rotulagem com 20 anos de MAPA/DIPOA.
 
-Revise criticamente o relatório abaixo. Foque APENAS em erros reais — não repita o que já está correto.
+RELATÓRIO A REVISAR:
+{relatorio}
+
+Revise criticamente o relatório acima. Foque APENAS em erros reais — não repita o que já está correto.
 
 CHECKLIST DE REVISÃO — verifique cada item:
 1. Todos os 12 campos foram avaliados? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos)
@@ -2732,7 +2736,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     revisao = await call_claude_simple(
         SP_REVISAO.replace("{relatorio}", relatorio),
         "Revise com rigor técnico.",
-        350
+        800
     )
     if revisao:
         yield f"data: {json.dumps({'text': revisao})}\n\n"
@@ -4618,6 +4622,156 @@ async def alertas_rotulos_impactados():
         return JSONResponse({"alertas": [], "error": str(e)[:200]},
                             headers={"Access-Control-Allow-Origin": "*"})
 
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTH — Supabase Auth (email + senha)
+# ─────────────────────────────────────────────────────────────────────────────
+_SUPA_AUTH = os.environ.get("SUPABASE_URL", "").rstrip("/") + "/auth/v1"
+_SUPA_ANON = os.environ.get("SUPABASE_KEY", "")
+
+async def _auth_post(path: str, payload: dict, token: str = "") -> dict:
+    """Chama endpoint da Supabase Auth API."""
+    headers = {
+        "apikey": _SUPA_ANON,
+        "Content-Type": "application/json",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as cl:
+            r = await cl.post(f"{_SUPA_AUTH}{path}", json=payload, headers=headers)
+            return r.json()
+    except Exception as e:
+        return {"error": {"message": str(e)}}
+
+async def _auth_get_user(token: str) -> dict:
+    """Retorna dados do usuário pelo access_token."""
+    headers = {"apikey": _SUPA_ANON, "Authorization": f"Bearer {token}"}
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as cl:
+            r = await cl.get(f"{_SUPA_AUTH}/user", headers=headers)
+            return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/auth/signup")
+async def auth_signup(request: Request):
+    """Cria nova conta com email + senha."""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+    nome = (body.get("nome") or "").strip()
+
+    if not email or not password:
+        return JSONResponse({"error": "Email e senha são obrigatórios."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+    if len(password) < 6:
+        return JSONResponse({"error": "Senha deve ter pelo menos 6 caracteres."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+    result = await _auth_post("/signup", {
+        "email": email,
+        "password": password,
+        "data": {"nome": nome}
+    })
+
+    if result.get("error") or "error_code" in result:
+        msg = result.get("error", {}).get("message") or result.get("msg") or "Erro ao criar conta."
+        if "already" in msg.lower() or "exists" in msg.lower():
+            msg = "Este email já está cadastrado."
+        return JSONResponse({"error": msg}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    return JSONResponse({
+        "ok": True,
+        "message": "Conta criada. Verifique seu email para confirmar o cadastro.",
+        "user": {"email": email, "nome": nome}
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/auth/login")
+async def auth_login(request: Request):
+    """Login com email + senha. Retorna access_token."""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+
+    if not email or not password:
+        return JSONResponse({"error": "Email e senha são obrigatórios."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+    result = await _auth_post("/token?grant_type=password", {
+        "email": email,
+        "password": password
+    })
+
+    if result.get("error") or "error_code" in result or not result.get("access_token"):
+        msg = result.get("error", {}).get("message") or result.get("msg") or "Email ou senha incorretos."
+        if "invalid" in msg.lower() or "credentials" in msg.lower():
+            msg = "Email ou senha incorretos."
+        if "confirm" in msg.lower() or "email" in msg.lower() and "verif" in msg.lower():
+            msg = "Confirme seu email antes de fazer login."
+        return JSONResponse({"error": msg}, status_code=401,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    user_data = result.get("user", {})
+    meta = user_data.get("user_metadata", {})
+    return JSONResponse({
+        "ok": True,
+        "access_token": result["access_token"],
+        "refresh_token": result.get("refresh_token", ""),
+        "user": {
+            "id": user_data.get("id", ""),
+            "email": user_data.get("email", email),
+            "nome": meta.get("nome") or meta.get("name") or "",
+        }
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/auth/logout")
+async def auth_logout(request: Request):
+    """Invalida o token no Supabase."""
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    if token:
+        await _auth_post("/logout", {}, token=token)
+    return JSONResponse({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    """Retorna dados do usuário logado."""
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    if not token:
+        return JSONResponse({"error": "Não autenticado."}, status_code=401,
+                            headers={"Access-Control-Allow-Origin": "*"})
+    user = await _auth_get_user(token)
+    if user.get("error") or not user.get("id"):
+        return JSONResponse({"error": "Token inválido ou expirado."}, status_code=401,
+                            headers={"Access-Control-Allow-Origin": "*"})
+    meta = user.get("user_metadata", {})
+    return JSONResponse({
+        "id": user["id"],
+        "email": user.get("email", ""),
+        "nome": meta.get("nome") or meta.get("name") or "",
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/auth/reset-password")
+async def auth_reset_password(request: Request):
+    """Envia email de reset de senha."""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    if not email:
+        return JSONResponse({"error": "Email obrigatório."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+    redirect = body.get("redirect_url", "https://cosmic-llama-9576a5.netlify.app")
+    result = await _auth_post("/recover", {"email": email})
+    return JSONResponse({"ok": True, "message": "Se o email existir, você receberá um link de redefinição."},
+                        headers={"Access-Control-Allow-Origin": "*"})
 
 @app.on_event("startup")
 async def startup_load():
