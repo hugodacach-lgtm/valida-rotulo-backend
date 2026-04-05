@@ -2615,7 +2615,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2500,
+        "max_tokens": 4000,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -2955,7 +2955,7 @@ async def avaliar_rotulo(
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2500,
+        "max_tokens": 4000,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
