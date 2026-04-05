@@ -1178,8 +1178,47 @@ a) Nome específico conforme RTIQ e Port. 1485/2025 — não pode ser genérico
    • Queijos: variedade completa (ex: "Queijo Minas Frescal")
    • Laticínios: classificação obrigatória (integral/semidesnatado/desnatado)
    • Ovos: tipo e categoria (ex: "Ovos de Galinha Tipo Extra")
+   • Pescado: nome popular aprovado pelo MAPA + nome científico obrigatório
+     (ex: "Tilápia - Oreochromis niloticus" — lista IN 29/2015)
+   • Mel: indicar origem floral se monofloral (ex: "Mel de Eucalipto")
+     — monofloral requer no mínimo 45% de pólen da espécie declarada
 b) Posicionada no PAINEL PRINCIPAL com fonte em destaque
-c) Sem termos proibidos sem certificação ("caseiro", "artesanal", "natural")
+c) Termos controlados — verificar se produto tem habilitação:
+   • "Caseiro", "Colonial", "Artesanal" → exige Registro no SIM + Selo Arte (Lei 13.860/2019)
+     Sem o Selo Arte e registro adequado → ❌ NÃO CONFORME
+   • "Natural" → sem definição legal; uso indiscriminado pode configurar propaganda enganosa
+   • "Tradicional" → sem restrição legal, mas não pode induzir a erro sobre composição
+d) COMPOSIÇÃO MÍNIMA OBRIGATÓRIA POR RTIQ — verificar se a denominação é compatível:
+   ┌─────────────────────────────────────────────────────────────────────────────┐
+   │ LINGUIÇA TOSCANA: mín. 70% carne suína. PROIBIDA proteína vegetal (IN 4)  │
+   │ LINGUIÇA CALABRESA: mín. 80% carne suína. PROIBIDA proteína vegetal       │
+   │ LINGUIÇA PORTUGUESA: mín. 80% carne suína. PROIBIDA proteína vegetal      │
+   │ SALSICHA: mín. 50% carne; máx. 4,5% proteína vegetal; máx. 60% umidade   │
+   │ MORTADELA: mín. 50% carne; máx. 4% proteína vegetal; máx. 65% umidade    │
+   │ HAMBÚRGUER: mín. 70% carne; máx. 4% proteína vegetal (IN 4)              │
+   │ APRESUNTADO: mín. 60% carne suína; máx. 4% proteína vegetal               │
+   │ PRESUNTO: mín. 90% carne suína; máx. 0% proteína vegetal                  │
+   │ QUEIJO MINAS FRESCAL: mín. 15% gordura no EST (Port. MARA 146/1996)      │
+   │ QUEIJO MUSSARELA: mín. 35% gordura no EST (Port. MARA 366/1997)          │
+   │ REQUEIJÃO CREMOSO: mín. 55% gordura no EST (Port. MARA 359/1997)         │
+   │ MEL: mín. 65° Brix; máx. 20% umidade; máx. 0,6% acidez (Port. 6/2001)   │
+   │ IOGURTE: mín. 10^6 UFC/g (fermentos vivos) ao final do prazo de validade  │
+   └─────────────────────────────────────────────────────────────────────────────┘
+   Se a denominação declarada na lista de ingredientes é incompatível com o RTIQ → ❌ NÃO CONFORME
+   Se impossível verificar composição pelo rótulo → 🔍 NÃO VERIFICÁVEL (anotar suspeita)
+e) CLAIMS E ALEGAÇÕES — verificar critério legal:
+   • "LIGHT" → redução mín. 25% em kcal OU no nutriente principal vs. produto referência da mesma marca (IN 75/2020 Tabela 4)
+   • "DIET" → ausência completa de nutriente específico indicado (ex: "Diet em açúcares")
+   • "ZERO" → mesmo critério do DIET para o nutriente declarado
+   • "ZERO AÇÚCAR" → máx. 0,5g açúcar/100g (pode ter adoçante)
+   • "ZERO LACTOSE" → máx. 0,1% lactose; verificar se lactase ou hidrólise é declarada
+   • "SEM GLÚTEN" → exige declaração "NÃO CONTÉM GLÚTEN" obrigatória (Lei 10.674/2003)
+   • "RICO EM PROTEÍNAS" → mín. 20% da IDR de proteínas por porção (RDC 429/2020)
+   • "FONTE DE FIBRAS" → mín. 10% da IDR de fibras por porção
+   • "ALTO TEOR DE CÁLCIO" → mín. 30% da IDR de cálcio por porção
+   • "PROBIÓTICO" → cepa específica aprovada + quantidade mín. 10^8 UFC por porção (ANVISA lista)
+   • "PREBIÓTICO" → ingrediente reconhecido pela ANVISA + quantidade eficaz declarada
+   ⚠️ Alegação sem critério matemático atingido → ❌ NÃO CONFORME
 
 ─────────────────────────────────────────────
 CAMPO 2 — LISTA DE INGREDIENTES
@@ -1204,6 +1243,36 @@ f) ⚠️ PROTEÍNA DE SOJA — ALERTA OBRIGATÓRIO PARA EMBUTIDOS:
    Sem o % declarado, é impossível verificar conformidade com o RTIQ.
    Se proteína de soja aparecer SEM percentual → alertar como ❌ NÃO CONFORME
 
+g) ADITIVOS PERMITIDOS POR CATEGORIA — verificar se função e substância são autorizadas:
+   EMBUTIDOS CÁRNEOS (RDC 272/2019 + IN 4/2000):
+   • Conservantes autorizados: Nitrito de Sódio (INS 250), Nitrato de Sódio (INS 251)
+     Limite: máx. 0,015% de nitrito residual no produto final
+   • Antioxidantes: Eritorbato de Sódio (INS 316), Ácido Ascórbico (INS 300)
+   • Fosfatos (INS 450, 451, 452): autorizados na maioria dos embutidos
+   • ATENÇÃO: se aparecer INS 102 (tartrazina) → nome OBRIGATÓRIO no rótulo
+   LATICÍNIOS:
+   • Queijos: coalho, cloreto de cálcio (INS 509), fermentos lácteos — autorizados
+   • Corante urucum (INS 160b): autorizado em queijos
+   • Nitratos NÃO são autorizados em queijos frescos (mussarela, frescal)
+   MEL: PROIBIDA qualquer adição de aditivo — produto deve ser 100% puro.
+   Se qualquer aditivo aparecer nos ingredientes de mel → ❌ NÃO CONFORME grave
+h) VERIFICAÇÃO CRUZADA INGREDIENTES ↔ ALÉRGENOS (obrigatório):
+   Para CADA ingrediente alérgeno na lista, confirme se o campo 11 declara o alérgeno:
+   • Leite/Lactose/Caseína/Soro/Manteiga/Creme/Queijo → "CONTÉM LEITE E DERIVADOS"
+   • Soja/Proteína de Soja/Lecitina de Soja → "CONTÉM SOJA E DERIVADOS DE SOJA"
+   • Trigo/Amido de Trigo/Glúten/Farinha de trigo → "CONTÉM TRIGO E DERIVADOS"
+   • Ovos/Clara/Gema/Albumina → "CONTÉM OVOS E DERIVADOS DE OVOS"
+   • Amendoim → "CONTÉM AMENDOIM E DERIVADOS"
+   • Peixe (qualquer espécie) → "CONTÉM PEIXE E DERIVADOS DE PEIXE"
+   • Nozes/Castanhas/Amêndoas/Avelã → "CONTÉM [nome] E DERIVADOS"
+   ⚠️ Alergênico nos ingredientes SEM declaração em alérgenos → ❌ NÃO CONFORME (risco à saúde)
+   ⚠️ Alérgeno declarado no campo 11 SEM ingrediente correspondente na lista → ❌ NÃO CONFORME
+i) VERIFICAÇÃO CRUZADA "SEM/ZERO LACTOSE" ↔ INGREDIENTES:
+   Se o produto declara "SEM LACTOSE" ou "ZERO LACTOSE" na denominação ou no rótulo:
+   • Verificar se lactase ou "hidrólise enzimática" está declarada nos ingredientes
+   • Se ingredientes com lactose implícita (leite integral, leite em pó, soro) aparecem
+     SEM indicação de hidrólise → ⚠️ suspeita de inconsistência
+   • "CONTÉM LACTOSE" nos alérgenos + "ZERO LACTOSE" na denominação = ❌ NÃO CONFORME
 ─────────────────────────────────────────────
 CAMPO 3 — CONTEÚDO LÍQUIDO
 ─────────────────────────────────────────────
@@ -1217,7 +1286,12 @@ CAMPO 4 — IDENTIFICAÇÃO DO FABRICANTE
 ─────────────────────────────────────────────
 a) RAZÃO SOCIAL completa (não apenas nome fantasia)
 b) CNPJ no formato correto: XX.XXX.XXX/XXXX-XX
-c) ENDEREÇO COMPLETO: logradouro + número + bairro + cidade + UF + CEP
+c) ENDEREÇO COMPLETO — todos estes elementos são obrigatórios (RDC 727/2022, Art. 8°):
+   ☐ Logradouro (rua/avenida/estrada)   ☐ Número    ☐ Bairro/Distrito
+   ☐ Cidade (município)                  ☐ UF (sigla do estado)   ☐ CEP
+   • Ausência de QUALQUER um desses elementos → ❌ NÃO CONFORME (citar qual elemento está faltando)
+   • Texto sugerido de correção: "Acrescentar [elemento faltante] ao endereço do fabricante conforme Art. 8° da RDC 727/2022"
+   • Para importados: nome + endereço COMPLETO do importador brasileiro (todos os 6 elementos acima)
 d) Para importados: nome e endereço do importador no Brasil
 
 ─────────────────────────────────────────────
@@ -1284,6 +1358,15 @@ Este campo se adapta conforme o tipo de produto detectado:
    c) Registrar como ✅ N/A — Produto isento de registro
 
 ─────────────────────────────────────────────
+j) CONSISTÊNCIA CARIMBO ↔ JURISDIÇÃO DE VENDA (verificação cruzada):
+   • Carimbo SIM → produto pode ser vendido APENAS no município de fabricação
+     Se rótulo indica venda estadual ou nacional → ❌ NÃO CONFORME
+   • Carimbo SIE → produto pode ser vendido APENAS no estado de fabricação
+     Se rótulo indica venda em outros estados → verifique se há SISBI-POA declarado
+   • Carimbo SIF → produto pode ser vendido em todo o território nacional e exportado
+   • Carimbo SISBI-POA junto ao SIM/SIE → venda nacional permitida (equivalência)
+   • Formato do oval: "INSPECIONADO / [ÓRGÃO] / [NÚMERO]" — oval com borda dupla
+     Se carimbo está em formato quadrado, retangular ou sem bordas → ❌ formato incorreto
 CAMPO 9 — TABELA NUTRICIONAL (RDC 429/2020 + IN 75/2020)
 ─────────────────────────────────────────────
 
@@ -1309,13 +1392,30 @@ NUTRIENTES OBRIGATÓRIOS (verificar se todos presentes):
 ☐ Sódio: mg
 Valores por porção E por 100g/mL obrigatórios. Fundo BRANCO, letras PRETAS.
 
-NÍVEL 2 — COERÊNCIA MATEMÁTICA
-Calcule o valor energético esperado usando os valores por 100g declarados:
-  kcal esperado = (Proteínas × 4) + (Carboidratos × 4) + (Gorduras totais × 9)
-Compare com o kcal declarado. Tolerância: ±20% (permitido pela RDC 429/2020).
-• Dentro de ±20% → ✅ CONFORME — valores coerentes
-• Fora de ±20%   → ❌ NÃO CONFORME — valor energético não bate com os macros declarados
-Se os valores por 100g não estiverem visíveis, calcule pela porção.
+NÍVEL 2 — COERÊNCIA MATEMÁTICA (OBRIGATÓRIO — faça este cálculo sempre que os valores estiverem visíveis)
+──────────────────────────────────────────────────────────────────
+2a) VALOR ENERGÉTICO — fórmula de Atwater:
+  kcal esperado = (Proteínas_100g × 4) + (Carboidratos_100g × 4) + (Gorduras totais_100g × 9)
+  Compare com o kcal/100g declarado. Tolerância: ±20% (RDC 429/2020).
+  • Dentro de ±20% → ✅ CONFORME — citar: "Esperado: Xkcal | Declarado: Ykcal (Z% variação)"
+  • Fora de ±20%   → ❌ NÃO CONFORME — "Valor energético declarado (Ykcal) diverge do calculado (Xkcal)"
+  Se valores por 100g não visíveis → calcule pela porção. Se nenhum visível → 🔍 NÃO VERIFICÁVEL
+
+2b) GORDURAS TRANS — limiar de isenção:
+  • Se "0g" declarado mas ingredientes listam "óleo vegetal parcialmente hidrogenado" (OPH)
+    → ⚠️ alerta: "OPH indica possível gorduras trans. Verificar laudo — limiar é ≤0,2g/porção"
+  • Trans declarado = 0g sem OPH na lista → ✅ CONFORME
+
+2c) %VD — conferir se percentuais estão corretos (IDR da IN 75/2020):
+  Energia: 2.000kcal | Carboidratos: 300g | Açúcares adicionados: 50g
+  Proteínas: 75g | Gorduras totais: 65g | Gorduras saturadas: 22g | Fibra: 30g | Sódio: 2.300mg
+  %VD correto = (valor por porção ÷ IDR) × 100. Tolerância: ±5 pontos percentuais.
+  Erro >10 pontos → ❌ NÃO CONFORME
+
+2d) SÓDIO vs. SAL — consistência:
+  • "Sal" como ingrediente + sódio < 300mg/100g → ⚠️ investigar (1g NaCl ≅ 393mg sódio)
+  • "Sem sal adicionado" + sódio > 400mg/100g → ⚠️ verificar fonte alternativa de sódio
+  Se os valores por 100g não estiverem visíveis, calcule pela porção.
 
 NÍVEL 3 — PLAUSIBILIDADE POR CATEGORIA (TACO 4ª ed. UNICAMP + RTIQ/MAPA)
 Compare os valores declarados POR 100g com as faixas abaixo.
@@ -2197,34 +2297,47 @@ PASSO 4 — RELATÓRIO FINAL
    (sem carimbo oval | denominação incorreta | alérgenos ausentes | sem tabela nutricional)
 
 ### CORREÇÕES PRIORITÁRIAS:
-[1ª — impede comercialização imediata]
-[2ª — não conformidades técnicas]
-[3ª — melhorias recomendadas]
+
+**1ª PRIORIDADE — IMPEDE COMERCIALIZAÇÃO IMEDIATA (corrigir antes de submeter ao órgão):**
+[Para cada não conformidade crítica, use este formato:]
+❌ [CAMPO X — nome do campo]: [descrição do problema]
+   📌 Norma violada: [nome da norma, artigo, parágrafo específico]
+   ✏️ Correção sugerida: "[texto exato de como deveria estar no rótulo]"
+
+**2ª PRIORIDADE — NÃO CONFORMIDADES TÉCNICAS (multa e retrabalho, mas não embarga imediatamente):**
+[mesmo formato acima]
+
+**3ª PRIORIDADE — MELHORIAS RECOMENDADAS (boas práticas, não obrigatório):**
+[mesmo formato, sem ✏️ obrigatório]
 
 ### PONTOS CONFORMES:
-[campos aprovados]"""
+[campos aprovados com breve justificativa — ex: "✅ CAMPO 2 — Ingredientes em ordem decrescente, aditivos com função tecnológica e INS declarados (RDC 272/2019)"]"""
 
 
 SP_REVISAO = """Você é um auditor sênior de rotulagem com 20 anos de MAPA/DIPOA.
 
-Revise criticamente o relatório. Foque APENAS em erros reais — não repita o correto.
+Revise criticamente o relatório abaixo. Foque APENAS em erros reais — não repita o que já está correto.
 
-Verifique:
+CHECKLIST DE REVISÃO — verifique cada item:
 1. Todos os 12 campos foram avaliados? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos)
-2. Lote e validade foram corretamente IGNORADOS? (são impressos na produção, não na arte)
-3. Denominação: conferiu contra Port. 1485/2025 e RTIQ?
-4. Ingredientes: ordem decrescente verificada? Aditivos com INS e função tecnológica?
-5. Glúten: declaração "CONTÉM/NÃO CONTÉM GLÚTEN" verificada? (Lei 10.674/2003)
-6. Lactose: verificada para laticínios? Separada da declaração de alérgenos?
-7. Carimbo: formato OVAL verificado? (não redondo, não retangular)
-8. Tabela nutricional: porção correta para a categoria? Gorduras trans declaradas mesmo se 0g?
-9. Alérgenos: fundo amarelo com contorno preto? Todos 14 grupos checados?
+2. Lote e validade foram corretamente IGNORADOS? (impressos na produção, não na arte)
+3. DENOMINAÇÃO: composição mínima obrigatória foi verificada para o tipo de produto? Claims como LIGHT/DIET/ZERO tiveram critério matemático conferido?
+4. INGREDIENTES: cruzamento ↔ alérgenos foi feito? Proteína de soja com % declarado? Aditivos com função e INS?
+5. FABRICANTE: todos os 6 elementos do endereço foram verificados individualmente (logradouro, número, bairro, CEP, cidade, UF)?
+6. CARIMBO: jurisdição coerente (SIM=municipal, SIE=estadual, SIF=nacional)? Formato oval correto?
+7. TABELA NUTRICIONAL: cálculo de Atwater foi feito e resultado citado? %VD conferido? Trans com limiar verificado?
+8. ALÉRGENOS: formatação verificada (caixa alta + negrito + 2mm)? Cruzamento com ingredientes?
+9. TEXTO DE CORREÇÃO: para cada NÃO CONFORME, o relatório sugere o texto exato de como corrigir?
+10. NORMAS CITADAS: cada não conformidade cita a norma específica com artigo e parágrafo?
+11. AGRUPAMENTO: as correções estão separadas por prioridade (1ª impede comercialização / 2ª técnica / 3ª recomendação)?
+12. PESCADO: se produto for peixe/frutos do mar, nome científico foi verificado?
+13. MEL: se produto for mel, pureza e ausência de aditivos foi verificada?
+14. ALIMENTOS COM CLAIMS DE SAÚDE: alegações funcionais/nutricionais com critérios conferidos?
 
-RELATÓRIO:
-{relatorio}
-
-Se correto: "✅ REVISÃO CONCLUÍDA — Nenhuma inconsistência encontrada."
-Se erros: "⚠️ Campo X: [problema] → [correção]" — máximo 200 palavras total."""
+Se identificar qualquer erro ou omissão no relatório, adicione ao final:
+## ADENDO DO AUDITOR:
+[descreva apenas os erros/omissões encontrados — não repita o que já está correto]
+Se o relatório estiver completo e correto, responda apenas: "✅ RELATÓRIO VALIDADO — sem adendos necessários." """
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2335,7 +2448,47 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
         pass
     return {}
 
-async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = ""):
+async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = "", extra_images: list = None):
+    # ── PARSER DE DIMENSÕES: extrai mm do obs e calcula área e fontes ─────
+    dim_context = ""
+    import re as _re
+    # Busca padrão NNmm x NNmm no obs
+    dim_match = _re.search(r"(\d+(?:[.,]\d+)?)mm\s*[xX\xd7]\s*(\d+(?:[.,]\d+)?)mm", obs) if obs else None
+    if dim_match:
+        try:
+            larg = float(dim_match.group(1).replace(",", "."))
+            alt  = float(dim_match.group(2).replace(",", "."))
+            area_cm2 = round((larg * alt) / 100, 1)
+            # Tamanho mínimo de fonte conforme IN 22/2005 e RDC 727/2022
+            if area_cm2 <= 10:
+                fonte_min = 0.75
+                fonte_alergenico = 0.75
+                regra_area = "≤10cm²"
+            elif area_cm2 <= 80:
+                fonte_min = 0.75
+                fonte_alergenico = 1.0
+                regra_area = "≤80cm²"
+            elif area_cm2 <= 100:
+                fonte_min = 1.0
+                fonte_alergenico = 2.0
+                regra_area = "≤100cm²"
+            else:
+                fonte_min = 1.0
+                fonte_alergenico = 2.0
+                regra_area = ">100cm²"
+            dim_context = (
+                f"\n\n## DIMENSÕES REAIS DA EMBALAGEM (fornecidas pelo RT)\n"
+                f"Dimensão: {larg}mm × {alt}mm | Área do painel: {area_cm2}cm² ({regra_area})\n"
+                f"TAMANHO MÍNIMO DE FONTE OBRIGATÓRIO:\n"
+                f"  • Texto geral: {fonte_min}mm (IN 22/2005, Art. 6°)\n"
+                f"  • Alérgenos: {fonte_alergenico}mm (RDC 727/2022, Art. 15°)\n"
+                f"Use estas medidas para avaliar se o tamanho das letras visíveis na imagem está conforme.\n"
+                f"Se a fonte parece visivelmente menor do que o permitido → ❌ NÃO CONFORME (citar a medida)\n"
+                f"Se a fonte parece conforme → ✅ CONFORME com base nas dimensões fornecidas"
+            )
+        except Exception:
+            dim_context = ""
+
     # ── DETECÇÃO + KB em paralelo com obs do usuário ─────────────────────
     # Usa obs para enriquecer keywords sem chamar Phase 1 separado (mais rápido)
     produto_detectado = ""
@@ -2448,6 +2601,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += fewshot
     if detection_context:
         system_prompt += f"\n\n{detection_context}"
+    if dim_context:
+        system_prompt += dim_context
 
     user_text = "Analise este rótulo com máxima precisão. Execute TODOS os passos. Não pule nenhum campo."
     if obs:
@@ -2468,8 +2623,12 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             [{"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": image_b64}},
              {"type": "text", "text": user_text}]
             if mime_type == "application/pdf" else
-            [{"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}},
-             {"type": "text", "text": user_text}]
+            (
+                [{"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": image_b64}}]
+                + ([{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b}} for b in (extra_images or [])[:5]])
+                + ([{"type": "text", "text": f"As {1 + len(extra_images)} imagens acima são painéis diferentes do mesmo rótulo — analise TODOS em conjunto."}] if extra_images else [])
+                + [{"type": "text", "text": user_text}]
+            )
         )}],
     }
     headers = {
@@ -2643,6 +2802,7 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
 @app.post("/validar")
 async def validar_rotulo(
     imagem: UploadFile = File(...),
+    imagens_extras: list[UploadFile] = File(default=[]),
     obs: str = Form(default=""),
     orgao: str = Form(default=""),
 ):
@@ -2737,8 +2897,23 @@ async def validar_rotulo(
     # Anexa aviso de qualidade às observações se existir
     if quality_warning:
         obs = (obs + "\n\n[SISTEMA: " + quality_warning + " O agente deve tentar mesmo assim e informar se não conseguir ler algum campo.]").strip()
+    # Multipanel: processar imagens extras e injetar no contexto
+    if imagens_extras:
+        extra_b64_list = []
+        for extra in imagens_extras:
+            try:
+                extra_bytes = await extra.read()
+                extra_proc, extra_mime = preprocess_image(extra_bytes, extra.content_type or "image/jpeg")
+                extra_b64_list.append(base64.b64encode(extra_proc).decode())
+            except Exception:
+                pass
+        if extra_b64_list:
+            obs = obs + f"\n[ANÁLISE MULTIPANEL: foram enviadas {1 + len(extra_b64_list)} imagem(ns) do rótulo. A análise deve considerar TODOS os painéis para uma validação completa.]"
+    else:
+        extra_b64_list = []
+
     return StreamingResponse(
-        stream_validation(image_b64, mime_type, obs, orgao),
+        stream_validation(image_b64, mime_type, obs, orgao, extra_images=extra_b64_list),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -4329,6 +4504,47 @@ async def _get_evite_rules(categoria: str, orgao: str) -> str:
         return ""
     return "\n\nRESTRIÇÕES BASEADAS EM FEEDBACKS ANTERIORES — OBRIGATÓRIO RESPEITAR:\n" + \
            "\n".join(f"- EVITE: {r}" for r in regras)
+
+
+@app.get("/monitor/alertas-ativos")
+async def alertas_rotulos_impactados():
+    """Rótulos possivelmente impactados pelas últimas alertas do DOU."""
+    try:
+        alertas = await _sb_get("monitor_alertas", {}, limit=20)
+        alertas_recentes = [a for a in (alertas or []) if not a.get("descartado")][:5]
+        rotulos = await _sb_get("validacoes", {}, limit=100)
+        impactos = []
+        for alerta in alertas_recentes:
+            norma     = alerta.get("norma", "")
+            categoria = alerta.get("categoria", "")
+            titulo    = alerta.get("titulo", "")
+            data_pub  = alerta.get("data_publicacao", "")
+            rotulos_impactados = []
+            if rotulos and categoria:
+                for r in rotulos:
+                    cats    = r.get("categorias") or []
+                    produto = r.get("produto", "") or ""
+                    hit = (
+                        (isinstance(cats, list) and any(categoria.lower() in ci.lower() for ci in cats))
+                        or categoria.lower() in produto.lower()
+                    )
+                    if hit:
+                        rotulos_impactados.append({
+                            "produto":          produto,
+                            "data_validacao":   r.get("criado_em", ""),
+                            "case_id":          r.get("case_id", ""),
+                        })
+            impactos.append({
+                "norma": norma, "titulo": titulo, "data_publicacao": data_pub,
+                "categoria": categoria,
+                "rotulos_possivelmente_impactados": rotulos_impactados[:10],
+                "total_impactados": len(rotulos_impactados),
+            })
+        return JSONResponse({"alertas": impactos, "total": len(impactos)},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"alertas": [], "error": str(e)[:200]},
+                            headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.on_event("startup")
