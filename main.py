@@ -1105,7 +1105,17 @@ REGRAS ABSOLUTAS:
 1. Analise CADA detalhe visível na imagem — texto, símbolos, formatação, cores, posicionamento
 2. Se um elemento não está visível na arte do rótulo: registre como AUSENTE
 3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na
-4. SOBRE "NÃO VERIFICÁVEL": Use SOMENTE quando for IMPOSSÍVEL ler o texto mesmo após zoom máximo e sharpening. Se você consegue distinguir qualquer letra ou número, TENTE LER e informe o que leu. Prefira uma leitura aproximada com ressalva ("leitura parcial: X") a marcar como NÃO VERIFICÁVEL. Imagens pequenas são ampliadas automaticamente para 4500px — faça esforço máximo de leitura antes de marcar NÃO VERIFICÁVEL. linha de produção. NÃO avalie esses campos.
+4. SOBRE "NÃO VERIFICÁVEL": Use SOMENTE como ÚLTIMO RECURSO quando o texto for fisicamente impossível de distinguir mesmo após esforço máximo. NUNCA marque NÃO VERIFICÁVEL se:
+   - Você consegue distinguir qualquer letra ou número (use leitura parcial com ressalva)
+   - O texto existe mas está em ângulo/curva (tente ler mesmo assim)
+   - A fonte é pequena mas os caracteres têm forma distinguível
+   ESTRATÉGIA DE LEITURA POR REGIÃO:
+   • Centro do rótulo: denominação, claims, conteúdo — geralmente legível
+   • Painel lateral/inferior: ingredientes, tabela nutricional — legível com esforço
+   • Bordas/perímetro: fabricante, CNPJ, registro — pode ser ilegível em fotos web
+   • Fundo do rótulo: conservação, lote, validade — nem sempre visível em 1 face
+   PARA CAMPOS COM LEITURA PARCIAL: registre o que conseguiu ler + "(leitura parcial — texto cortado/desfocado)"
+   PARA CAMPOS GENUINAMENTE ILEGÍVEIS: explique qual região está ilegível e por quê (ângulo, resolução, sobreposição) linha de produção. NÃO avalie esses campos.
 4. Cite sempre a norma específica (número e ano) para cada avaliação
 5. Nunca pule nenhum dos 12 campos obrigatórios
 6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
@@ -2670,7 +2680,12 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     if dim_context:
         system_prompt += dim_context
 
-    user_text = "Analise este rótulo com máxima precisão. Execute TODOS os passos. Não pule nenhum campo."
+    user_text = (
+        "Analise este rótulo com máxima precisão. Execute TODOS os passos. Não pule nenhum campo.\n"
+        "IMPORTANTE: Faça o máximo esforço para ler cada região da imagem antes de marcar qualquer campo como NÃO VERIFICÁVEL. "
+        "Se o texto estiver parcialmente legível, registre o que leu com a ressalva '(leitura parcial)'. "
+        "Só marque NÃO VERIFICÁVEL se for fisicamente impossível distinguir qualquer caractere."
+    )
     if obs:
         user_text += f"\nObservação adicional: {obs}"
     if produto_detectado:
@@ -2844,19 +2859,20 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
         TARGET = 4500  # zoom máximo — equivalente a dar zoom total na imagem
 
         if maior < TARGET:
-            # Upscale: amplia proporcionalmente até TARGET px
             scale = TARGET / maior
             img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
-            # UnsharpMask agressivo: recupera nitidez das letras após interpolação
-            # radius=2 → afeta bordas finas de texto; percent=200 → sharpening forte
-            img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=200, threshold=1))
+            # Duplo UnsharpMask: primeiro pass recupera bordas gerais,
+            # segundo pass afina detalhes finos de texto pequeno
+            img = img.filter(ImageFilter.UnsharpMask(radius=2.0, percent=300, threshold=0))
+            img = img.filter(ImageFilter.UnsharpMask(radius=0.5, percent=200, threshold=0))
         elif maior > TARGET:
-            # Imagens já grandes: só downscale leve para não explodir payload
             scale = TARGET / maior
             img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
+            img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=150, threshold=1))
 
-        # Contraste +20%: melhora legibilidade de texto cinza em fundo claro
-        img = ImageEnhance.Contrast(img).enhance(1.2)
+        # Contraste +50% (antes era +20%) e sharpness +80%
+        img = ImageEnhance.Contrast(img).enhance(1.5)
+        img = ImageEnhance.Sharpness(img).enhance(1.8)
 
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=95)
@@ -2886,6 +2902,7 @@ async def validar_rotulo(
         filename.endswith(".pdf")
     )
 
+    quality_warning = ""  # inicializado aqui para evitar NameError no bloco PDF
     if is_pdf:
         pages = await pdf_to_images_b64(contents)
         if not pages:
