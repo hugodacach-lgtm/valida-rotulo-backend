@@ -1040,7 +1040,7 @@ async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
         return RDC_725_FALLBACK
     try:
         from pypdf import PdfReader
-        async with httpx.AsyncClient(timeout=25.0) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.get(url, follow_redirects=True)
             if r.status_code != 200:
                 return ""
@@ -1132,20 +1132,34 @@ async def get_kb_for_categories(categories: list[str]) -> str:
     if not categories:
         return ""
 
+    async def fetch_safe(url: str) -> str:
+        """Fetch com timeout agressivo — gov.br pode ser lento."""
+        try:
+            return await asyncio.wait_for(fetch_pdf_text(url), timeout=4.0)
+        except Exception:
+            return ""
+
     async def load_one(cat: str) -> str:
         if cat in _kb_cache:
             return _kb_cache[cat]
         urls = MAPA_URLS.get(cat, [])
         if not urls:
             return ""
-        texts = await asyncio.gather(*[fetch_pdf_text(u) for u in urls])
+        texts = await asyncio.gather(*[fetch_safe(u) for u in urls])
         result = "\n\n".join(t for t in texts if t)
         _kb_cache[cat] = result
         return result
 
     # Carrega em paralelo, max 2 categorias para não estourar o contexto
+    # Timeout global de 6s — se KB demorar mais, segue sem ela
     cats_to_load = categories[:2]
-    texts = await asyncio.gather(*[load_one(c) for c in cats_to_load])
+    try:
+        texts = await asyncio.wait_for(
+            asyncio.gather(*[load_one(c) for c in cats_to_load]),
+            timeout=6.0
+        )
+    except asyncio.TimeoutError:
+        texts = [""] * len(cats_to_load)
 
     sections = []
     for cat, text in zip(cats_to_load, texts):
@@ -2835,7 +2849,7 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
         "content-type": "application/json",
     }
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
+        async with httpx.AsyncClient(timeout=6.0) as client:
             r = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers_api)
             if r.status_code != 200:
                 return {}
@@ -2848,6 +2862,17 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
     except Exception:
         pass
     return {}
+
+async def _revisao_background(relatorio: str):
+    """Roda SP_REVISAO em background — não bloqueia o stream principal."""
+    try:
+        await call_claude_simple(
+            SP_REVISAO.replace("{relatorio}", relatorio),
+            "Revise com rigor técnico.",
+            800
+        )
+    except Exception:
+        pass
 
 async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = "", extra_images: list = None):
     # ── PARSER DE DIMENSÕES: extrai mm do obs e calcula área e fontes ─────
@@ -3033,7 +3058,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     payload = {
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 4000,
+        "max_tokens": 2800,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -3083,15 +3108,10 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                 except Exception:
                     continue
 
-    # Segunda leitura crítica
-    yield f"data: {json.dumps({'text': '\n\n---\n\n## REVISÃO CRÍTICA\n'})}\n\n"
-    revisao = await call_claude_simple(
-        SP_REVISAO.replace("{relatorio}", relatorio),
-        "Revise com rigor técnico.",
-        800
-    )
-    if revisao:
-        yield f"data: {json.dumps({'text': revisao})}\n\n"
+    # Segunda leitura crítica — apenas se score baixo, em background (não bloqueia o stream)
+    score_pre = extrair_score(relatorio)
+    if score_pre is not None and score_pre < 9:
+        asyncio.ensure_future(_revisao_background(relatorio))
 
     # ── Auto-aprendizado: armazena resultado sem precisar de feedback RT ───────
     try:
