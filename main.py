@@ -1115,7 +1115,16 @@ REGRAS ABSOLUTAS:
    • Bordas/perímetro: fabricante, CNPJ, registro — pode ser ilegível em fotos web
    • Fundo do rótulo: conservação, lote, validade — nem sempre visível em 1 face
    PARA CAMPOS COM LEITURA PARCIAL: registre o que conseguiu ler + "(leitura parcial — texto cortado/desfocado)"
-   PARA CAMPOS GENUINAMENTE ILEGÍVEIS: explique qual região está ilegível e por quê (ângulo, resolução, sobreposição) linha de produção. NÃO avalie esses campos.
+   PARA CAMPOS GENUINAMENTE ILEGÍVEIS: OBRIGATÓRIO explicar:
+     (a) qual região está ilegível: "texto na borda lateral direita", "fundo da embalagem", "lateral curva"
+     (b) causa provável: "perspectiva angular", "resolução insuficiente", "texto sobreposto ao fundo"
+     (c) sugestão concreta ao RT: uma das opções abaixo conforme o caso:
+       • Texto em embalagem cilíndrica/curva → "Para ler este campo, fotografe diretamente de frente para esta face da embalagem, mantendo a câmera paralela à superfície."
+       • Texto muito pequeno → "Para este campo, envie foto em maior resolução (mín. 800px) ou aproxime a câmera."
+       • Texto no fundo/base → "Este campo está no fundo da embalagem. Envie uma foto adicional fotografando a base diretamente."
+       • Texto sobreposto a fundo escuro → "Aumente o brilho da câmera ou fotografe com melhor iluminação para este campo."
+     FORMATO OBRIGATÓRIO quando NÃO VERIFICÁVEL: 
+     🔍 NÃO VERIFICÁVEL — [causa]. 💡 Sugestão: [ação específica para o RT melhorar a foto] linha de produção. NÃO avalie esses campos.
 4. Cite sempre a norma específica (número e ano) para cada avaliação
 5. Nunca pule nenhum dos 12 campos obrigatórios
 6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
@@ -1228,9 +1237,48 @@ e) CLAIMS E ALEGAÇÕES — verificar critério legal:
    • "RICO EM PROTEÍNAS" → mín. 20% da IDR de proteínas por porção (RDC 429/2020)
    • "FONTE DE FIBRAS" → mín. 10% da IDR de fibras por porção
    • "ALTO TEOR DE CÁLCIO" → mín. 30% da IDR de cálcio por porção
-   • "PROBIÓTICO" → cepa específica aprovada + quantidade mín. 10^8 UFC por porção (ANVISA lista)
-   • "PREBIÓTICO" → ingrediente reconhecido pela ANVISA + quantidade eficaz declarada
+   • "PROBIÓTICO" → cepa específica aprovada pela ANVISA + mín. 10^8 UFC/porção
+     Cepas aprovadas: Lactobacillus acidophilus, L. casei, L. rhamnosus, Bifidobacterium longum,
+     B. animalis, Streptococcus thermophilus (e outras listadas na RDC 241/2021)
+     ⚠️ Cepa genérica "Lactobacillus sp." sem identificação de espécie → ❌ NÃO CONFORME
+   • "PREBIÓTICO" → ingrediente reconhecido pela ANVISA (FOS, inulina, GOS, lactulose)
+     + quantidade eficaz declarada (FOS/inulina: mín. 3g/porção)
+   • "ÔMEGA-3 / FONTE DE EPA+DHA" → mín. 600mg de EPA+DHA por porção
+     "FONTE" = mín 0,3g/porção | "ALTO TEOR" = mín 0,6g/porção (IN 75/2020)
+   • "FONTE DE CÁLCIO" → mín. 15% da IDR (180mg) por porção
+     "RICO EM CÁLCIO" → mín. 30% da IDR (360mg) por porção
+   • "ALTO TEOR DE FERRO" → mín. 30% da IDR (4,2mg) por porção
+   • "FONTE DE VITAMINA D" → mín. 15% da IDR (1,05mcg) por porção
+   • "SEM GORDURA TRANS" → trans <0,2g/porção (pode ter <0,2g mas declarar 0g)
+     Se tem OPH (óleo vegetal parcialmente hidrogenado) nos ingredientes → alertar mesmo com 0g declarado
+   • "ENRIQUECIDO COM" / "ADICIONADO DE" → verificar se nutriente adicionado está na tabela nutricional
+   ⚠️ Alegação sem critério matemático atingido → ❌ NÃO CONFORME (citar IN 75/2020 Tabela 4)
+   ⚠️ Alegação funcional sem substantiação científica aprovada pela ANVISA → ❌ NÃO CONFORME (RDC 18/1999)
    ⚠️ Alegação sem critério matemático atingido → ❌ NÃO CONFORME
+
+f) HEURÍSTICA PARA CLAIMS QUANDO TABELA ILEGÍVEL (V6):
+   Quando tabela nutricional não está legível, raciocinar pelos ingredientes:
+   • "ZERO AÇÚCAR" + maltodextrina/dextrose/xarope de frutose nos 3 primeiros ingredientes
+     → ⚠️ SUSPEITO — provável não conforme, RT deve confirmar
+   • "LIGHT" + gordura como 1º ingrediente (manteiga, creme, queijo)
+     → provável não conforme (-25% improvável sem reformulação)
+   • "SEM ADIÇÃO DE AÇÚCAR" + suco concentrado de fruta
+     → pode ser conforme (açúcar natural), registrar como "leitura heurística"
+   • "RICO EM PROTEÍNAS" + produto cárneo/lácteo com >15g proteína típico
+     → provável conforme, registrar como "estimado — tabela ilegível"
+   • "ZERO LACTOSE" + leite/derivados SEM declaração de hidrólise/lactase
+     → ⚠️ SUSPEITO — verificar processo
+   Sempre registrar: "⚠️ Análise heurística por tabela ilegível — RT deve confirmar com laudo"
+
+g) AÇÚCAR OCULTO EM CLAIMS "ZERO AÇÚCAR" / "SEM ADIÇÃO DE AÇÚCAR" (V7):
+   Ingredientes que mascaram açúcar mesmo sem declaração explícita:
+   • Maltodextrina, Dextrose, Xarope de frutose, Xarope de glicose-frutose
+   • Melaço, Melado de cana, Suco de fruta concentrado (quando adicionado para adoçar)
+   • Xarope de agave, Xarope de bordo (maple), Néctar de agave
+   • Açúcar de coco, Açúcar demerara, Açúcar mascavo (todos são sacarose)
+   • Glucose de milho, Glucose desidratada
+   Produto com "sem adição de açúcar" + qualquer desses ingredientes → ❌ NÃO CONFORME
+   Norma: RDC 429/2020 + IN 75/2020 (definição de açúcares adicionados inclui todos acima)
 
 ─────────────────────────────────────────────
 CAMPO 2 — LISTA DE INGREDIENTES
@@ -1285,6 +1333,28 @@ i) VERIFICAÇÃO CRUZADA "SEM/ZERO LACTOSE" ↔ INGREDIENTES:
    • Se ingredientes com lactose implícita (leite integral, leite em pó, soro) aparecem
      SEM indicação de hidrólise → ⚠️ suspeita de inconsistência
    • "CONTÉM LACTOSE" nos alérgenos + "ZERO LACTOSE" na denominação = ❌ NÃO CONFORME
+
+j) INGREDIENTES POA ESPECIAIS — DECLARAÇÃO OBRIGATÓRIA (V8):
+   CMS (CARNE MECANICAMENTE SEPARADA):
+   • Declarar como "Carne Mecanicamente Separada de [espécie]" — não apenas "carne"
+   • IN 4/2000 (embutidos): CMS limitada a % máximo por tipo de produto
+     - Mortadela: máx 60% CMS | Salsicha: máx 65% CMS | Hambúrguer: proibido CMS
+   • Se % de CMS não declarado na lista → ⚠️ verificar se produto é embutido de baixo custo
+   GELATINA:
+   • Declarar obrigatoriamente "Gelatina de origem animal (bovína/suína/de peixe)"
+   • Não pode ser declarada apenas como "Gelatina" sem indicação de origem
+   PLASMA SANGUÍNEO / HEMOGLOBINA:
+   • Declarar como "Plasma Sanguíneo" ou "Hemoglobina" com espécie de origem
+   • Não pode ser declarado como "proteína animal" de forma genérica
+   COURO / PELE:
+   • "Couro de Frango" ou "Pele de Frango" deve ser declarado nominalmente
+   • Não pode entrar como "gordura de frango" ou "proteína de frango"
+   GORDURA ANIMAL:
+   • "Gordura Suína", "Toucinho", "Banha" — cada um é diferente e deve ser declarado pelo nome real
+   • "Gordura Vegetal Parcialmente Hidrogenada" → sinalizar risco de trans (mesmo se 0g declarado)
+   SORO DE LEITE:
+   • Declarar: "Soro de Leite" ou "Proteína do Soro de Leite" — não genérico
+   • Alérgeno leite: soro de leite CONTÉM proteína do leite → declarar como alérgeno
 ─────────────────────────────────────────────
 CAMPO 3 — CONTEÚDO LÍQUIDO
 ─────────────────────────────────────────────
@@ -1292,6 +1362,31 @@ a) Em g/kg (sólidos) ou mL/L (líquidos) no PAINEL PRINCIPAL
 b) Tamanho mínimo da fonte (INMETRO Port. 249/2021):
    • ≤50g: 2mm | 50-200g: 3mm | 200g-1kg: 4mm | >1kg: 6mm
 c) "Peso líquido" ou "Conteúdo líquido" — não peso bruto
+
+d) PRODUTO DRENADO vs CONTEÚDO TOTAL (INMETRO Port. 157/2002):
+   Obrigatório para produtos em meio líquido (conservas, produtos em calda, em salmoura):
+   • Declarar PESO LÍQUIDO TOTAL (produto + líquido de cobertura)
+   • E PESO DRENADO / PESO ESCORRIDO (só o sólido, sem o líquido)
+   • Produtos que exigem dupla declaração:
+     - Atum em óleo ou em água: "Peso líquido: 170g / Peso drenado: 120g"
+     - Sardinha em óleo ou molho: peso líquido + peso drenado obrigatórios
+     - Milho em conserva: peso líquido + peso escorrido
+     - Ervilha em conserva: peso líquido + peso escorrido
+     - Palmito em conserva: peso líquido + peso drenado
+     - Azeitona em salmoura: peso líquido + peso escorrido
+     - Cogumelo em conserva: peso líquido + peso drenado
+     - Pêssego em calda / frutas em calda: peso líquido + peso escorrido
+   • Se apenas um dos dois for declarado → ❌ NÃO CONFORME (citar Port. 157/2002)
+   • Exceção: produto integralmente sólido (sem líquido de cobertura) → só peso líquido total
+
+e) ESPAÇO RESERVADO PARA LOTE E VALIDADE NA ARTE (V9):
+   A arte do rótulo deve ter CAMPO/ESPAÇO reservado para impressão de lote e validade.
+   Os valores reais são impressos pela gráfica/indústria — mas a arte precisa do espaço:
+   • Verificar se há área demarcada: "Lote: ___" e "Validade: ___" ou "Cons. até: ___"
+   • Pode estar no fundo da embalagem (comum em frascos e potes) — indicar localização
+   • Ausência de espaço reservado → ⚠️ orientar RT que gráfica não conseguirá imprimir
+   • "Veja o fundo da embalagem" na arte = aceitável se espaço estiver no fundo
+   Norma: IN 22/2005 Art. 8° (POA) + RDC 727/2022 Art. 9° (geral)
 
 ─────────────────────────────────────────────
 CAMPO 4 — IDENTIFICAÇÃO DO FABRICANTE
@@ -1331,7 +1426,33 @@ a) Temperatura específica obrigatória para produtos perecíveis:
    • Refrigerados: "Manter refrigerado entre X°C e Y°C"
    • Congelados: "Manter congelado a -18°C ou menos"
 b) Instrução pós-abertura: "Após aberto, consumir em até X dias, mantendo refrigerado"
-c) Condições específicas do RTIQ devem ser respeitadas
+c) TEMPERATURAS MÍNIMAS POR RTIQ (verificar se instrução está específica ou genérica):
+   EMBUTIDOS E CARNES CRUAS:
+   • Linguiça crua, frescal, calabresa crua: ≤7°C (IN 4/2000)
+   • Hambúrguer cru: ≤7°C fresco / ≤-12°C congelado
+   • Carne moída: ≤7°C (consumir em até 24h após abertura)
+   EMBUTIDOS COZIDOS / CURADOS:
+   • Presunto cozido, apresuntado: ≤10°C
+   • Mortadela: ≤10°C
+   • Salsicha: ≤7°C (produto fresco) / ≤10°C (esterilizado)
+   • Salame, copa, lombo curado: temperatura ambiente (produto estabilizado) — verificar Aw
+   LATICÍNIOS:
+   • Queijos frescos (Minas Frescal, Ricota, Cottage): ≤10°C
+   • Queijos maturados semi-duros e duros: ≤12°C (podem ser ambientes frescos)
+   • Iogurte, kefir, coalhada: ≤10°C
+   • Leite pasteurizado (todos os tipos): ≤7°C (obrigatório)
+   • Manteiga: ≤10°C (refrigerado) ou ≤-18°C (congelado)
+   PESCADO:
+   • Pescado fresco (peixe, camarão, molusco): 0°C a 4°C (próximo ao gelo)
+   • Pescado congelado: ≤-18°C
+   • Salmão, atum: ≤4°C (fresco refrigerado)
+   MEL E PRODUTOS APÍCOLAS:
+   • Mel puro: temperatura ambiente (produto não perecível) — não exige refrigeração
+   • Mel com aditivos ou umidade >20%: verificar instrução específica
+   OVOS:
+   • Ovos in natura: temperatura ambiente ou ≤10°C — verificar se instrução é coerente com embalagem
+   INSTRUÇÃO GENÉRICA = ALERTA: "Manter refrigerado" SEM temperatura = ⚠️ incompleto para produtos
+   de alto risco (embutidos crus, pescado fresco, laticínios frescos) — solicitar temperatura específica
 
 ─────────────────────────────────────────────
 CAMPO 8 — REGISTRO / INSPEÇÃO / NOTIFICAÇÃO
@@ -1566,6 +1687,142 @@ CREME DE LEITE (Port. 146/1996):
 • kcal: TACO 260-300 | Proteínas: típico TACO 2,0-2,8g
 • Gorduras totais: mín 20g RTIQ, típico TACO 25-35g | Sódio: típico TACO 30-60mg
 • Carboidratos: típico TACO 3-5g
+
+IOGURTE DESNATADO / SEMIDESNATADO (Port. 146/1996):
+• Desnatado: gorduras totais máx 0,5g RTIQ | kcal: TACO 40-50
+• Semidesnatado: gorduras totais 0,6-2,9g RTIQ | kcal: TACO 45-58
+• Proteínas: mín 2,9g RTIQ (igual ao integral) | Sódio: TACO 40-60mg
+• Carboidratos: TACO 5-7g | "Com adição de açúcar" = declarar açúcares adicionados
+
+IOGURTE GREGO (Port. 146/1996 + definição de mercado):
+• Sem definição RTIQ específica — verificar se produto declara % proteínas acima do padrão
+• kcal: TACO 100-140 | Proteínas: típico 6-10g (maior que iogurte comum)
+• Gorduras totais: TACO 6-10g (integral) | Sódio: TACO 50-70mg
+• ATENÇÃO: "Grego" não é denominação legal protegida no Brasil — verificar se há alegação de proteínas
+
+BEBIDA LÁCTEA (Port. 146/1996 + IN 16/2005):
+• DIFERENÇA CRÍTICA: mín 51% leite na fórmula (≠ iogurte que é 100% leite)
+• kcal: TACO 55-75 | Proteínas: mín 1,5g RTIQ, típico TACO 1,8-2,5g
+• Gorduras totais: TACO 1,5-3,0g | Sódio: TACO 45-70mg
+• DENOMINAÇÃO OBRIGATÓRIA: "Bebida Láctea" — nunca "iogurte" se <100% leite
+• Verificar: produto com nome "iogurte" mas ingredientes incluindo soro de leite = possível fraude
+
+KEFIR (Port. 146/1996 + definição técnica):
+• Fermentado por grãos de kefir (bactérias + leveduras simbióticas)
+• kcal: TACO 55-70 | Proteínas: TACO 3,0-4,0g | Gorduras: TACO 2,5-3,5g
+• Sódio: TACO 40-60mg | Carboidratos: TACO 3,5-5,0g
+• DENOMINAÇÃO: deve constar "Kefir" com cepas fermentadoras declaradas nos ingredientes
+• Teor alcoólico residual natural (0,1-2%) — não caracteriza bebida alcoólica
+
+COALHADA (Port. 146/1996):
+• Fermentado por bactérias lácticas específicas (Lactococcus lactis)
+• kcal: TACO 60-75 | Proteínas: TACO 3,0-4,0g | Gorduras totais: TACO 3,0-4,5g
+• Sódio: TACO 40-65mg | Carboidratos: TACO 4,0-5,5g
+• DENOMINAÇÃO: "Coalhada" ou "Coalhada Seca" (concentrada, menos soro)
+
+SOBREMESA LÁCTEA / FLAN / PUDIM DE LEITE (Port. 146/1996):
+• kcal: TACO 120-180 (varia muito com açúcar) | Proteínas: TACO 2,5-4,5g
+• Gorduras totais: TACO 3,0-6,0g | Carboidratos: TACO 20-35g (alto — açúcar adicionado)
+• Sódio: TACO 80-150mg
+• ATENÇÃO: verificar açúcares adicionados vs açúcares naturais — alto % é esperado
+• DENOMINAÇÃO: especificar sabor se aplicável ("Pudim de Baunilha", "Flan de Caramelo")
+
+DOCE DE LEITE (Port. MAPA 354/1997):
+• COMPOSIÇÃO MÍNIMA OBRIGATÓRIA:
+  - Sólidos totais: mín 55% (produto pastoso) / mín 70% (produto em tablete/em pasta firme)
+  - Sólidos de leite: mín 28% do produto final
+  - Sacarose: deve ser declarada na lista de ingredientes
+• kcal: TACO 295-330 | Proteínas: TACO 6-8g | Gorduras totais: TACO 6-9g
+• Carboidratos: TACO 55-65g (alto — característico) | Sódio: TACO 80-180mg
+• DENOMINAÇÕES ESPECÍFICAS:
+  - "Doce de Leite" = produto puro
+  - "Doce de Leite com Amendoim" = deve conter % declarado de amendoim
+  - "Doce de Leite com Coco" = deve conter % declarado de coco ralado
+  - "Dulce de Leche" = denominação equivalente aceita
+• VERIFICAR: produto com gordura vegetal adicionada → obrigatório declarar
+• LUPA: verificar açúcares adicionados ≥15g/100g → ALTO EM AÇÚCARES ADICIONADOS (quase sempre aciona)
+
+DOCE DE LEITE PASTOSO EM BISNAGA / SACHÊ:
+• Mesmas regras da Port. 354/1997
+• Verificar se embalagem tem espaço reservado para lote e validade
+• Conteúdo líquido: verificar se declarado em massa (g) — correto para produto pastoso
+
+━━━ QUEIJOS FINOS (Port. MAPA 146/1996 + Portarias específicas) ━━━━━━━━━
+EMMENTAL (Port. 146/1996):
+• kcal: TACO 375-400 | Proteínas: mín 26g RTIQ, típico TACO 28-32g
+• Gorduras totais: mín 43% na MS (matéria seca) = típico TACO 28-34g
+• Sódio: TACO 200-450mg (menor que queijos mais salgados) | Carboidratos: TACO 1-3g
+• CARACTERÍSTICA: olhos (buracos) regulares obrigatórios no padrão de identidade
+• DENOMINAÇÃO: "Queijo Emmental" — "Tipo Emmental" indica produto fora do padrão
+
+GRUYÈRE (Port. 146/1996):
+• kcal: TACO 390-420 | Proteínas: mín 27g RTIQ, típico TACO 28-33g
+• Gorduras totais: mín 45% na MS = típico TACO 30-36g | Sódio: TACO 300-600mg
+• DIFERENÇA do Emmental: olhos menores e menos numerosos; sabor mais forte
+• DENOMINAÇÃO: "Queijo Gruyère" — verificar se produto importado tem nome correto
+
+BRIE (Port. 146/1996 + regulamento específico):
+• kcal: TACO 310-350 | Proteínas: típico TACO 18-22g
+• Gorduras totais: mín 45% na MS = típico TACO 25-30g | Sódio: TACO 400-700mg
+• CARACTERÍSTICA: casca branca de mofo (Penicillium camemberti) — declaração obrigatória
+• Carboidratos: TACO 1-2g (muito baixo — fermentação quase total da lactose)
+
+CAMEMBERT (Port. 146/1996):
+• kcal: TACO 295-330 | Proteínas: típico TACO 18-20g
+• Gorduras totais: mín 45% na MS = típico TACO 22-28g | Sódio: TACO 500-800mg
+• Similar ao Brie — casca de mofo branco obrigatória
+• DIFERENÇA BRIE vs CAMEMBERT: Camembert menor (150g tipicamente), sabor mais intenso
+
+EDAM (Port. 146/1996):
+• kcal: TACO 340-370 | Proteínas: mín 25g RTIQ, típico TACO 25-30g
+• Gorduras totais: máx 45% na MS = típico TACO 22-28g | Sódio: TACO 700-1000mg
+• CARACTERÍSTICA: coberto com cera vermelha (importado) ou amarela
+• Teor de gordura MENOR que Emmental/Gruyère — verificar se declaração está correta
+
+GOUDA (Port. 146/1996):
+• kcal: TACO 355-385 | Proteínas: típico TACO 23-27g
+• Gorduras totais: típico TACO 27-32g | Sódio: TACO 600-900mg
+• Carboidratos: TACO 1-3g | Maturação: jovem (4 sem) a curado (12+ meses) — kcal varia
+
+━━━ LATICÍNIOS PROCESSADOS ESPECIAIS (V11) ━━━━━━━━━━━━━━━━━━━━━━━━
+REQUEIJÃO CULINÁRIO / CATUPIRY (Port. 359/1997):
+• kcal: TACO 240-280 | Proteínas: típico TACO 8-12g
+• Gorduras totais: TACO 18-25g | Sódio: TACO 500-900mg
+• Carboidratos: TACO 3-6g
+• DENOMINAÇÃO: "Requeijão" = produto com processo específico. "Queijo processado" = diferente
+• Verificar: "Catupiry" é marca — denominação legal é "Requeijão Cremoso" ou "Requeijão Culinário"
+
+PETIT SUISSE (Port. 360/1997):
+• kcal: TACO 90-140 | Proteínas: mín. 6g RTIQ, típico TACO 6-9g
+• Gorduras totais: TACO 2-7g | Carboidratos: TACO 12-20g (com açúcar/polpa fruta)
+• Sódio: TACO 50-80mg
+• DENOMINAÇÃO: "Petit Suisse" — produto fermentado fresco concentrado com adição
+• ATENÇÃO: alto em açúcares adicionados (polpa de fruta + sacarose) — verificar lupa
+
+QUEIJO PROCESSADO / FUNDIDO (Port. 146/1996):
+• kcal: TACO 280-340 | Proteínas: mín. 14g RTIQ, típico TACO 14-18g
+• Gorduras totais: TACO 18-26g | Sódio: TACO 900-1400mg (alto — sais fundentes)
+• Carboidratos: TACO 2-5g
+• ATENÇÃO: sódio muito elevado — verificar lupa ALTO EM SÓDIO (quase sempre aciona)
+• Sais fundentes (polifosfatos) são aditivos obrigatórios — verificar declaração nos ingredientes
+
+CREME DE QUEIJO / CHEESE SPREAD:
+• Similar ao queijo processado mas com mais creme/gordura adicionado
+• kcal: TACO 290-360 | Gorduras totais: TACO 24-30g | Sódio: TACO 600-1000mg
+• Verificar denominação: "Creme de Queijo", "Queijo Cremoso para Passar" etc.
+
+LEITE FERMENTADO / YAKULT-TIPO (IN 46/2007):
+• kcal: TACO 58-70 | Proteínas: TACO 1,5-2,5g
+• Gorduras totais: TACO 0,1-1,0g (geralmente desnatado) | Carboidratos: TACO 12-18g
+• Sódio: TACO 25-50mg
+• ATENÇÃO: alto em carboidratos/açúcar — verificar lupa ALTO EM AÇÚCARES ADICIONADOS
+• Cepas: Lactobacillus casei Shirota (Yakult), L. acidophilus (outros) — declaração obrigatória
+
+CREME CHANTILLY / CHANTILLY (Port. 146/1996):
+• kcal: TACO 300-360 | Proteínas: TACO 2-3g
+• Gorduras totais: mín. 30g RTIQ, típico TACO 28-36g | Gord.sat: TACO 18-24g
+• Sódio: TACO 20-50mg | Carboidratos: TACO 3-8g (com açúcar adicionado)
+• ATENÇÃO: ALTO EM GORDURAS SATURADAS quase sempre aciona a lupa
 
 ━━━ PESCADOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TILÁPIA / PEIXE MAGRO (Port. 185/1997):
@@ -2834,21 +3091,213 @@ def check_image_readability(image_bytes: bytes) -> dict:
         return {"ok": True, "warning": "", "dim": (0, 0)}
 
 
+def _deskew_image(image_bytes: bytes) -> bytes:
+    """
+    Corrige perspectiva angular de texto em rótulos curvos ou fotografados em ângulo.
+    Usa OpenCV para:
+    1. Detectar contornos retangulares dominantes (área do rótulo)
+    2. Aplicar transformação de perspectiva inversa (warpPerspective)
+    3. "Endireitar" o texto para facilitar leitura pelo Claude
+
+    Estratégia conservadora: só aplica correção se encontrar contorno com
+    ângulo > 5° — evita distorcer imagens que já estão retas.
+    """
+    try:
+        import cv2
+        import numpy as np
+
+        # Decodifica imagem
+        arr = np.frombuffer(image_bytes, dtype=np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if img is None:
+            return image_bytes
+
+        h, w = img.shape[:2]
+
+        # ── Passo 1: pré-processamento para detecção de contornos ──────────
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Blur suave para reduzir ruído sem perder bordas do rótulo
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Canny adaptativo: usa mediana para definir thresholds automaticamente
+        median = np.median(blurred)
+        low    = int(max(0,   (1.0 - 0.33) * median))
+        high   = int(min(255, (1.0 + 0.33) * median))
+        edges  = cv2.Canny(blurred, low, high)
+        # Dilata bordas para fechar gaps em texto pequeno
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        edges  = cv2.dilate(edges, kernel, iterations=1)
+
+        # ── Passo 2: encontrar contorno retangular dominante ───────────────
+        contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return image_bytes
+
+        # Filtra contornos: só candidatos com área > 10% da imagem total
+        min_area = 0.10 * h * w
+        candidates = []
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < min_area:
+                continue
+            peri = cv2.arcLength(cnt, True)
+            # approxPolyDP com epsilon = 2% do perímetro
+            approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+            if len(approx) == 4:
+                candidates.append((area, approx))
+
+        if not candidates:
+            # Nenhum quadrilátero claro — tenta correção de skew simples
+            return _deskew_simple(img, image_bytes)
+
+        # Maior candidato quadrilateral
+        candidates.sort(key=lambda x: -x[0])
+        _, quad = candidates[0]
+        pts = quad.reshape(4, 2).astype(np.float32)
+
+        # ── Passo 3: verifica se há perspectiva significativa (> 5°) ───────
+        # Ordena pontos: top-left, top-right, bottom-right, bottom-left
+        rect = _order_points(pts)
+        tl, tr, br, bl = rect
+
+        # Calcula ângulo da borda superior
+        dx = float(tr[0] - tl[0])
+        dy = float(tr[1] - tl[1])
+        angle = abs(np.degrees(np.arctan2(dy, dx)))
+
+        # Só aplica se ângulo for > 3° (perspectiva real) e < 45° (não invertido)
+        if angle < 3.0 or angle > 45.0:
+            # Ângulo muito pequeno = imagem já reta. Aplicar só deskew simples.
+            return _deskew_simple(img, image_bytes)
+
+        # ── Passo 4: warpPerspective — transforma para visão frontal ───────
+        # Dimensões de destino: largura e altura do quadrilátero detectado
+        width_top    = np.linalg.norm(tr - tl)
+        width_bottom = np.linalg.norm(br - bl)
+        dst_w = int(max(width_top, width_bottom))
+
+        height_left  = np.linalg.norm(bl - tl)
+        height_right = np.linalg.norm(br - tr)
+        dst_h = int(max(height_left, height_right))
+
+        if dst_w < 50 or dst_h < 50:
+            return image_bytes
+
+        dst = np.array([
+            [0,         0        ],
+            [dst_w - 1, 0        ],
+            [dst_w - 1, dst_h - 1],
+            [0,         dst_h - 1],
+        ], dtype=np.float32)
+
+        M = cv2.getPerspectiveTransform(rect, dst)
+        warped = cv2.warpPerspective(img, M, (dst_w, dst_h),
+                                      flags=cv2.INTER_LANCZOS4)
+
+        # Reencoda como JPEG
+        ok, buf = cv2.imencode(".jpg", warped, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if ok:
+            return buf.tobytes()
+        return image_bytes
+
+    except Exception:
+        return image_bytes
+
+
+def _deskew_simple(img, image_bytes: bytes) -> bytes:
+    """
+    Correção de skew simples quando não há contorno quadrilateral claro.
+    Usa projeção de linhas horizontais (Hough) para detectar ângulo de rotação.
+    Eficaz para texto diagonal até ~20°.
+    """
+    try:
+        import cv2
+        import numpy as np
+
+        gray    = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Thresh binário para isolação de texto
+        _, thresh = cv2.threshold(gray, 0, 255,
+                                   cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        # Detecta linhas com Hough probabilístico
+        lines = cv2.HoughLinesP(thresh, 1, np.pi / 180,
+                                 threshold=80, minLineLength=50, maxLineGap=10)
+        if lines is None:
+            return image_bytes
+
+        angles = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            dx = x2 - x1
+            if dx == 0:
+                continue
+            angle = np.degrees(np.arctan2(y2 - y1, dx))
+            # Filtra: só linhas "quase horizontais" (texto tem ângulo < 30°)
+            if abs(angle) < 30:
+                angles.append(angle)
+
+        if not angles:
+            return image_bytes
+
+        # Mediana dos ângulos detectados
+        skew = float(np.median(angles))
+
+        # Só corrige se skew for significativo (> 1°) e seguro (< 25°)
+        if abs(skew) < 1.0 or abs(skew) > 25.0:
+            return image_bytes
+
+        h, w = img.shape[:2]
+        center = (w // 2, h // 2)
+        M_rot = cv2.getRotationMatrix2D(center, skew, 1.0)
+        # Expande canvas para não cortar cantos após rotação
+        cos_a = abs(M_rot[0, 0])
+        sin_a = abs(M_rot[0, 1])
+        new_w = int(h * sin_a + w * cos_a)
+        new_h = int(h * cos_a + w * sin_a)
+        M_rot[0, 2] += (new_w / 2) - center[0]
+        M_rot[1, 2] += (new_h / 2) - center[1]
+        rotated = cv2.warpAffine(img, M_rot, (new_w, new_h),
+                                  flags=cv2.INTER_LANCZOS4,
+                                  borderMode=cv2.BORDER_REPLICATE)
+        ok, buf = cv2.imencode(".jpg", rotated, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if ok:
+            return buf.tobytes()
+        return image_bytes
+
+    except Exception:
+        return image_bytes
+
+
+def _order_points(pts):
+    """Ordena 4 pontos: top-left, top-right, bottom-right, bottom-left."""
+    import numpy as np
+    rect = np.zeros((4, 2), dtype=np.float32)
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]   # top-left: menor soma x+y
+    rect[2] = pts[np.argmax(s)]   # bottom-right: maior soma x+y
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]  # top-right: menor y-x
+    rect[3] = pts[np.argmax(diff)]  # bottom-left: maior y-x
+    return rect
+
+
 def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
     """
-    Zoom máximo na imagem — simula o que um humano faz ao dar zoom para ler letra pequena.
-    Estratégia:
-    - Sempre amplia para 4500px no maior lado (zoom máximo)
-    - Aplica UnsharpMask após interpolação para recuperar bordas de letras
-    - Aumenta contraste levemente para melhorar leitura de texto
-    - Imagens já grandes (>4500px): mantém tamanho, aplica só sharpening
+    Pipeline completo de preprocessing:
+    1. Deskew / correção de perspectiva (OpenCV) — corrige texto angular
+    2. Upscale para 4500px (zoom máximo)
+    3. Duplo UnsharpMask + contraste + sharpness (PIL)
     """
     try:
         from PIL import Image as PILImage, ImageFilter, ImageEnhance
 
+        # ── Passo 1: correção de perspectiva angular ─────────────────────
+        # Só aplica em imagens (não em PDFs já convertidos)
+        if mime_type in ("image/jpeg", "image/png", "image/webp",
+                         "image/gif", "image/bmp"):
+            image_bytes = _deskew_image(image_bytes)
+
+        # ── Passo 2: pipeline PIL (upscale + sharpen + contraste) ────────
         img = PILImage.open(io.BytesIO(image_bytes))
 
-        # Normaliza modo de cor
         if img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
         elif img.mode == "L":
@@ -2856,13 +3305,11 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
 
         w, h = img.size
         maior = max(w, h)
-        TARGET = 4500  # zoom máximo — equivalente a dar zoom total na imagem
+        TARGET = 4500
 
         if maior < TARGET:
             scale = TARGET / maior
             img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
-            # Duplo UnsharpMask: primeiro pass recupera bordas gerais,
-            # segundo pass afina detalhes finos de texto pequeno
             img = img.filter(ImageFilter.UnsharpMask(radius=2.0, percent=300, threshold=0))
             img = img.filter(ImageFilter.UnsharpMask(radius=0.5, percent=200, threshold=0))
         elif maior > TARGET:
@@ -2870,7 +3317,6 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
             img = img.resize((int(w * scale), int(h * scale)), PILImage.LANCZOS)
             img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=150, threshold=1))
 
-        # Contraste +50% (antes era +20%) e sharpness +80%
         img = ImageEnhance.Contrast(img).enhance(1.5)
         img = ImageEnhance.Sharpness(img).enhance(1.8)
 
