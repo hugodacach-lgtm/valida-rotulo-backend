@@ -5306,14 +5306,46 @@ Cada categoria de produto tem uma voz tipográfica:
 
 Hierarquia de peso: produto=800 (Black), sub-denominação=600 (SemiBold), texto=400 (Regular)
 
-▶ CLAIM VISUAL — OBRIGATÓRIO EM TODO RÓTULO
-Todo rótulo profissional tem um claim emocional na frente. Gere baseado na categoria:
-  Carnes frescas: "Da fazenda para sua mesa" / "Selecionado campo a campo"
-  Embutidos: "Tradição no sabor" / "Receita de família"
-  Laticínios: "Do campo para você" / "Cremoso e nutritivo"
-  Mel: "Mel puro das abelhas brasileiras" / "Naturalmente doce"
-  Pescado: "Fresco do mar" / "Proteína do oceano"
-  Ovos: "Ovos selecionados com carinho" / "Rico em proteínas"
+▶ CLAIM VISUAL — GERADO POR IA (D7 — OBRIGATÓRIO)
+NÃO use claims genéricos. Gere um claim ÚNICO e ESPECÍFICO para este produto
+baseado nos dados reais fornecidos: denominação, ingredientes, categoria e carimbo.
+
+ALGORITMO DE GERAÇÃO DO CLAIM:
+  1. Leia os INGREDIENTES fornecidos — extraia o diferencial real do produto
+  2. Leia a DENOMINAÇÃO — identifique o tipo exato (ex: "Linguiça Toscana Suína Frescal")
+  3. Leia o CARIMBO — SIF indica alcance nacional (mais prestígio), SIE/SIM indica regional
+  4. Combine em uma frase de 3-6 palavras que seja verdadeira e apelativa
+
+REGRAS DO CLAIM PERFEITO:
+  ✅ Específico ao produto — "Defumada na lenha de algaroba" > "Tradição no sabor"
+  ✅ Baseado em ingrediente real — se tem alho, "Com alho selecionado do campo"
+  ✅ Curto — máximo 6 palavras, preferencialmente 3-4
+  ✅ Sem exageros legais — não usar "melhor", "número 1", "superior"
+  ✅ Emocional mas verdadeiro — conecta produto à origem ou ao momento de consumo
+  ❌ Nunca genérico — "Qualidade garantida", "Sabor incomparável", "Produto de qualidade"
+  ❌ Nunca claim de saúde sem base — "Saudável", "Nutritivo", "Rico em proteínas" (só se ingredientes confirmarem)
+
+EXEMPLOS DE CLAIMS BEM GERADOS (use como referência de qualidade, não copie):
+  Linguiça toscana suína (ingredientes: carne suína, alho, pimenta-do-reino):
+    → "Temperada com pimenta e alho do campo"
+  Mel silvestre (ingredientes: mel silvestre puro):
+    → "Direto das flores do cerrado"
+  Queijo mussarela (ingredientes: leite pasteurizado integral):
+    → "Do leite fresco para sua mesa"
+  Filé de tilápia congelado (ingredientes: tilápia, água, sal):
+    → "Pescado e congelado no mesmo dia"
+  Presunto cozido fatiado (SIF, ingredientes: pernil suíno, sal, conservantes):
+    → "Pernil selecionado, fatiado na medida"
+  Manteiga de garrafa (ingredientes: creme de leite):
+    → "Cremosa como sempre foi"
+  Salame italiano (ingredientes: carne suína, carne bovina, pimenta, vinho):
+    → "Curado com vinho e especiarias"
+
+POSICIONAMENTO DO CLAIM NO SVG:
+  • Imediatamente abaixo da denominação do produto
+  • Fonte: italic, peso 300-400, tamanho 10-12px
+  • Cor: branco com opacity 0.85-0.9 (sobre fundo escuro) OU cor de acento (sobre fundo claro)
+  • Nunca em caixa alta — sempre title-case ou minúsculo
 
 ▶ ELEMENTO GRÁFICO DE APOIO
 Adicione 1 elemento gráfico sutil relacionado ao produto. Use formas SVG simples:
@@ -5359,26 +5391,90 @@ Dividir em quadrantes:
 Linha divisória horizontal: y=280, cor de acento, espessura 2px
 
 ═══════════════════════════════════════════════════════════════
-PARTE 3 — TABELA NUTRICIONAL — PADRÃO ANVISA EXATO
+PARTE 3 — TABELA NUTRICIONAL — ELEMENTO GRÁFICO PROFISSIONAL (D9)
 ═══════════════════════════════════════════════════════════════
-A tabela DEVE seguir exatamente o padrão RDC 429/2020:
-  Header: "Informação Nutricional" — fundo cor primária, texto branco, bold 9px
-  Linha porção: "Porção {porcao}" — background #EEEEEE, italic 8px
-  Nutrientes obrigatórios na ordem EXATA:
-    Valor energético | {energia_kcal} kcal = {energia_kj} kJ
-    Carboidratos | {carboidratos}
-    Açúcares totais | (calcular se não informado)
-    Açúcares adicionados | (calcular se não informado)
-    Proteínas | {proteinas}
-    Gorduras totais | {gorduras_totais}
-    Gorduras saturadas | {gorduras_saturadas}
-    Gorduras trans | {gorduras_trans}
-    Fibra alimentar | {fibra}
-    Sódio | {sodio}
-  Cada linha: nome à esquerda (bold 8px) + valor à direita (regular 8px)
-  Linhas alternadas: #FFFFFF e #F7F7F7
-  Bordas: 0.5px solid #DDDDDD
-  Rodapé tabela: "* % Valores Diários com base em dieta de 2.000 kcal" — 7px cinza
+
+A tabela nutricional é um ELEMENTO GRÁFICO, não apenas texto. Deve ter a mesma
+qualidade visual do resto do rótulo. Siga estas especificações exatas:
+
+▶ ESTRUTURA SVG DA TABELA (implementar com <rect> + <text>, não apenas texto)
+
+BLOCO CONTAINER:
+  <rect> com fill="#FFFFFF", stroke="#DDDDDD", stroke-width="0.5", rx="3"
+  Padding interno: 6px em todos os lados
+  Largura: adaptar ao espaço disponível na zona técnica
+
+HEADER — "Informação Nutricional":
+  <rect> altura=22px, fill=cor_primária_da_marca, rx="3 3 0 0" (arredondado só em cima)
+  <text> centralizado, fill="#FFFFFF", font-weight="700", font-size="9px"
+  font-family="Arial, sans-serif"
+
+LINHA DE PORÇÃO — "Porção Xg (X porções por embalagem)":
+  <rect> altura=18px, fill="#F0F0F0"
+  <text> fill="#444444", font-size="8px", font-style="italic"
+  Separador abaixo: <line> stroke="#CCCCCC" stroke-width="1px"
+
+LINHA DE COLUNAS (apenas se houver %VD):
+  <rect> altura=14px, fill="#E8E8E8"
+  <text> "Por porção" alinhado à direita, font-size="7px", fill="#666666"
+  <text> "%VD*" mais à direita, font-size="7px", fill="#666666"
+
+LINHAS DE NUTRIENTES (10 linhas obrigatórias, ordem RDC 429/2020):
+  Altura de cada linha: 17px — espaçamento generoso, não apertado
+  Alternância de fundo:
+    Linhas pares:   fill="#FFFFFF"
+    Linhas ímpares: fill="#F7F8FA" (azul-acinzentado muito suave — mais sofisticado que cinza puro)
+  Separador entre linhas: <line> stroke="#EBEBEB" stroke-width="0.5"
+
+  Para CADA linha, usar este padrão SVG:
+    <rect x="{tx}" y="{ty}" width="{tw}" height="17" fill="{bg}"/>
+    <line x1="{tx}" y1="{ty+17}" x2="{tx+tw}" y2="{ty+17}" stroke="#EBEBEB" stroke-width="0.5"/>
+    <!-- Nome do nutriente (esquerda) -->
+    <text x="{tx+6}" y="{ty+12}" font-family="Arial, sans-serif" font-size="8"
+          font-weight="{700 se linha principal, 400 se sub-item}" fill="#222222">{nome}</text>
+    <!-- Valor (direita) — FONTE MONOSPACED para alinhamento perfeito -->
+    <text x="{tx+tw-6}" y="{ty+12}" font-family="'Courier New', Courier, monospace"
+          font-size="8" font-weight="700" fill="#111111" text-anchor="end">{valor}</text>
+
+  HIERARQUIA VISUAL dos nutrientes:
+    Linha principal (Valor energético, Carboidratos, Proteínas, Gorduras totais, Fibra, Sódio):
+      font-weight="700", fill="#111111"
+    Sub-item (Açúcares totais, Açúcares adicionados, Gorduras saturadas, Gorduras trans):
+      font-weight="400", fill="#444444"
+      Recuo de 10px no texto (x = tx + 16 ao invés de tx + 6)
+      Prefixar com "  " (espaço) para indicar hierarquia
+
+ORDEM EXATA DOS NUTRIENTES (RDC 429/2020):
+  1. Valor energético         → {energia_kcal} kcal = {energia_kj} kJ   [PRINCIPAL]
+  2. Carboidratos             → {carboidratos}                            [PRINCIPAL]
+  3.   Açúcares totais        → calcular se ausente                       [sub-item]
+  4.   Açúcares adicionados   → calcular se ausente                       [sub-item]
+  5. Proteínas                → {proteinas}                               [PRINCIPAL]
+  6. Gorduras totais          → {gorduras_totais}                         [PRINCIPAL]
+  7.   Gorduras saturadas     → {gorduras_saturadas}                      [sub-item]
+  8.   Gorduras trans         → {gorduras_trans}                          [sub-item]
+  9. Fibra alimentar          → {fibra}                                   [PRINCIPAL]
+  10. Sódio                   → {sodio}                                   [PRINCIPAL]
+
+RODAPÉ DA TABELA:
+  <rect> altura=16px, fill="#F5F5F5"
+  <text> "* % Valores Diários com base em dieta de 2.000 kcal ou 8.400 kJ."
+  font-size="6.5px", fill="#888888", font-style="italic"
+  Segunda linha (se espaço): "** VD não estabelecido."
+
+▶ LUPA DE ADVERTÊNCIA FRONTAL (RDC 429/2020 — obrigatória se aplicável)
+  Condições: sódio ≥ 600mg/100g OU gordura saturada ≥ 6g/100g OU açúcar adicionado ≥ 15g/100g
+  Posição: zona EMOCIONAL (frente do rótulo), não na tabela
+  Formato: retângulo com lupa estilizada + texto de advertência
+    <rect> fill="#000000", rx="4"
+    Ícone lupa: círculo stroke="#FFFFFF" + linha diagonal — ambos em branco
+    <text> "ALTO EM {SÓDIO / GORDURAS SATURADAS / AÇÚCAR}" fill="#FFFFFF" font-weight="700" font-size="9px"
+  Se múltiplas advertências: empilhar verticalmente, uma abaixo da outra
+
+▶ DIMENSÕES RECOMENDADAS DA TABELA POR FORMATO:
+  Retangular (zona técnica 320-880px): tabela de x=330 a x=620, altura total ≈ 220px
+  Quadrado (zona inferior): tabela de x=10 a x=290, y=290 a y=560
+  Circular: tabela centralizada, largura ≈ 180px, y=330 a y=490
 
 ═══════════════════════════════════════════════════════════════
 PARTE 4 — CARIMBO DE INSPEÇÃO — PADRÃO OFICIAL
@@ -5415,13 +5511,90 @@ Todos estes elementos DEVEM aparecer no SVG gerado:
 ═══════════════════════════════════════════════════════════════
 PARTE 6 — QUALIDADE DO SVG (PADRÃO TÉCNICO)
 ═══════════════════════════════════════════════════════════════
-  • Fontes: usar font-family="Arial, Helvetica, sans-serif" para garantir compatibilidade
+  • Fontes: usar Google Fonts via @import no <style> — ver PARTE 8 abaixo (OBRIGATÓRIO)
   • Todos os textos: clip dentro da área do rótulo com clipPath se necessário
   • Nenhum texto pode ultrapassar a borda do rótulo
   • Gradientes: usar <linearGradient> ou <radialGradient> para profundidade
   • Sombras: <filter> com feDropShadow nos elementos principais (logo, nome do produto)
   • Borda do rótulo: rect ou path com bordas arredondadas rx="8" e stroke de 1.5px
   • Resolução: o SVG deve ser legível quando renderizado em 800x400px ou maior
+
+═══════════════════════════════════════════════════════════════
+PARTE 8 — FONTES PREMIUM VIA GOOGLE FONTS (D6 — OBRIGATÓRIO)
+═══════════════════════════════════════════════════════════════
+
+▶ ESTRUTURA OBRIGATÓRIA DO SVG — SEMPRE COMEÇAR ASSIM:
+O SVG DEVE ter um bloco <defs><style> logo após a abertura <svg ...>, importando
+as fontes Google correspondentes à categoria do produto.
+
+TEMPLATE BASE (copie e adapte para a categoria):
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=FONTE_PRINCIPAL:wght@400;600;700;900&amp;family=FONTE_SECUNDARIA:wght@300;400;600&amp;display=swap');
+    </style>
+    <!-- gradients, filters, clipPaths aqui -->
+  </defs>
+  <!-- resto do SVG -->
+</svg>
+
+▶ FONTES POR CATEGORIA (escolha baseado no template da PARTE 7):
+
+EMBUTIDOS / CARNES:
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Oswald:wght@400;600;700&amp;display=swap');
+  Nome produto:    font-family="'Bebas Neue', Arial Black, sans-serif"
+  Sub/claim:       font-family="'Oswald', Arial Narrow, sans-serif"
+  Dados técnicos:  font-family="'Oswald', Arial, sans-serif" font-weight="300"
+
+LATICÍNIOS:
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&amp;display=swap');
+  Nome produto:    font-family="'Montserrat', Arial, sans-serif" font-weight="700"
+  Sub/claim:       font-family="'Montserrat', Arial, sans-serif" font-weight="300"
+  Dados técnicos:  font-family="'Montserrat', Arial, sans-serif" font-weight="400"
+
+MEL / ORGÂNICOS / NATURAIS:
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&amp;family=Playfair+Display:ital,wght@0,700;1,400&amp;display=swap');
+  Nome produto:    font-family="'Playfair Display', Georgia, serif" font-weight="700"
+  Claim (italic):  font-family="'Playfair Display', Georgia, serif" font-style="italic"
+  Ingredientes:    font-family="'Nunito', Arial, sans-serif" font-weight="400"
+
+PESCADO:
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&amp;family=Nunito:wght@300;400&amp;display=swap');
+  Nome produto:    font-family="'Oswald', Arial Narrow, sans-serif" font-weight="700"
+  Claim:           font-family="'Oswald', Arial Narrow, sans-serif" font-weight="300"
+  Dados técnicos:  font-family="'Nunito', Arial, sans-serif" font-weight="400"
+
+PREMIUM / ARTESANAL (qualquer categoria):
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Montserrat:wght@300;400;600&amp;display=swap');
+  Nome produto:    font-family="'Playfair Display', Georgia, serif" font-weight="700"
+  Claim:           font-family="'Playfair Display', Georgia, serif" font-style="italic"
+  Dados técnicos:  font-family="'Montserrat', Arial, sans-serif" font-weight="300"
+
+▶ REGRAS CRÍTICAS DE IMPLEMENTAÇÃO:
+  1. O @import DEVE usar &amp; para separar parâmetros (não & puro — causa erro XML no SVG)
+  2. O bloco <style> DEVE ser filho direto de <defs>, que DEVE ser filho direto de <svg>
+  3. Sempre declare fallback após a fonte Google: font-family="'Bebas Neue', Arial Black, sans-serif"
+  4. Pesos disponíveis dependem do @import — só use pesos declarados no URL
+  5. Nunca use font-family="Bebas Neue" sem aspas — use sempre font-family="'Bebas Neue', fallback"
+
+▶ EXEMPLO FUNCIONAL COMPLETO (embutidos):
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Oswald:wght@300;400;700&amp;display=swap');</style>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#991B1B"/>
+      <stop offset="100%" style="stop-color:#7F1D1D"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="420" fill="url(#grad1)"/>
+  <text x="160" y="180" text-anchor="middle"
+        font-family="'Bebas Neue', Arial Black, sans-serif"
+        font-size="42" fill="white">LINGUIÇA TOSCANA</text>
+  <text x="160" y="210" text-anchor="middle"
+        font-family="'Oswald', Arial Narrow, sans-serif"
+        font-weight="300" font-style="italic"
+        font-size="13" fill="white" opacity="0.85">Selecionada campo a campo</text>
+</svg>
 
 {evite_rules}
 
@@ -5455,8 +5628,243 @@ Sódio: {sodio}
 Agora gere o SVG profissional completo. APENAS o código SVG, começando com <svg e terminando com </svg>.
 """
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# D10 — ADAPTAÇÃO MULTIPANEL AUTOMÁTICA
+# Distribuição inteligente de conteúdo por face da embalagem
+# ═══════════════════════════════════════════════════════════════════════════════
 
-@app.post("/gerar-design")
+SP_PAINEL = {
+    "frente": """
+PAINEL: FRENTE DA EMBALAGEM (Face Principal — o consumidor vê primeiro)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FUNÇÃO: VENDER. Esta face decide a compra. Cada elemento deve servir ao apelo.
+
+CONTEÚDO OBRIGATÓRIO (nesta ordem de hierarquia visual):
+  1. Logo da empresa — posição privilegiada, topo ou terço superior
+  2. Denominação do produto — maior elemento tipográfico, máxima legibilidade
+  3. Claim emocional gerado por IA (ver regras D7) — imediatamente abaixo da denominação
+  4. Elemento gráfico de categoria (D2-D5) — central ou lateral, forte presença visual
+  5. Conteúdo líquido / peso — destaque visual, badge ou caixa
+  6. Lupa de advertência (se aplicável) — canto inferior, obrigatória se critérios atingidos
+  7. Carimbo SIF/SIE/SIM — canto inferior oposto à lupa, presença institucional
+
+CONTEÚDO PROIBIDO NA FRENTE:
+  ✗ Lista de ingredientes completa
+  ✗ Tabela nutricional completa
+  ✗ CNPJ e endereço do fabricante
+  ✗ Instruções de conservação detalhadas
+  ✗ Declaração de transgênicos
+
+LAYOUT viewBox="0 0 400 600" (orientação retrato — face de embalagem):
+  Zona emocional (0-600px altura total): toda a face é zona emocional
+  Logo: x=20, y=20, máx 120×60px
+  Denominação: centralizado, y=200-250, font-size=36-48px bold
+  Claim: centralizado, y=270, font-size=12px italic
+  Elemento gráfico: centralizado, y=300-420, 120-150px
+  Peso/volume: badge no canto inferior direito, x=300, y=540
+  Carimbo: canto inferior esquerdo, cx=60, cy=555
+  Lupa (se necessário): faixa preta na base, y=560-600
+""",
+
+    "verso": """
+PAINEL: VERSO DA EMBALAGEM (Face Técnica — o consumidor consulta após compra)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FUNÇÃO: INFORMAR. Esta face cumpre a legislação e constrói confiança.
+
+CONTEÚDO OBRIGATÓRIO (ordem de disposição vertical):
+  1. Tabela nutricional completa (PARTE 3 — elemento gráfico profissional D9)
+  2. Lista de ingredientes completa (precedida de "Ingredientes:")
+  3. Identificação do fabricante (Razão Social + CNPJ + endereço completo)
+  4. Declaração de alérgenos (fundo #FFFBEA, texto bold, destaque visual)
+  5. Glúten e lactose (logo abaixo dos alérgenos)
+  6. Declaração de transgênicos
+  7. SAC / contato do consumidor (se disponível)
+  8. Lote e validade: "LOTE E VALIDADE: veja embalagem" — rodapé
+
+LAYOUT viewBox="0 0 400 600" (mesmo tamanho da frente):
+  Fundo: branco (#FFFFFF) ou off-white (#FAFAFA) — zona técnica pura
+  Margem: 14px em todos os lados
+  Tabela nutricional: x=14, y=14, largura=372px
+  Ingredientes: abaixo da tabela, y dinâmico, font-size=8px
+  Fabricante: abaixo dos ingredientes, font-size=8px, cor #444
+  Alérgenos: faixa com fundo #FFFBEA, borda #F59E0B 1px, padding 8px
+  Rodapé (lote/validade + transgênicos): y=570-590, font-size=7px
+
+ESTÉTICA DO VERSO:
+  Minimalista — sem elementos decorativos excessivos
+  Linha fina da cor primária (1px) como header separando da margem superior
+  Tabela nutricional usa cor primária da marca no header (mantém identidade)
+  Texto técnico: Arial 8px #333333 — máxima legibilidade
+""",
+
+    "lateral": """
+PAINEL: LATERAL DA EMBALAGEM (Face Secundária — visível na prateleira de lado)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FUNÇÃO: IDENTIFICAR na prateleira + cumprir obrigações secundárias.
+
+CONTEÚDO OBRIGATÓRIO:
+  1. Denominação do produto (repetida, menor que na frente)
+  2. Instruções de conservação completas (temperatura, prazo pós-abertura)
+  3. Declaração de alérgenos (obrigatória em todas as faces — RDC 727/2022)
+  4. Glúten e lactose
+  5. Código de barras (placeholder visual — retângulo com linhas verticais)
+
+LAYOUT viewBox="0 0 180 600" (orientação retrato estreita — lateral de caixa):
+  Fundo: cor primária da marca (espelho da frente — identidade na prateleira)
+  Denominação: rotacionada 90° ou horizontal, topo, branco bold, font-size=14px
+  Conservação: texto vertical ou horizontal pequeno, branco opacity=0.9, font-size=8px
+  Alérgenos: faixa horizontal no meio, fundo branco/amarelo, texto escuro, font-size=7px
+  Código de barras (placeholder):
+    Bloco branco rx=3 na base
+    30-40 linhas verticais de largura variável (1-3px), altura 50px, fill=#000
+    Número fictício abaixo: "7890000000000", font-size=6px
+  Linha decorativa longitudinal: faixa de 3px da cor de acento ao longo da lateral
+
+DICA: laterais estreitas pedem tipografia compacta e elementos essenciais apenas.
+Não tente encaixar a tabela nutricional na lateral — ela vai no verso.
+""",
+}
+
+def _montar_prompt_painel(painel_key: str, campos: dict, cores: dict, logo_b64_small: str, design_template: str, evite_rules: str) -> list:
+    """Monta msg_content para um painel específico da embalagem."""
+    tn = campos.get("tabela_nutricional") or {}
+
+    instrucao_painel = SP_PAINEL[painel_key]
+
+    prompt = (SP_DESIGN_ROTULO
+        .replace("{logo_b64}", logo_b64_small)
+        .replace("{cor_primaria}", cores["primaria"])
+        .replace("{formato}", "MULTIPANEL — " + painel_key.upper())
+        .replace("{denominacao}", campos.get("denominacao", ""))
+        .replace("{carimbo}", campos.get("carimbo", ""))
+        .replace("{fabricante}", (campos.get("fabricante") or "").replace("\n", " | "))
+        .replace("{ingredientes}", campos.get("ingredientes", ""))
+        .replace("{conservacao}", campos.get("conservacao", ""))
+        .replace("{conteudo_liquido}", campos.get("conteudo_liquido", ""))
+        .replace("{alergenos}", campos.get("alergenos", ""))
+        .replace("{transgenicos}", campos.get("transgenicos", ""))
+        .replace("{porcao}", tn.get("porcao", "100g"))
+        .replace("{energia_kcal}", tn.get("energia_kcal", ""))
+        .replace("{proteinas}", tn.get("proteinas", ""))
+        .replace("{carboidratos}", tn.get("carboidratos", ""))
+        .replace("{gorduras_totais}", tn.get("gorduras_totais", ""))
+        .replace("{gorduras_saturadas}", tn.get("gorduras_saturadas", ""))
+        .replace("{gorduras_trans}", tn.get("gorduras_trans", "0g"))
+        .replace("{fibra}", tn.get("fibra", ""))
+        .replace("{sodio}", tn.get("sodio", ""))
+        .replace("{gluten}", campos.get("gluten", ""))
+        .replace("{lactose}", campos.get("lactose", ""))
+        .replace("{evite_rules}", evite_rules or "")
+        .replace("{design_template}", design_template)
+    ) + f"\n\n{instrucao_painel}\n\nGere APENAS o SVG deste painel. Comece com <svg e termine com </svg>."
+
+    if logo_b64_small:
+        return [
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": logo_b64_small}},
+            {"type": "text", "text": prompt + "\n\nA imagem acima é a LOGO DA EMPRESA. Use-a no SVG da frente."}
+        ]
+    return [{"type": "text", "text": prompt}]
+
+
+async def _gerar_painel(painel_key: str, msg_content: list) -> dict:
+    """Gera um único painel SVG via API."""
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY,
+                         "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514",
+                      "max_tokens": 8000,
+                      "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido para o painel solicitado, nada mais.",
+                      "messages": [{"role": "user", "content": msg_content}]}
+            )
+            svg_raw = _limpar_svg(r.json()["content"][0]["text"].strip())
+
+        png_b64 = ""
+        try:
+            import fitz as _fitz
+            doc = _fitz.open(stream=svg_raw.encode(), filetype="svg")
+            pix = doc[0].get_pixmap(matrix=_fitz.Matrix(2, 2), alpha=False)
+            png_b64 = base64.b64encode(pix.tobytes("png")).decode()
+        except Exception:
+            pass
+
+        return {"painel": painel_key, "svg": svg_raw, "png": png_b64, "ok": True}
+    except Exception as e:
+        return {"painel": painel_key, "svg": "", "png": "", "ok": False, "error": str(e)[:100]}
+
+
+@app.post("/gerar-design-multipanel")
+async def gerar_design_multipanel(request: Request):
+    """
+    D10 — Gera frente + verso + lateral em paralelo.
+    Body: mesmo formato do /gerar-design.
+    Response: { "paineis": { "frente": {svg,png}, "verso": {svg,png}, "lateral": {svg,png} }, "cores": {...} }
+    Painéis solicitados via body.get("paineis", ["frente","verso","lateral"]).
+    """
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "API nao configurada"}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body = await request.json()
+        campos = body.get("campos", {})
+        logo_b64 = body.get("logo_b64", "")
+        paineis_solicitados = body.get("paineis", ["frente", "verso", "lateral"])
+        # Valida painéis
+        paineis_validos = [p for p in paineis_solicitados if p in SP_PAINEL]
+        if not paineis_validos:
+            paineis_validos = ["frente", "verso", "lateral"]
+
+        cores = _extrair_cores_logo(logo_b64) if logo_b64 else {"primaria": "#1a1a2e"}
+        categoria_design = campos.get("categoria", "outro")
+        design_template = get_design_template(categoria_design)
+        evite_rules = await _get_evite_rules(categoria_design, campos.get("orgao_sigla", ""))
+
+        # Redimensiona logo uma vez
+        logo_b64_small = ""
+        if logo_b64:
+            try:
+                from PIL import Image as _PIL
+                import io as _io
+                logo_img = _PIL.open(_io.BytesIO(base64.b64decode(logo_b64)))
+                logo_img.thumbnail((400, 400))
+                buf = _io.BytesIO()
+                logo_img.save(buf, "PNG")
+                logo_b64_small = base64.b64encode(buf.getvalue()).decode()
+            except Exception:
+                logo_b64_small = logo_b64[:50000]
+
+        # Monta prompts e dispara em paralelo
+        tarefas = [
+            _gerar_painel(
+                painel_key,
+                _montar_prompt_painel(painel_key, campos, cores, logo_b64_small, design_template, evite_rules)
+            )
+            for painel_key in paineis_validos
+        ]
+        resultados = await asyncio.gather(*tarefas)
+
+        paineis_dict = {r["painel"]: r for r in resultados}
+
+        return JSONResponse({
+            "paineis": paineis_dict,
+            "cores": cores,
+            "paineis_gerados": paineis_validos,
+            "labels": {
+                "frente":  "🎯 Frente",
+                "verso":   "📋 Verso",
+                "lateral": "↔️ Lateral",
+            }
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:300]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
 async def gerar_design_rotulo(request: Request):
     """
     Fase 4 — Gera design profissional do rotulo como SVG.
@@ -5600,6 +6008,220 @@ async def gerar_design_rotulo(request: Request):
             "svg": svg_raw,
             "png": png_b64,
             "cores": cores,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:300]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# D8 — MÚLTIPLAS VARIAÇÕES DE DESIGN (3 opções para o RT escolher)
+# Gera Bold/Colorida + Clássica/Tradicional + Clean/Minimalista em paralelo
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ESTILOS_VARIACAO = {
+    "bold": """
+ESTILO DESTA VARIAÇÃO: BOLD / COLORIDA / IMPACTANTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Objetivo: máximo impacto visual na prateleira. O consumidor vê a 3 metros.
+
+REGRAS ESPECÍFICAS DESTE ESTILO:
+• Cor primária: use a versão mais SATURADA e INTENSA possível da paleta da categoria
+• Nome do produto: maior que o normal — ocupa 40-50% da altura da zona emocional
+• Fonte: bold máximo (font-weight=900 ou Black), sem italic
+• Contraste: texto branco sobre fundo escuro saturado — nunca cinza, nunca pastéis
+• Elemento gráfico: mais proeminente e centralizado — ocupa 35% da zona emocional
+• Gradiente: linear forte de escuro→mais escuro (não suave, não pastel)
+• Claim: em destaque — caixa com fundo de acento, texto bold
+• Conteúdo líquido: badge grande, fill sólido, nunca outline
+• Bordas internas: use divisórias espessas (3-4px) na cor de acento
+• Sensação: produto premium de supermercado grande, Sadia/Perdigão tier
+""",
+    "classica": """
+ESTILO DESTA VARIAÇÃO: CLÁSSICA / TRADICIONAL / ARTESANAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Objetivo: transmitir tradição, confiança e história da marca. Rótulo "de família".
+
+REGRAS ESPECÍFICAS DESTE ESTILO:
+• Paleta: tons mais escuros e envelhecidos — vermelho vinho (não vermelho), dourado (não amarelo)
+• Background zona emocional: textura simulada (madeira, pergaminho) com linhas diagonais sutis
+• Fonte nome: serifada sempre — Georgia, Times, Playfair Display
+• Ornamentos: use elementos decorativos como linhas duplas (rect finos sobrepostos), bordas ornamentadas
+• Faixa de título: retângulo com bordas duplas finas contendo o nome do produto — estilo "etiqueta de vinho"
+• Escudo/brasão: elemento oval ou shield estilizado ao redor do carimbo — integra logo e carimbo
+• Claim: em script/italic serifado, estilo caligráfico
+• Conteúdo líquido: oval ou círculo com borda dupla, não badge moderno
+• Sombras: mais pronunciadas nos elementos principais
+• Sensação: produto artesanal premiado, queijaria mineira, defumados da serra
+""",
+    "clean": """
+ESTILO DESTA VARIAÇÃO: CLEAN / MINIMALISTA / PREMIUM MODERNO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Objetivo: sofisticação pelo que NÃO tem. Produto premium urbano.
+
+REGRAS ESPECÍFICAS DESTE ESTILO:
+• Fundo zona emocional: UMA cor sólida flat — sem gradientes, sem texturas, sem padrões
+• Paleta máxima: 2 cores + branco. Nada mais.
+• Espaço negativo: use generosamente — menos elementos, mais respiro
+• Nome do produto: tamanho moderado (não gigante), font-weight=600 (não 900), letter-spacing=2-3
+• Fonte: sans-serif geométrica — Arial com letter-spacing, simulando Futura/Helvetica Neue
+• Linha divisória: única, fina (1px), cor de acento — substitui todos os outros separadores
+• Elemento gráfico: minimalista — ícone geométrico simples (círculo, linha, ponto) ao invés de ilustração
+• Claim: muito pequeno (9px), all-caps, letter-spacing=3, cor de acento
+• Conteúdo líquido: apenas texto, sem badge — integrado à hierarquia tipográfica
+• Carimbo: reduzido ao mínimo funcional, sem ornamentos
+• Sensação: produto orgânico premium, marca de nicho, mercado gourmet
+""",
+}
+
+def _limpar_svg(svg_raw: str) -> str:
+    """Remove markdown e garante que começa com <svg."""
+    for marker in ["```svg", "```xml", "```"]:
+        if marker in svg_raw:
+            parts = svg_raw.split(marker)
+            svg_raw = parts[1].split("```")[0].strip() if len(parts) > 1 else svg_raw
+            break
+    if not svg_raw.startswith("<svg"):
+        idx = svg_raw.find("<svg")
+        if idx >= 0:
+            svg_raw = svg_raw[idx:]
+    return svg_raw
+
+async def _gerar_uma_variacao(
+    msg_content: list,
+    estilo_key: str,
+    estilo_prompt: str,
+) -> dict:
+    """Gera uma variação de design com o estilo especificado."""
+    conteudo = list(msg_content)  # cópia
+    # Injeta instrução de estilo no último elemento de texto
+    for item in reversed(conteudo):
+        if item.get("type") == "text":
+            item["text"] = item["text"] + "\n\n" + estilo_prompt
+            break
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY,
+                         "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514",
+                      "max_tokens": 8000,
+                      "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
+                      "messages": [{"role": "user", "content": conteudo}]}
+            )
+            svg_raw = _limpar_svg(r.json()["content"][0]["text"].strip())
+
+        png_b64 = ""
+        try:
+            import fitz as _fitz
+            doc = _fitz.open(stream=svg_raw.encode(), filetype="svg")
+            pix = doc[0].get_pixmap(matrix=_fitz.Matrix(2, 2), alpha=False)
+            png_b64 = base64.b64encode(pix.tobytes("png")).decode()
+        except Exception:
+            pass
+
+        return {"estilo": estilo_key, "svg": svg_raw, "png": png_b64, "ok": True}
+
+    except Exception as e:
+        return {"estilo": estilo_key, "svg": "", "png": "", "ok": False, "error": str(e)[:100]}
+
+
+@app.post("/gerar-design-variacoes")
+async def gerar_design_variacoes(request: Request):
+    """
+    D8 — Gera 3 variações de design em paralelo para o RT escolher.
+    Bold/Colorida + Clássica/Tradicional + Clean/Minimalista.
+    Body: mesmo formato do /gerar-design.
+    Response: { "variacoes": [ {estilo, svg, png}, ... ], "cores": {...} }
+    """
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "API nao configurada"}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body = await request.json()
+        campos = body.get("campos", {})
+        logo_b64 = body.get("logo_b64", "")
+        formato = body.get("formato", "retangular")
+
+        cores = _extrair_cores_logo(logo_b64) if logo_b64 else {"primaria": "#1a1a2e"}
+        tn = campos.get("tabela_nutricional") or {}
+        categoria_design = campos.get("categoria", "outro")
+        design_template = get_design_template(categoria_design)
+        evite_rules = await _get_evite_rules(categoria_design, campos.get("orgao_sigla", ""))
+
+        # Monta prompt base (igual ao /gerar-design)
+        logo_b64_small = ""
+        if logo_b64:
+            try:
+                from PIL import Image as _PIL
+                import io as _io
+                logo_img = _PIL.open(_io.BytesIO(base64.b64decode(logo_b64)))
+                logo_img.thumbnail((400, 400))
+                buf = _io.BytesIO()
+                logo_img.save(buf, "PNG")
+                logo_b64_small = base64.b64encode(buf.getvalue()).decode()
+            except Exception:
+                logo_b64_small = logo_b64[:50000]
+
+        prompt_base = (SP_DESIGN_ROTULO
+            .replace("{logo_b64}", logo_b64_small)
+            .replace("{cor_primaria}", cores["primaria"])
+            .replace("{formato}", formato.upper())
+            .replace("{denominacao}", campos.get("denominacao", ""))
+            .replace("{carimbo}", campos.get("carimbo", ""))
+            .replace("{fabricante}", (campos.get("fabricante") or "").replace("\n", " | "))
+            .replace("{ingredientes}", campos.get("ingredientes", ""))
+            .replace("{conservacao}", campos.get("conservacao", ""))
+            .replace("{conteudo_liquido}", campos.get("conteudo_liquido", ""))
+            .replace("{alergenos}", campos.get("alergenos", ""))
+            .replace("{transgenicos}", campos.get("transgenicos", ""))
+            .replace("{porcao}", tn.get("porcao", "100g"))
+            .replace("{energia_kcal}", tn.get("energia_kcal", ""))
+            .replace("{proteinas}", tn.get("proteinas", ""))
+            .replace("{carboidratos}", tn.get("carboidratos", ""))
+            .replace("{gorduras_totais}", tn.get("gorduras_totais", ""))
+            .replace("{gorduras_saturadas}", tn.get("gorduras_saturadas", ""))
+            .replace("{gorduras_trans}", tn.get("gorduras_trans", "0g"))
+            .replace("{fibra}", tn.get("fibra", ""))
+            .replace("{sodio}", tn.get("sodio", ""))
+            .replace("{gluten}", campos.get("gluten", ""))
+            .replace("{lactose}", campos.get("lactose", ""))
+            .replace("{evite_rules}", evite_rules or "")
+            .replace("{design_template}", design_template)
+        )
+
+        # Monta msg_content base
+        if logo_b64_small:
+            msg_content_base = [
+                {"type": "image", "source": {"type": "base64",
+                 "media_type": "image/png", "data": logo_b64_small}},
+                {"type": "text", "text": prompt_base +
+                 "\n\nA imagem acima é a LOGO DA EMPRESA. Use-a no SVG. "
+                 "Gere o SVG profissional completo. APENAS o código SVG."}
+            ]
+        else:
+            msg_content_base = [{"type": "text", "text": prompt_base +
+                "\n\nGere o SVG profissional completo. APENAS o código SVG."}]
+
+        # Dispara as 3 variações em paralelo
+        tarefas = [
+            _gerar_uma_variacao(msg_content_base, estilo, prompt)
+            for estilo, prompt in ESTILOS_VARIACAO.items()
+        ]
+        variacoes = await asyncio.gather(*tarefas)
+
+        return JSONResponse({
+            "variacoes": list(variacoes),
+            "cores": cores,
+            "labels": {
+                "bold":     "🎨 Bold / Colorida",
+                "classica": "🏛️ Clássica / Tradicional",
+                "clean":    "✨ Clean / Minimalista",
+            }
         }, headers={"Access-Control-Allow-Origin": "*"})
 
     except Exception as e:
