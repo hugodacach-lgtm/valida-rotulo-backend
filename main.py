@@ -3953,50 +3953,119 @@ def get_fewshot_examples(categoria: str, max_examples: int = 3) -> str:
     for ex in examples:
         origem = "RT" if ex.get("feedback") else "auto-validado"
         score  = ex.get("score_agente")
-        erros  = ex.get("erros_auto") or ex.get("erros_encontrados") or "nenhum registrado"
-        parts.append(
-            f"[{ex.get('produto','produto')} — {ex.get('categoria','?')} | origem: {origem}"
-            + (f" | score: {score}/12" if score else "") + "]\n"
-            f"Não-conformidades encontradas: {erros[:200]}"
-        )
+        erros  = ex.get("erros_encontrados") or ex.get("erros_auto") or "nenhum registrado"
+        falsos = ex.get("falsos_positivos", "")
+        nao_det = ex.get("erros_nao_detectados", "")
+        rt_comment = ex.get("rt_comment", "")
 
-    header = f"\n## BASE DE CONHECIMENTO PRÁTICO ({len(_cases_db)} validações reais)"
+        bloco = (
+            f"[{ex.get('produto','produto')} — {ex.get('categoria','?')} | origem: {origem}"
+            + (f" | score agente: {score}/12" if score else "")
+            + (f" | score real RT: {ex.get('score_real')}/12" if ex.get('score_real') else "")
+            + "]"
+        )
+        if erros and erros != "nenhum registrado":
+            bloco += f"\nErros detectados: {erros[:200]}"
+        if nao_det:
+            bloco += f"\n⚠️ Erros NÃO detectados pelo agente (RT corrigiu): {nao_det[:150]}"
+        if falsos:
+            bloco += f"\n⚠️ Falsos positivos (agente alertou sem necessidade): {falsos[:150]}"
+        if rt_comment:
+            bloco += f"\n💬 Observação do RT: {rt_comment[:150]}"
+        parts.append(bloco)
+
+    header = f"\n## BASE DE CONHECIMENTO PRÁTICO ({len(_cases_db)} validações | {sum(1 for x in _cases_db if x.get('feedback'))} com feedback RT)"
     if erros_recorrentes:
         header += erros_recorrentes
     if parts:
-        header += "\nEXEMPLOS RECENTES:\n" + "\n---\n".join(parts)
+        header += "\nEXEMPLOS E LIÇÕES APRENDIDAS:\n" + "\n---\n".join(parts)
     return header
 
 @app.post("/feedback")
 async def store_feedback(request: Request):
     """
-    Armazena feedback do RT após uma validação.
-    Body: {
-      "case_id": "abc123",
+    Armazena feedback estruturado do RT após uma validação.
+
+    Body completo (todos opcionais exceto case_id):
+    {
+      "case_id": "abc123",                    # obrigatório — retornado pelo /validar
       "produto": "Linguiça Suína Frescal",
       "categoria": "embutidos",
-      "feedback": "correto" | "incorreto" | "parcialmente_correto",
-      "erros_encontrados": "campo 11 errado, campo 9 ok",
-      "rt_comment": "O agente não percebeu que...",
-      "score_agente": 10,
-      "score_real": 9
+      "orgao": "SIE",
+      "score_agente": 10,                     # score que o agente deu (12 máx)
+      "score_real": 9,                        # score real atribuído pelo RT
+
+      # Avaliação geral
+      "feedback": "correto"|"parcialmente_correto"|"incorreto",
+
+      # Avaliação campo a campo (12 campos)
+      # Valores: "correto" | "incorreto" | "nao_verificado"
+      "campos": {
+        "1":  {"status": "correto",    "comentario": ""},
+        "2":  {"status": "incorreto",  "comentario": "Sódio declarado errado: é 950mg não 800mg"},
+        "3":  {"status": "correto",    "comentario": ""},
+        "4":  {"status": "correto",    "comentario": ""},
+        "5":  {"status": "nao_verificado", "comentario": ""},
+        "6":  {"status": "correto",    "comentario": ""},
+        "7":  {"status": "incorreto",  "comentario": "Temperatura deveria ser ≤7°C não ≤10°C"},
+        "8":  {"status": "correto",    "comentario": ""},
+        "9":  {"status": "correto",    "comentario": ""},
+        "10": {"status": "correto",    "comentario": ""},
+        "11": {"status": "correto",    "comentario": ""},
+        "12": {"status": "nao_verificado", "comentario": ""}
+      },
+
+      # Comentário geral do RT
+      "rt_comment": "O agente não percebeu que a bebida láctea tem soro na composição",
+
+      # Erros que o agente PERDEU (não detectou mas deveria ter detectado)
+      "erros_nao_detectados": "Campo 2: ingredientes fora de ordem decrescente",
+
+      # Falsos positivos (o agente alertou mas estava errado)
+      "falsos_positivos": "Campo 9: agente calculou Atwater errado para esta categoria"
     }
     """
     try:
         body = await request.json()
+        import datetime as _dt2, json as _json
+
+        campos_raw = body.get("campos", {})
+        # Serializa campos para string legível (few-shot vai ler isso)
+        erros_campos = []
+        acertos_campos = []
+        for num, dados in (campos_raw.items() if isinstance(campos_raw, dict) else {}.items()):
+            st = dados.get("status", "") if isinstance(dados, dict) else ""
+            cm = dados.get("comentario", "") if isinstance(dados, dict) else ""
+            if st == "incorreto":
+                erros_campos.append(f"C{num}: {cm}" if cm else f"C{num}: incorreto")
+            elif st == "correto":
+                acertos_campos.append(f"C{num}")
+
+        erros_str = "; ".join(erros_campos) if erros_campos else ""
+        # Combina com erros_nao_detectados e falsos_positivos
+        erros_nao_det = body.get("erros_nao_detectados", "")
+        falsos_pos    = body.get("falsos_positivos", "")
+        erros_completo = " | ".join(filter(None, [erros_str, erros_nao_det]))
+
         case = {
-            "case_id":          body.get("case_id", ""),
-            "produto":          body.get("produto", ""),
-            "categoria":        body.get("categoria", ""),
-            "feedback":         body.get("feedback", ""),
-            "erros_encontrados":body.get("erros_encontrados", ""),
-            "rt_comment":       body.get("rt_comment", ""),
-            "score_agente":     body.get("score_agente"),
-            "score_real":       body.get("score_real"),
-            "timestamp":        __import__("datetime").datetime.now().isoformat(),
+            "case_id":              body.get("case_id", ""),
+            "produto":              body.get("produto", ""),
+            "categoria":            body.get("categoria", ""),
+            "orgao":                body.get("orgao", ""),
+            "feedback":             body.get("feedback", ""),
+            "score_agente":         body.get("score_agente"),
+            "score_real":           body.get("score_real"),
+            "campos_json":          _json.dumps(campos_raw, ensure_ascii=False),
+            "erros_encontrados":    erros_completo,
+            "erros_nao_detectados": erros_nao_det,
+            "falsos_positivos":     falsos_pos,
+            "acertos_campos":       ", ".join(acertos_campos),
+            "rt_comment":           body.get("rt_comment", ""),
+            "timestamp":            _dt2.datetime.now().isoformat(),
         }
+
         # Atualiza caso existente ou adiciona novo
-        existing = next((c for c in _cases_db if c["case_id"] == case["case_id"]), None)
+        existing = next((x for x in _cases_db if x["case_id"] == case["case_id"]), None)
         if existing:
             existing.update(case)
         else:
@@ -4004,16 +4073,65 @@ async def store_feedback(request: Request):
             if len(_cases_db) > _MAX_CASES:
                 _cases_db.pop(0)
 
-        # Persiste feedback no Supabase
-        import datetime as _dt2
+        # Persiste no Supabase
         asyncio.ensure_future(_sb_upsert("validacoes", {
             **case, "created_at": _dt2.datetime.now().isoformat()
         }))
+
+        # Calcula métricas do feedback para retornar ao frontend
+        campos_ok  = len(acertos_campos)
+        campos_err = len(erros_campos)
+        precisao   = round(campos_ok / (campos_ok + campos_err) * 100) if (campos_ok + campos_err) > 0 else None
+
         return JSONResponse({
-            "status": "ok",
-            "total_cases": len(_cases_db),
-            "case_id": case["case_id"],
-            "persistido": _SUPABASE_ON,
+            "status":         "ok",
+            "case_id":        case["case_id"],
+            "total_cases":    len(_cases_db),
+            "persistido":     _SUPABASE_ON,
+            "campos_corretos": campos_ok,
+            "campos_errados":  campos_err,
+            "precisao_pct":    precisao,
+            "mensagem":        (
+                "✅ Feedback registrado com detalhamento campo a campo. O sistema aprende com cada correção."
+                if erros_campos else
+                "✅ Feedback registrado. Relatório marcado como correto pelo RT."
+            ),
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/feedback/export")
+async def export_feedback(format: str = "json"):
+    """
+    Exporta todos os feedbacks para análise.
+    ?format=json (padrão) ou ?format=csv
+    """
+    try:
+        if format == "csv":
+            import io as _io, csv as _csv
+            buf = _io.StringIO()
+            writer = _csv.DictWriter(buf, fieldnames=[
+                "case_id","produto","categoria","orgao","feedback",
+                "score_agente","score_real","erros_encontrados",
+                "erros_nao_detectados","falsos_positivos","rt_comment","timestamp"
+            ])
+            writer.writeheader()
+            for case in _cases_db:
+                writer.writerow({k: case.get(k, "") for k in writer.fieldnames})
+            return Response(
+                content=buf.getvalue(),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": "attachment; filename=feedbacks_inspect_ia.csv",
+                    "Access-Control-Allow-Origin": "*"
+                }
+            )
+        return JSONResponse({
+            "total": len(_cases_db),
+            "com_feedback_rt": sum(1 for x in _cases_db if x.get("feedback")),
+            "feedbacks": _cases_db
         }, headers={"Access-Control-Allow-Origin": "*"})
     except Exception as e:
         return JSONResponse({"error": str(e)},
