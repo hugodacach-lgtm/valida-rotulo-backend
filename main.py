@@ -3433,10 +3433,23 @@ async def validar_rotulo(
     imagens_extras: list[UploadFile] = File(default=[]),
     obs: str = Form(default=""),
     orgao: str = Form(default=""),
+    user_id: str = Form(default=""),
 ):
     if not ANTHROPIC_API_KEY:
         return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
                             headers={"Access-Control-Allow-Origin": "*"})
+
+    # M1_9 — Rate limiting por plano
+    if user_id:
+        uso = await _checar_e_incrementar_uso(user_id)
+        if not uso["ok"]:
+            return JSONResponse({
+                "error": uso.get("msg", "Limite de validações atingido."),
+                "limite_atingido": True,
+                "plano": uso.get("plano"),
+                "usado": uso.get("usado"),
+                "limite": uso.get("limite"),
+            }, status_code=429, headers={"Access-Control-Allow-Origin": "*"})
 
     contents = await imagem.read()
     content_type = (imagem.content_type or "").lower()
@@ -4156,6 +4169,297 @@ async def export_feedback(format: str = "json"):
     except Exception as e:
         return JSONResponse({"error": str(e)},
                             headers={"Access-Control-Allow-Origin": "*"})
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_2 — PLACEHOLDER — endpoint adicionado abaixo
+# ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_2 — RELATÓRIO PDF COM CAMPO DE ASSINATURA DO RT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/relatorio-pdf")
+async def gerar_relatorio_pdf(request: Request):
+    """
+    Gera PDF formal do relatório para entrega ao cliente.
+    Body JSON: { produto, relatorio, score, veredicto, nome_rt, crm_rt, case_id }
+    """
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib import colors
+        from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
+                                        Table, TableStyle, HRFlowable)
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+        import io as _io, datetime as _dt
+
+        body = await request.json()
+        produto   = body.get("produto", "Produto não identificado")
+        relatorio = body.get("relatorio", "")
+        score     = body.get("score")
+        veredicto = (body.get("veredicto") or "NÃO DEFINIDO").upper()
+        nome_rt   = body.get("nome_rt", "")
+        crm_rt    = body.get("crm_rt", "")
+        case_id   = body.get("case_id", "")
+        data_str  = _dt.datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+        buf = _io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                leftMargin=20*mm, rightMargin=20*mm,
+                                topMargin=18*mm, bottomMargin=18*mm)
+        styles = getSampleStyleSheet()
+        W = A4[0] - 40*mm
+
+        COR_PRIMARIA  = colors.HexColor("#7c3aed")
+        COR_APROVADO  = colors.HexColor("#166534")
+        COR_REPROVADO = colors.HexColor("#991b1b")
+        COR_RESSALVAS = colors.HexColor("#92400e")
+        COR_FUNDO     = colors.HexColor("#f5f3ff")
+        COR_DISCLAIMER= colors.HexColor("#fffbeb")
+
+        st_label = ParagraphStyle("label", fontSize=7, fontName="Helvetica-Bold",
+                                  textColor=colors.HexColor("#6b7280"), spaceAfter=1)
+        st_disc  = ParagraphStyle("disc", fontSize=8, fontName="Helvetica",
+                                  textColor=colors.HexColor("#92400e"), leading=12)
+        st_center= ParagraphStyle("center", fontSize=9, fontName="Helvetica",
+                                  alignment=TA_CENTER)
+
+        cor_v = (COR_APROVADO if "APROVADO" in veredicto and "RESSALVAS" not in veredicto
+                 else COR_REPROVADO if "REPROVADO" in veredicto else COR_RESSALVAS)
+
+        story = []
+
+        # Cabeçalho
+        hdr = Table([[
+            Paragraph("<b>ValidaRótulo IA</b>", ParagraphStyle("h", fontSize=14,
+                      fontName="Helvetica-Bold", textColor=COR_PRIMARIA)),
+            Paragraph(f"<b>RELATÓRIO DE VALIDAÇÃO</b><br/>"
+                      f"<font size=8 color='#6b7280'>Emitido em {data_str}</font>",
+                      ParagraphStyle("hr", fontSize=11, fontName="Helvetica-Bold",
+                                     alignment=TA_RIGHT))
+        ]], colWidths=[W*0.5, W*0.5])
+        hdr.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("LINEBELOW", (0,0), (-1,0), 1.5, COR_PRIMARIA),
+            ("BOTTOMPADDING", (0,0), (-1,0), 8),
+        ]))
+        story.append(hdr)
+        story.append(Spacer(1, 6*mm))
+
+        story.append(Paragraph(produto, ParagraphStyle("titulo", fontSize=16,
+                     fontName="Helvetica-Bold", textColor=COR_PRIMARIA, spaceAfter=2)))
+        if case_id:
+            story.append(Paragraph(f"ID: {case_id}",
+                         ParagraphStyle("sub", fontSize=9, fontName="Helvetica",
+                                        textColor=colors.HexColor("#6b7280"), spaceAfter=6)))
+        story.append(Spacer(1, 3*mm))
+
+        score_str = f"{score}/12" if score is not None else "—"
+        vd = Table([[
+            Paragraph(f"<b>VEREDICTO: {veredicto}</b>",
+                      ParagraphStyle("v", fontSize=12, fontName="Helvetica-Bold",
+                                     textColor=cor_v)),
+            Paragraph(f"<b>Score: {score_str}</b>",
+                      ParagraphStyle("s", fontSize=12, fontName="Helvetica-Bold",
+                                     textColor=colors.HexColor("#374151"),
+                                     alignment=TA_RIGHT))
+        ]], colWidths=[W*0.65, W*0.35])
+        vd.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), COR_FUNDO),
+            ("TOPPADDING", (0,0), (-1,0), 10),
+            ("BOTTOMPADDING", (0,0), (-1,0), 10),
+            ("LEFTPADDING", (0,0), (0,0), 12),
+            ("RIGHTPADDING", (-1,0), (-1,0), 12),
+            ("VALIGN", (0,0), (-1,0), "MIDDLE"),
+        ]))
+        story.append(vd)
+        story.append(Spacer(1, 5*mm))
+
+        story.append(Paragraph("RELATÓRIO DETALHADO", st_label))
+        story.append(HRFlowable(width=W, thickness=0.5,
+                                color=colors.HexColor("#e5e7eb")))
+        story.append(Spacer(1, 2*mm))
+
+        for linha in relatorio.split("\n")[:150]:
+            linha = linha.strip()
+            if not linha or linha in ("---", "___"):
+                story.append(Spacer(1, 2*mm)); continue
+            cor_linha = colors.black
+            if "❌" in linha or "NÃO CONFORME" in linha: cor_linha = COR_REPROVADO
+            elif "✅" in linha or "CONFORME" in linha.upper(): cor_linha = COR_APROVADO
+            elif "⚠️" in linha: cor_linha = COR_RESSALVAS
+            safe = (linha.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+            st = ParagraphStyle("l", fontSize=8.5, fontName="Helvetica",
+                                leading=13, textColor=cor_linha,
+                                leftIndent=6 if linha.startswith(" ") else 0)
+            try: story.append(Paragraph(safe, st))
+            except Exception: story.append(Paragraph(safe[:200], st))
+
+        story.append(Spacer(1, 6*mm))
+        story.append(HRFlowable(width=W, thickness=1, color=COR_PRIMARIA))
+        story.append(Spacer(1, 4*mm))
+        story.append(Paragraph("RESPONSÁVEL TÉCNICO", st_label))
+        story.append(Spacer(1, 2*mm))
+
+        assin = Table([[
+            Paragraph(nome_rt or "_" * 40,
+                      ParagraphStyle("rtnome", fontSize=10, fontName="Helvetica-Bold",
+                                     textColor=colors.HexColor("#111827"))),
+            Paragraph("", st_center),
+            Paragraph(f"Registro: {crm_rt}" if crm_rt else "Registro: ______________",
+                      ParagraphStyle("rtcrm", fontSize=9, fontName="Helvetica",
+                                     textColor=colors.HexColor("#374151")))
+        ]], colWidths=[W*0.45, W*0.1, W*0.45])
+        assin.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "BOTTOM"),
+            ("LINEABOVE", (0,0), (0,0), 0.8, colors.HexColor("#374151")),
+            ("LINEABOVE", (2,0), (2,0), 0.8, colors.HexColor("#374151")),
+            ("TOPPADDING", (0,0), (-1,0), 24),
+        ]))
+        story.append(assin)
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph(f"Data: {data_str}",
+                     ParagraphStyle("data", fontSize=8, fontName="Helvetica",
+                                    textColor=colors.HexColor("#9ca3af"))))
+        story.append(Spacer(1, 5*mm))
+
+        disc = Table([[
+            Paragraph("⚠️ <b>Aviso legal:</b> Este relatório tem caráter auxiliar e é gerado com "
+                      "apoio de inteligência artificial. Não substitui análise de RT habilitado. "
+                      "Responsabilidade final é do RT inscrito no órgão competente. "
+                      "ValidaRótulo IA.", st_disc)
+        ]], colWidths=[W])
+        disc.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), COR_DISCLAIMER),
+            ("TOPPADDING", (0,0), (-1,-1), 8), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("LEFTPADDING", (0,0), (-1,-1), 10), ("RIGHTPADDING", (0,0), (-1,-1), 10),
+            ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#fcd34d")),
+        ]))
+        story.append(disc)
+
+        doc.build(story)
+        filename = f"relatorio_{produto[:30].replace(' ','_')}_{_dt.datetime.now().strftime('%Y%m%d')}.pdf"
+        from fastapi.responses import Response as _Resp
+        return _Resp(content=buf.getvalue(), media_type="application/pdf",
+                     headers={"Content-Disposition": f'attachment; filename="{filename}"',
+                              "Access-Control-Allow-Origin": "*"})
+
+    except ImportError:
+        return JSONResponse(
+            {"error": "reportlab não instalado. Adicione ao requirements.txt."},
+            status_code=500, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:300]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_5 — HISTÓRICO DE VERSÕES POR PRODUTO (SUPABASE)
+# Tabela: rotulo_versoes (produto_id, versao, campos_json, relatorio_json, created_at)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/versoes/salvar")
+async def salvar_versao(request: Request):
+    """
+    Salva uma versão do rótulo no histórico.
+    Body: { produto_id, nome_produto, campos_json, relatorio_json, score, veredicto }
+    """
+    try:
+        import datetime as _dt
+        body = await request.json()
+        produto_id   = body.get("produto_id") or body.get("nome_produto", "produto").lower().replace(" ", "_")[:40]
+        nome_produto = body.get("nome_produto", "")
+        campos_json  = body.get("campos_json", {})
+        relatorio    = body.get("relatorio_json", "")
+        score        = body.get("score")
+        veredicto    = body.get("veredicto", "")
+
+        # Conta versões existentes para numerar
+        versoes_existentes = await _sb_get("rotulo_versoes",
+                                           filters={"produto_id": produto_id}, limit=100)
+        num_versao = len(versoes_existentes) + 1
+
+        registro = {
+            "produto_id":    produto_id,
+            "nome_produto":  nome_produto,
+            "versao":        num_versao,
+            "campos_json":   json.dumps(campos_json, ensure_ascii=False),
+            "relatorio_json": relatorio[:8000] if relatorio else "",
+            "score":         score,
+            "veredicto":     veredicto,
+            "created_at":    _dt.datetime.now().isoformat(),
+        }
+
+        salvo = await _sb_insert("rotulo_versoes", registro)
+
+        return JSONResponse({
+            "ok": True,
+            "versao": num_versao,
+            "produto_id": produto_id,
+            "persistido": salvo,
+            "mensagem": f"Versão {num_versao} salva com sucesso."
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/versoes/{produto_id}")
+async def listar_versoes(produto_id: str):
+    """Lista todas as versões de um produto, mais recente primeiro."""
+    try:
+        rows = await _sb_get("rotulo_versoes",
+                             filters={"produto_id": produto_id}, limit=50)
+        # Ordena por versão decrescente
+        rows.sort(key=lambda x: x.get("versao", 0), reverse=True)
+        return JSONResponse({
+            "produto_id": produto_id,
+            "total": len(rows),
+            "versoes": [{
+                "versao":       r.get("versao"),
+                "nome_produto": r.get("nome_produto", ""),
+                "score":        r.get("score"),
+                "veredicto":    r.get("veredicto", ""),
+                "created_at":   r.get("created_at", ""),
+                "campos_json":  r.get("campos_json", "{}"),
+            } for r in rows]
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/versoes/{produto_id}/{versao}")
+async def recuperar_versao(produto_id: str, versao: int):
+    """Recupera campos_json completo de uma versão específica."""
+    try:
+        rows = await _sb_get("rotulo_versoes",
+                             filters={"produto_id": produto_id}, limit=100)
+        row = next((r for r in rows if r.get("versao") == versao), None)
+        if not row:
+            return JSONResponse({"error": "Versão não encontrada."},
+                                status_code=404, headers={"Access-Control-Allow-Origin": "*"})
+        campos = {}
+        try:
+            campos = json.loads(row.get("campos_json", "{}"))
+        except Exception:
+            pass
+        return JSONResponse({
+            "versao":       row.get("versao"),
+            "nome_produto": row.get("nome_produto", ""),
+            "score":        row.get("score"),
+            "veredicto":    row.get("veredicto", ""),
+            "created_at":   row.get("created_at", ""),
+            "campos":       campos,
+            "relatorio":    row.get("relatorio_json", ""),
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
 
 @app.get("/admin/stats")
 async def admin_stats():
@@ -6410,6 +6714,242 @@ async def alertas_rotulos_impactados():
                             headers={"Access-Control-Allow-Origin": "*"})
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_8 — TRIAL 14 DIAS + EMAILS DE ONBOARDING
+# Env: RESEND_API_KEY ou SENDGRID_API_KEY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
+_EMAIL_FROM = os.environ.get("EMAIL_FROM", "noreply@validarotulo.com.br")
+
+_EMAILS_ONBOARDING = {
+    "d0": {
+        "subject": "🎉 Bem-vindo ao ValidaRótulo IA!",
+        "html": """<h2>Olá {nome}! Seu trial de 14 dias começou.</h2>
+<p>Você tem acesso completo ao ValidaRótulo IA por 14 dias. Aqui está o que você pode fazer:</p>
+<ul>
+  <li>✅ <b>Validar rótulos</b> — envie a arte e receba relatório com 12 campos avaliados</li>
+  <li>✏️ <b>Criar rótulos</b> — gere campos legais + design profissional com IA</li>
+  <li>📄 <b>Baixar relatório PDF</b> — documento formal com campo de assinatura do RT</li>
+</ul>
+<p><a href="{frontend_url}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Começar agora →</a></p>
+<p style="color:#9ca3af;font-size:12px">Trial expira em 14 dias. Dúvidas? Responda este email.</p>"""
+    },
+    "d3": {
+        "subject": "💡 Dica: como tirar o melhor do ValidaRótulo IA",
+        "html": """<h2>Olá {nome}, aqui vai uma dica rápida!</h2>
+<p>Para validações mais precisas, envie <b>todas as faces da embalagem</b> — frente, verso e laterais juntas.</p>
+<p>O agente analisa cada face e cruza informações entre elas (ex: ingredientes no verso vs alérgenos na frente).</p>
+<p>Você também pode digitar uma observação como <i>"linguiça suína toscana, SIE-SP"</i> para ajudar na detecção.</p>
+<p><a href="{frontend_url}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Validar agora →</a></p>"""
+    },
+    "d10": {
+        "subject": "⏰ Seu trial expira em 4 dias",
+        "html": """<h2>Olá {nome}, seu trial termina em breve.</h2>
+<p>Você tem <b>4 dias restantes</b> de acesso completo ao ValidaRótulo IA.</p>
+<p>Continue validando rótulos com total tranquilidade — e quando o trial terminar, escolha o plano certo para você:</p>
+<ul>
+  <li><b>Starter R$ 97/mês</b> — 30 validações + PDF + Criador completo</li>
+  <li><b>Pro R$ 247/mês</b> — ilimitado + 5 usuários + suporte</li>
+</ul>
+<p>Use o cupom <b>EARLY30</b> para 30% off por 6 meses.</p>
+<p><a href="{frontend_url}/planos.html" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Ver planos →</a></p>"""
+    },
+    "d14": {
+        "subject": "🔒 Seu trial terminou — continue sem interrupção",
+        "html": """<h2>Olá {nome}, seu trial de 14 dias terminou.</h2>
+<p>Para continuar validando rótulos, escolha um plano:</p>
+<ul>
+  <li><b>Starter R$ 97/mês</b> — 30 validações + PDF + Criador</li>
+  <li><b>Pro R$ 247/mês</b> — ilimitado + multi-usuário</li>
+</ul>
+<p>Cupom <b>EARLY30</b> — 30% off nos primeiros 6 meses (expira em breve).</p>
+<p><a href="{frontend_url}/planos.html" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Assinar agora →</a></p>"""
+    },
+}
+
+async def _enviar_email_onboarding(email: str, nome: str, etapa: str) -> bool:
+    """Envia email de onboarding via Resend. Falha silenciosamente se não configurado."""
+    if not _RESEND_KEY:
+        return False
+    tpl = _EMAILS_ONBOARDING.get(etapa)
+    if not tpl:
+        return False
+    try:
+        html = tpl["html"].replace("{nome}", nome or "RT").replace("{frontend_url}", _FRONTEND_URL)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {_RESEND_KEY}",
+                         "Content-Type": "application/json"},
+                json={"from": _EMAIL_FROM, "to": [email],
+                      "subject": tpl["subject"], "html": html}
+            )
+            return r.status_code in (200, 201)
+    except Exception:
+        return False
+
+
+@app.post("/billing/enviar-emails-trial")
+async def enviar_emails_trial(request: Request):
+    """
+    Cron job diário — verifica usuários nos dias D3, D10, D14 do trial e envia emails.
+    Chamar diariamente via cron-job.org: POST /billing/enviar-emails-trial
+    """
+    if not _SUPABASE_ON:
+        return JSONResponse({"ok": False, "msg": "Supabase não configurado"},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        import datetime as _dt_trial
+        hoje = _dt_trial.datetime.now()
+
+        rows = await _sb_get("assinaturas", {"status": "trial"}, limit=500)
+        enviados = []
+
+        for row in rows:
+            trial_ends = row.get("trial_ends_at", "")
+            if not trial_ends:
+                continue
+            try:
+                ends_dt = _dt_trial.datetime.fromisoformat(trial_ends)
+                dias_restantes = (ends_dt - hoje).days
+                email = row.get("email", "")
+                nome  = row.get("nome", "")
+                uid   = row.get("user_id", "")
+
+                # Busca email/nome do user se não tiver na tabela
+                if not email and uid and _SUPABASE_ON:
+                    user_rows = await _sb_get("perfis_empresa", {"perfil_id": uid}, limit=1)
+                    if user_rows:
+                        email = user_rows[0].get("email", "")
+
+                etapa = None
+                if dias_restantes == 11:   etapa = "d3"
+                elif dias_restantes == 4:  etapa = "d10"
+                elif dias_restantes <= 0:  etapa = "d14"
+
+                if etapa and email:
+                    ok = await _enviar_email_onboarding(email, nome, etapa)
+                    if ok:
+                        enviados.append({"email": email, "etapa": etapa})
+            except Exception:
+                continue
+
+        return JSONResponse({"ok": True, "enviados": len(enviados), "detalhes": enviados},
+                            headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_9 — RATE LIMITING POR PLANO
+# Limites: trial/free=5/mês, starter=30/mês, pro=ilimitado
+# Contador: tabela uso_validacoes (user_id, ano_mes, contagem)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_LIMITES_PLANO = {
+    "trial":   5,
+    "free":    5,
+    "starter": 30,
+    "pro":     999999,
+    "":        5,  # sem plano = trial
+}
+
+async def _get_plano_usuario(user_id: str) -> str:
+    """Retorna o plano atual do usuário ('trial', 'starter', 'pro')."""
+    if not _SUPABASE_ON or not user_id:
+        return "trial"
+    try:
+        rows = await _sb_get("assinaturas", {"user_id": user_id}, limit=1)
+        if not rows:
+            return "trial"
+        row = rows[0]
+        status = row.get("status", "trial")
+        plano  = row.get("plano", "trial")
+        # Trial expirado → downgrade para free
+        if status == "trial":
+            import datetime as _dt_pl
+            trial_ends = row.get("trial_ends_at", "")
+            if trial_ends:
+                try:
+                    ends = _dt_pl.datetime.fromisoformat(trial_ends)
+                    if _dt_pl.datetime.now() > ends:
+                        return "free"
+                except Exception:
+                    pass
+        if status in ("cancelado", "pagamento_falhou"):
+            return "free"
+        return plano if plano in _LIMITES_PLANO else "trial"
+    except Exception:
+        return "trial"
+
+async def _checar_e_incrementar_uso(user_id: str) -> dict:
+    """
+    Verifica se o usuário ainda tem validações disponíveis e incrementa o contador.
+    Retorna: { ok: bool, usado: int, limite: int, plano: str }
+    """
+    import datetime as _dt_uso
+    if not user_id:
+        return {"ok": True, "usado": 0, "limite": 999999, "plano": "anonimo"}
+
+    plano  = await _get_plano_usuario(user_id)
+    limite = _LIMITES_PLANO.get(plano, 5)
+    ano_mes = _dt_uso.datetime.now().strftime("%Y-%m")
+
+    if not _SUPABASE_ON:
+        return {"ok": True, "usado": 0, "limite": limite, "plano": plano}
+
+    try:
+        rows = await _sb_get("uso_validacoes",
+                             {"user_id": user_id, "ano_mes": ano_mes}, limit=1)
+        contagem = rows[0].get("contagem", 0) if rows else 0
+
+        if contagem >= limite:
+            return {"ok": False, "usado": contagem, "limite": limite, "plano": plano,
+                    "msg": f"Limite de {limite} validações/mês atingido. "
+                           f"{'Faça upgrade para continuar.' if plano != 'pro' else 'Entre em contato.'}"}
+
+        # Incrementa
+        nova = contagem + 1
+        asyncio.ensure_future(_sb_upsert("uso_validacoes", {
+            "user_id": user_id,
+            "ano_mes": ano_mes,
+            "contagem": nova,
+            "plano": plano,
+            "updated_at": _dt_uso.datetime.now().isoformat(),
+        }))
+        return {"ok": True, "usado": nova, "limite": limite, "plano": plano}
+
+    except Exception:
+        return {"ok": True, "usado": 0, "limite": limite, "plano": plano}
+
+
+@app.get("/billing/uso/{user_id}")
+async def consultar_uso(user_id: str):
+    """Retorna uso atual do usuário no mês corrente."""
+    import datetime as _dt_cons
+    ano_mes = _dt_cons.datetime.now().strftime("%Y-%m")
+    plano   = await _get_plano_usuario(user_id)
+    limite  = _LIMITES_PLANO.get(plano, 5)
+    contagem = 0
+    if _SUPABASE_ON:
+        try:
+            rows = await _sb_get("uso_validacoes",
+                                 {"user_id": user_id, "ano_mes": ano_mes}, limit=1)
+            contagem = rows[0].get("contagem", 0) if rows else 0
+        except Exception:
+            pass
+    return JSONResponse({
+        "user_id":  user_id,
+        "plano":    plano,
+        "usado":    contagem,
+        "limite":   limite,
+        "restante": max(0, limite - contagem),
+        "ano_mes":  ano_mes,
+        "percentual": round(contagem / limite * 100) if limite < 999999 else 0,
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AUTH — Supabase Auth (email + senha)
@@ -6470,6 +7010,22 @@ async def auth_signup(request: Request):
             msg = "Este email já está cadastrado."
         return JSONResponse({"error": msg}, status_code=400,
                             headers={"Access-Control-Allow-Origin": "*"})
+
+    # M1_8 — Configura trial de 14 dias no Supabase + envia email D0
+    user_id = result.get("user", {}).get("id") or result.get("id", "")
+    if user_id and _SUPABASE_ON:
+        import datetime as _dt_reg
+        trial_ends = (_dt_reg.datetime.now() + _dt_reg.timedelta(days=14)).isoformat()
+        asyncio.ensure_future(_sb_upsert("assinaturas", {
+            "user_id":       user_id,
+            "plano":         "trial",
+            "status":        "trial",
+            "trial_ends_at": trial_ends,
+            "stripe_sub_id": "",
+            "stripe_cust_id":"",
+            "updated_at":    _dt_reg.datetime.now().isoformat(),
+        }))
+        asyncio.ensure_future(_enviar_email_onboarding(email, nome, "d0"))
 
     return JSONResponse({
         "ok": True,
@@ -6580,6 +7136,225 @@ async def _startup_background():
             _monitor_history = alerts
     except Exception:
         pass  # Supabase lento — continua in-memory
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# M1_7 — STRIPE: CHECKOUT + WEBHOOK + PORTAL DO CLIENTE
+# Env vars: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+# Price IDs: STRIPE_PRICE_STARTER_MENSAL, STRIPE_PRICE_PRO_MENSAL,
+#            STRIPE_PRICE_STARTER_ANUAL, STRIPE_PRICE_PRO_ANUAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_STRIPE_KEY     = os.environ.get("STRIPE_SECRET_KEY", "")
+_STRIPE_WHK_SEC = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+_STRIPE_PRICES  = {
+    "starter_mensal": os.environ.get("STRIPE_PRICE_STARTER_MENSAL", ""),
+    "starter_anual":  os.environ.get("STRIPE_PRICE_STARTER_ANUAL", ""),
+    "pro_mensal":     os.environ.get("STRIPE_PRICE_PRO_MENSAL", ""),
+    "pro_anual":      os.environ.get("STRIPE_PRICE_PRO_ANUAL", ""),
+}
+_FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://cosmic-llama-9576a5.netlify.app")
+
+
+@app.post("/billing/checkout")
+async def billing_checkout(request: Request):
+    """
+    Cria sessão de checkout Stripe.
+    Body: { plano: "starter"|"pro", cobranca: "mensal"|"anual",
+            email: str, user_id: str, cupom: str (opcional) }
+    """
+    if not _STRIPE_KEY:
+        return JSONResponse({"error": "Stripe não configurado. Adicione STRIPE_SECRET_KEY no Render."},
+                            status_code=503, headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body     = await request.json()
+        plano    = body.get("plano", "starter")
+        cobranca = body.get("cobranca", "mensal")
+        email    = body.get("email", "")
+        user_id  = body.get("user_id", "")
+        cupom    = body.get("cupom", "").strip().upper()
+
+        price_key = f"{plano}_{cobranca}"
+        price_id  = _STRIPE_PRICES.get(price_key, "")
+        if not price_id:
+            return JSONResponse({"error": f"Price ID não configurado para {price_key}. "
+                                          "Adicione STRIPE_PRICE_* no Render."},
+                                status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        payload: dict = {
+            "mode": "subscription",
+            "line_items": [{"price": price_id, "quantity": 1}],
+            "success_url": f"{_FRONTEND_URL}/planos.html?checkout=sucesso&plano={plano}",
+            "cancel_url":  f"{_FRONTEND_URL}/planos.html?checkout=cancelado",
+            "metadata":    {"user_id": user_id, "plano": plano, "cobranca": cobranca},
+        }
+        if email:
+            payload["customer_email"] = email
+        if cupom:
+            payload["discounts"] = [{"coupon": cupom}]
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(
+                "https://api.stripe.com/v1/checkout/sessions",
+                headers={"Authorization": f"Bearer {_STRIPE_KEY}",
+                         "Content-Type": "application/x-www-form-urlencoded"},
+                content="&".join(f"{k}={v}" for k, v in _flatten_stripe(payload).items())
+            )
+            data = r.json()
+
+        if r.status_code != 200:
+            return JSONResponse({"error": data.get("error", {}).get("message", "Erro Stripe")},
+                                status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        return JSONResponse({"url": data["url"], "session_id": data["id"]},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+def _flatten_stripe(obj: dict, prefix: str = "") -> dict:
+    """Converte dict aninhado para formato x-www-form-urlencoded do Stripe."""
+    result = {}
+    for k, v in obj.items():
+        key = f"{prefix}[{k}]" if prefix else k
+        if isinstance(v, dict):
+            result.update(_flatten_stripe(v, key))
+        elif isinstance(v, list):
+            for i, item in enumerate(v):
+                if isinstance(item, dict):
+                    result.update(_flatten_stripe(item, f"{key}[{i}]"))
+                else:
+                    result[f"{key}[{i}]"] = str(item)
+        elif isinstance(v, bool):
+            result[key] = "true" if v else "false"
+        elif v is not None:
+            result[key] = str(v)
+    return result
+
+
+@app.post("/billing/webhook")
+async def billing_webhook(request: Request):
+    """
+    Recebe eventos do Stripe e atualiza assinatura no Supabase.
+    Configurar no Stripe Dashboard → Webhooks → endpoint URL + eventos:
+      customer.subscription.created, .updated, .deleted
+      checkout.session.completed
+      invoice.payment_failed
+    """
+    payload = await request.body()
+    sig     = request.headers.get("stripe-signature", "")
+
+    # Verifica assinatura do webhook
+    if _STRIPE_WHK_SEC:
+        try:
+            import hmac, hashlib, time as _time
+            parts = {p.split("=")[0]: p.split("=")[1] for p in sig.split(",") if "=" in p}
+            ts    = parts.get("t", "0")
+            v1    = parts.get("v1", "")
+            signed_payload = f"{ts}.{payload.decode()}"
+            expected = hmac.new(_STRIPE_WHK_SEC.encode(),
+                                signed_payload.encode(), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(expected, v1):
+                return JSONResponse({"error": "Assinatura inválida"}, status_code=400)
+        except Exception:
+            pass  # Em dev sem secret, continua
+
+    try:
+        event = json.loads(payload)
+        etype = event.get("type", "")
+        data  = event.get("data", {}).get("object", {})
+
+        import datetime as _dt_wh
+
+        if etype == "checkout.session.completed":
+            user_id = data.get("metadata", {}).get("user_id", "")
+            plano   = data.get("metadata", {}).get("plano", "starter")
+            sub_id  = data.get("subscription", "")
+            if user_id and _SUPABASE_ON:
+                asyncio.ensure_future(_sb_upsert("assinaturas", {
+                    "user_id":          user_id,
+                    "plano":            plano,
+                    "status":           "ativo",
+                    "stripe_sub_id":    sub_id,
+                    "stripe_cust_id":   data.get("customer", ""),
+                    "updated_at":       _dt_wh.datetime.now().isoformat(),
+                }))
+
+        elif etype in ("customer.subscription.updated", "customer.subscription.deleted"):
+            sub_id = data.get("id", "")
+            status = "cancelado" if etype.endswith("deleted") else data.get("status", "ativo")
+            if sub_id and _SUPABASE_ON:
+                rows = await _sb_get("assinaturas", {"stripe_sub_id": sub_id}, limit=1)
+                if rows:
+                    asyncio.ensure_future(_sb_upsert("assinaturas", {
+                        **rows[0],
+                        "status":     status,
+                        "updated_at": _dt_wh.datetime.now().isoformat(),
+                    }))
+
+        elif etype == "invoice.payment_failed":
+            sub_id = data.get("subscription", "")
+            if sub_id and _SUPABASE_ON:
+                rows = await _sb_get("assinaturas", {"stripe_sub_id": sub_id}, limit=1)
+                if rows:
+                    asyncio.ensure_future(_sb_upsert("assinaturas", {
+                        **rows[0],
+                        "status":     "pagamento_falhou",
+                        "updated_at": _dt_wh.datetime.now().isoformat(),
+                    }))
+
+        return JSONResponse({"received": True})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=400)
+
+
+@app.post("/billing/portal")
+async def billing_portal(request: Request):
+    """
+    Cria sessão do portal do cliente Stripe (gerenciar assinatura).
+    Body: { user_id: str }
+    """
+    if not _STRIPE_KEY:
+        return JSONResponse({"error": "Stripe não configurado."},
+                            status_code=503, headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body    = await request.json()
+        user_id = body.get("user_id", "")
+
+        # Busca customer_id no Supabase
+        cust_id = ""
+        if _SUPABASE_ON and user_id:
+            rows = await _sb_get("assinaturas", {"user_id": user_id}, limit=1)
+            if rows:
+                cust_id = rows[0].get("stripe_cust_id", "")
+
+        if not cust_id:
+            return JSONResponse({"error": "Assinatura não encontrada para este usuário."},
+                                status_code=404, headers={"Access-Control-Allow-Origin": "*"})
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(
+                "https://api.stripe.com/v1/billing_portal/sessions",
+                headers={"Authorization": f"Bearer {_STRIPE_KEY}",
+                         "Content-Type": "application/x-www-form-urlencoded"},
+                content=f"customer={cust_id}&return_url={_FRONTEND_URL}/planos.html"
+            )
+            data = r.json()
+
+        if r.status_code != 200:
+            return JSONResponse({"error": data.get("error", {}).get("message", "Erro Stripe")},
+                                status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        return JSONResponse({"url": data["url"]},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
 
 @app.get("/")
 def health():
