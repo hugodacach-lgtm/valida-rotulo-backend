@@ -4916,6 +4916,342 @@ def _extrair_cores_logo(logo_b64: str) -> dict:
         return {"primaria": "#1a1a2e", "r": 26, "g": 26, "b": 46}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# D2 — TEMPLATE VISUAL: MEL E PRODUTOS APÍCOLAS
+# ═══════════════════════════════════════════════════════════════════════════════
+DESIGN_TEMPLATE_MEL = """
+═══════════════════════════════════════════════════════════════
+PARTE 7 — TEMPLATE VISUAL DA CATEGORIA: MEL E APÍCOLA
+═══════════════════════════════════════════════════════════════
+
+▶ PALETA OBRIGATÓRIA
+  Cor primária:    #D97706 (âmbar dourado)
+  Cor secundária:  #F59E0B (mel claro, gradiente)
+  Cor de acento:   #92400E (marrom terra, textos e bordas)
+  Fundo zona técnica: #FFFBEB (creme levemente amarelado)
+  Texto principal: #1C1917 (quase preto — boa leitura sobre fundo claro)
+  Destaque claim:  #FFFFFF sobre fundo âmbar
+
+▶ PADRÃO DE FUNDO — FAVOS HEXAGONAIS (obrigatório na zona emocional)
+  Gere um padrão de hexágonos regulares no fundo da zona emocional usando <polygon> SVG.
+  Hexágono padrão: 6 pontos, raio≈18px, stroke=#F59E0B, strokeWidth=0.8, fill=none (ou fill=#F59E0B opacity=0.08)
+  Distribua em grelha offset (linhas pares deslocadas +15px no x) para criar padrão real de favo.
+  Área de cobertura: toda a zona emocional (40% esquerda do rótulo retangular).
+  O padrão deve ser sutil — fundo, não destaque.
+
+▶ ELEMENTO GRÁFICO PRINCIPAL — GOTA DE MEL
+  Posição: zona emocional, centralizada abaixo da logo.
+  Forma: path SVG de gota invertida — arredondada em baixo, ponta em cima.
+  Exemplo de path aproximado: M cx,y-40 C cx+30,y-40 cx+30,y+10 cx,y+30 C cx-30,y+10 cx-30,y-40 cx,y-40 Z
+  Fill: gradiente radial de #F59E0B (centro) para #D97706 (borda).
+  Sombra suave: feDropShadow dx=0 dy=3 stdDeviation=4 flood-color=#92400E opacity=0.25.
+  Tamanho: ≈ 60×80px — presença visual forte mas não dominante.
+
+▶ ELEMENTO SECUNDÁRIO — ABELHA ESTILIZADA (opcional, se espaço permitir)
+  Abelha simplificada com 3 elements SVG: corpo oval (#1C1917), asas (ellipse translúcido #BFDBFE), listras (rect amarelas).
+  Posição: canto superior direito da zona emocional ou acima da gota.
+  Tamanho: ≈ 30×20px — discreto.
+
+▶ TIPOGRAFIA
+  Nome do produto: font-family="Georgia, 'Times New Roman', serif" — elegante, artesanal
+  Sub-denominação: font-family="Arial, Helvetica, sans-serif" weight=400 — legível
+  Claim: font-family="Georgia, serif" font-style="italic" — romantismo natural
+  Dados técnicos (ingredientes, tabela): font-family="Arial, Helvetica, sans-serif" size=8-9px
+
+▶ CLAIM VISUAL — usar um destes:
+  "Mel puro de abelhas brasileiras"
+  "Naturalmente doce, genuinamente brasileiro"
+  "Do apiário para sua mesa"
+  Posição: abaixo da gota de mel, centralizado, italic, cor #92400E, 11px.
+
+▶ CONTEÚDO LÍQUIDO — destaque visual obrigatório
+  Caixa com borda arredondada (rx=6), fill=#D97706, texto branco bold 16px.
+  Exemplo: rect + text centralizado mostrando "500g" ou "1kg".
+
+▶ ZONA TÉCNICA — diferencial apícola
+  Fundo #FFFBEB (creme mel) — não branco puro.
+  Separador entre ingredientes e tabela: linha de hexágonos pequenos (≈8px) em #F59E0B.
+  Header da tabela nutricional: fill=#D97706, texto branco.
+  Carimbo oval: stroke=#92400E, texto #92400E.
+
+▶ SELOS / BADGES (se espaço)
+  Badge "100% NATURAL" — círculo pequeno, fill=#D97706, texto branco 7px bold.
+  Badge "SEM CONSERVANTES" — mesmo estilo.
+  Posição: zona emocional, canto inferior.
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# D3 — TEMPLATE VISUAL: EMBUTIDOS E CARNES (LINGUIÇA, SALAME, PRESUNTO)
+# ═══════════════════════════════════════════════════════════════════════════════
+DESIGN_TEMPLATE_EMBUTIDOS = """
+═══════════════════════════════════════════════════════════════
+PARTE 7 — TEMPLATE VISUAL DA CATEGORIA: EMBUTIDOS E CARNES
+═══════════════════════════════════════════════════════════════
+
+▶ PALETA OBRIGATÓRIA
+  Cor primária:    #991B1B (vermelho cárneo intenso)
+  Cor secundária:  #7F1D1D (vinho escuro — gradiente e sombras)
+  Cor de acento:   #B45309 (âmbar/marrom — detalhes e bordas)
+  Fundo zona técnica: #FAFAFA (quase branco)
+  Fundo zona emocional: gradiente linear de #991B1B (topo) → #7F1D1D (base)
+  Texto sobre fundo escuro: #FFFFFF
+  Texto técnico: #1C1917
+
+▶ TEXTURA DE FUNDO — MADEIRA RÚSTICA (zona emocional)
+  Simule textura de madeira com linhas diagonais finas em SVG:
+  Gere 15-20 linhas diagonais (45°) com stroke=#7F1D1D opacity=0.15, strokeWidth=1.
+  Espaçamento entre linhas: ≈ 18px.
+  Sobreposição: um retângulo com fill=#991B1B opacity=0.85 sobre as linhas — cria efeito de madeira vista através de verniz escuro.
+
+▶ ELEMENTO GRÁFICO PRINCIPAL — SILHUETA DE ANIMAL OU CORTE TRANSVERSAL
+  OPÇÃO A (linguiça/salame): círculo com padrão interno de "corte transversal" — circles concêntricos em tons de vermelho/marrom simulando textura de embutido fatiado.
+    Círculo externo: r=45px fill=#7F1D1D
+    Círculo meio: r=35px fill=#991B1B
+    Círculo interno: r=20px fill=#B45309
+    Pontos irregulares (simulando gordura): circles r=3-5px fill=#FED7AA opacity=0.6 distribuídos.
+  OPÇÃO B (presunto/pernil): silhueta simplificada de pernil usando path orgânico, fill=#7F1D1D opacity=0.4.
+  Posição: zona emocional, centralizada. Tamanho: ≈ 90×90px.
+
+▶ TIPOGRAFIA — BOLD E INDUSTRIAL
+  Nome do produto: font-family="Arial Black, Impact, sans-serif" font-weight="900"
+    Letras em caixa alta, letra-espaçamento ligeiramente expandido (letter-spacing=1).
+  Sub-denominação: font-family="Arial, Helvetica, sans-serif" weight=700 uppercase.
+  Claim: font-family="Arial, Helvetica, sans-serif" weight=400 italic branco.
+  Dados técnicos: font-family="Arial, Helvetica, sans-serif" size=8-9px.
+
+▶ CLAIM VISUAL — usar um destes:
+  "Selecionado campo a campo"
+  "Tradição no sabor desde sempre"
+  "Feito com carnes selecionadas"
+  "Receita de família, qualidade de indústria"
+  Posição: abaixo da denominação, branco, italic, 10-11px.
+
+▶ FAIXA DE ACENTO HORIZONTAL
+  Linha/faixa horizontal de 4px, fill=#B45309, atravessando toda a largura da zona emocional.
+  Posição: entre o nome do produto e o claim — separa e organiza a hierarquia.
+
+▶ CONTEÚDO LÍQUIDO — destaque visual obrigatório
+  Caixa no canto inferior da zona emocional.
+  fill=#B45309, bordas retas (rx=2), texto branco bold 14px.
+
+▶ CARIMBO OVAL — integração visual forte
+  Para embutidos, o carimbo é elemento de credibilidade — dar destaque.
+  Tamanho ligeiramente maior que o padrão: rx=35, ry=22.
+  Borda dupla: stroke externo=#991B1B 3px + stroke interno=#991B1B 1px, separados por 3px.
+  fill=white. Texto em #991B1B bold.
+  Posição: zona emocional, canto inferior — não na zona técnica.
+
+▶ ZONA TÉCNICA
+  Header tabela nutricional: fill=#991B1B, texto branco.
+  Linhas alternadas: #FFFFFF e #FFF5F5 (levemente rosado).
+  Separador ingredientes/tabela: linha 1px #991B1B opacity=0.3.
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# D4 — TEMPLATE VISUAL: LATICÍNIOS (QUEIJO, IOGURTE, REQUEIJÃO)
+# ═══════════════════════════════════════════════════════════════════════════════
+DESIGN_TEMPLATE_LATICINIOS = """
+═══════════════════════════════════════════════════════════════
+PARTE 7 — TEMPLATE VISUAL DA CATEGORIA: LATICÍNIOS
+═══════════════════════════════════════════════════════════════
+
+▶ PALETA OBRIGATÓRIA
+  Cor primária:    #1E40AF (azul confiança — laticínios BR)
+  Cor secundária:  #DBEAFE (azul muito claro — fundos e gradientes)
+  Cor de acento:   #10B981 (verde frescor — claims e badges)
+  Fundo zona emocional: gradiente linear #1E40AF (topo) → #1D4ED8 (base)
+  Fundo zona técnica: #F8FAFF (azul quase branco)
+  Texto sobre fundo azul: #FFFFFF
+  Texto técnico: #1E3A5F
+
+▶ ELEMENTO GRÁFICO PRINCIPAL — GOTA DE LEITE
+  Gota de leite caindo: forma clássica, ponta para cima, arredondada embaixo.
+  Path: similar à gota de mel mas proporcões mais alongadas.
+  Fill: branco (#FFFFFF) com opacidade 0.9.
+  Reflexo interno: elipse pequena no canto superior esquerdo, fill=branco opacity=0.6 — efeito 3D.
+  Sombra: feDropShadow dx=0 dy=4 stdDeviation=6 flood-color=#1E40AF opacity=0.3.
+  Tamanho: ≈ 55×75px. Posição: zona emocional, centralizada.
+
+▶ ELEMENTO SECUNDÁRIO — PASTAGEM / NATUREZA
+  3-4 formas orgânicas simples (colinas suaves) no rodapé da zona emocional.
+  Paths suaves (curvas Bezier), fill=#DBEAFE opacity=0.2 — sugestão de campo verde/azul.
+  Efeito: horizonte natural, produto ligado à natureza.
+
+▶ TIPOGRAFIA — CLEAN E CONFIÁVEL
+  Nome do produto: font-family="'Montserrat', Arial, sans-serif" weight=700
+    Letras title-case (não tudo maiúsculo) — transmite modernidade e cuidado.
+  Sub-denominação: font-family="Arial, Helvetica, sans-serif" weight=400 branco opacity=0.9.
+  Claim: font-family="'Montserrat', Arial, sans-serif" weight=300 italic branco.
+  Dados técnicos: font-family="Arial, Helvetica, sans-serif" size=8-9px #1E3A5F.
+
+▶ CLAIM VISUAL — usar um destes por tipo:
+  Queijo: "Cremoso. Natural. Perfeito."
+  Iogurte: "Probióticos naturais para o seu dia"
+  Leite: "Do campo para sua família"
+  Requeijão: "Cremosidade que abraça"
+  Manteiga/ghee: "Puro sabor da natureza"
+  Posição: abaixo da denominação, branco, 300 weight, italic, 10px.
+
+▶ LINHA DIVISÓRIA — ONDAS
+  Em vez de linha reta, use um path de onda suave como divisória entre zona emocional e técnica:
+  Path de senoide suave com 3-4 ondas, fill=#DBEAFE, altura ≈ 12px.
+  Isso cria transição orgânica que remete a líquido/leite.
+
+▶ CONTEÚDO LÍQUIDO
+  Pill/badge arredondado (rx=12), fill=#10B981 (verde), texto branco bold 14px.
+  Posição: zona emocional, canto inferior esquerdo.
+
+▶ ZONA TÉCNICA
+  Header tabela nutricional: fill=#1E40AF, texto branco.
+  Linhas alternadas: #FFFFFF e #F0F4FF (azul muito suave).
+  Badge "FONTE DE CÁLCIO" (se aplicável): pequeno, fill=#10B981, texto branco 7px.
+  Carimbo oval: stroke=#1E40AF, texto #1E40AF.
+
+▶ BADGES DE ATRIBUTO (zona emocional, canto inferior)
+  "SEM CONSERVANTES" — pill pequeno, fill=branco opacity=0.2, texto branco 7px.
+  "RICO EM PROTEÍNAS" — idem.
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# D5 — TEMPLATE VISUAL: PESCADO (TILÁPIA, SALMÃO, CAMARÃO, ATUM)
+# ═══════════════════════════════════════════════════════════════════════════════
+DESIGN_TEMPLATE_PESCADO = """
+═══════════════════════════════════════════════════════════════
+PARTE 7 — TEMPLATE VISUAL DA CATEGORIA: PESCADO
+═══════════════════════════════════════════════════════════════
+
+▶ PALETA OBRIGATÓRIA
+  Cor primária:    #0369A1 (azul oceano profundo)
+  Cor secundária:  #7DD3FC (azul água claro)
+  Cor de acento:   #0EA5E9 (ciano vibrante — detalhes e ação)
+  Cor quente:      #F97316 (laranja coral — contraste e apetência)
+  Fundo zona emocional: gradiente linear #0369A1 (topo) → #0C4A6E (base)
+  Fundo zona técnica: #F0F9FF (azul céu pálido)
+  Texto sobre fundo escuro: #FFFFFF
+  Texto técnico: #0C4A6E
+
+▶ PADRÃO DE FUNDO — ONDAS (zona emocional)
+  Gere 4-5 ondas SVG (paths senoidais suaves) no fundo da zona emocional.
+  Ondas em profundidade: as mais altas são #7DD3FC opacity=0.1, as mais baixas #0EA5E9 opacity=0.06.
+  Cada onda desloca ≈ 20px verticalmente da anterior.
+  Ondas criam sensação de movimento e frescor aquático.
+
+▶ ELEMENTO GRÁFICO PRINCIPAL — PEIXE ESTILIZADO
+  Peixe simplificado com 2 elements SVG:
+    Corpo: ellipse alongada, fill branco opacity=0.15, largura≈80px altura≈35px.
+    Cauda: path triangular, fill branco opacity=0.12.
+    Olho: circle r=4, fill=#F97316.
+    Escamas hint: 3-4 arcos (path de semicírculo) sobre o corpo, stroke=branco opacity=0.1.
+  Tamanho total: ≈ 95×45px. Posição: zona emocional, centralizada.
+  Efeito: elegante, não cartunesco.
+
+▶ ELEMENTO ALTERNATIVO (para atum em lata / conserva)
+  Lata estilizada: rect arredondado com linhas horizontais de textura metálica.
+  Fill: gradiente linear de #7DD3FC → #0369A1.
+
+▶ TIPOGRAFIA — CLEAN E MODERNO
+  Nome do produto: font-family="'Oswald', Arial Narrow, sans-serif" — condensado, impacto vertical.
+  Se Oswald não disponível: Arial Narrow ou simplesmente scaleX(0.85) em Arial.
+  Sub-denominação: font-family="Arial, sans-serif" weight=300 branco opacity=0.85.
+  Claim: font-family="Arial, sans-serif" weight=300 italic branco opacity=0.9.
+  Dados técnicos: font-family="Arial, sans-serif" size=8-9px #0C4A6E.
+
+▶ CLAIM VISUAL — usar um destes por tipo:
+  Peixe fresco/tilápia: "Fresco da água para sua mesa"
+  Salmão: "Proteína nobre do oceano"
+  Camarão: "Do mar para sua receita"
+  Atum em conserva: "Selecionado no ápice do frescor"
+  Geral: "Sabor que vem do mar"
+  Posição: abaixo do peixe estilizado, branco italic 10px.
+
+▶ FAIXA DE ACENTO — CORAL
+  Linha/faixa de 3px fill=#F97316 atravessando a zona emocional horizontalmente.
+  Posição: entre a denominação e o claim.
+  Cria contraste quente que remete ao produto (carne de peixe, camarão).
+
+▶ CONTEÚDO LÍQUIDO
+  Badge ciano: rx=4, fill=#0EA5E9, texto branco bold 14px.
+  Ou: caixa com borda #F97316, fill transparente, texto #F97316 bold.
+
+▶ ZONA TÉCNICA
+  Header tabela nutricional: fill=#0369A1, texto branco.
+  Linhas alternadas: #FFFFFF e #E0F2FE (azul água pálido).
+  Badge "RICO EM ÔMEGA-3" (se aplicável): fill=#0EA5E9, texto branco 7px.
+  Badge "PROTEÍNA MAGRA": fill=#10B981, texto branco 7px.
+  Carimbo oval: stroke=#0369A1, texto #0369A1.
+
+▶ PARA CONSERVAS (atum, sardinha em lata):
+  Adicionar elemento "conserva" — tampa de lata estilizada no topo da zona emocional.
+  Linhas metálicas sutis no fundo da zona técnica: stroke=#7DD3FC opacity=0.1.
+"""
+
+# Mapeamento categoria → template
+DESIGN_TEMPLATES = {
+    # Mel e apícola
+    "mel":              DESIGN_TEMPLATE_MEL,
+    "mel_qualidade":    DESIGN_TEMPLATE_MEL,
+    "apicola_derivados":DESIGN_TEMPLATE_MEL,
+
+    # Embutidos e carnes
+    "embutidos":        DESIGN_TEMPLATE_EMBUTIDOS,
+    "salame":           DESIGN_TEMPLATE_EMBUTIDOS,
+    "presunto":         DESIGN_TEMPLATE_EMBUTIDOS,
+    "hamburguer":       DESIGN_TEMPLATE_EMBUTIDOS,
+    "bacon":            DESIGN_TEMPLATE_EMBUTIDOS,
+    "carne_moida":      DESIGN_TEMPLATE_EMBUTIDOS,
+    "charque":          DESIGN_TEMPLATE_EMBUTIDOS,
+    "fiambre":          DESIGN_TEMPLATE_EMBUTIDOS,
+    "apresuntado":      DESIGN_TEMPLATE_EMBUTIDOS,
+    "carne_maturada":   DESIGN_TEMPLATE_EMBUTIDOS,
+    "carnes_temperadas":DESIGN_TEMPLATE_EMBUTIDOS,
+    "jerked_beef":      DESIGN_TEMPLATE_EMBUTIDOS,
+    "carne_sol":        DESIGN_TEMPLATE_EMBUTIDOS,
+    "frango_inteiro":   DESIGN_TEMPLATE_EMBUTIDOS,
+    "almondega_kibe":   DESIGN_TEMPLATE_EMBUTIDOS,
+    "pato_pronto_poa":  DESIGN_TEMPLATE_EMBUTIDOS,
+    "corned_beef":      DESIGN_TEMPLATE_EMBUTIDOS,
+
+    # Laticínios
+    "laticinios_geral":       DESIGN_TEMPLATE_LATICINIOS,
+    "queijo_coalho_manteiga": DESIGN_TEMPLATE_LATICINIOS,
+    "mussarela":              DESIGN_TEMPLATE_LATICINIOS,
+    "leite_uht":              DESIGN_TEMPLATE_LATICINIOS,
+    "leite_pasteurizado":     DESIGN_TEMPLATE_LATICINIOS,
+    "doce_de_leite":          DESIGN_TEMPLATE_LATICINIOS,
+    "leite_fermentado":       DESIGN_TEMPLATE_LATICINIOS,
+    "requeijao":              DESIGN_TEMPLATE_LATICINIOS,
+    "leite_em_po":            DESIGN_TEMPLATE_LATICINIOS,
+    "leite_condensado":       DESIGN_TEMPLATE_LATICINIOS,
+    "bebida_lactea":          DESIGN_TEMPLATE_LATICINIOS,
+    "soro_leite":             DESIGN_TEMPLATE_LATICINIOS,
+    "leite_aromatizado":      DESIGN_TEMPLATE_LATICINIOS,
+    "composto_lacteo":        DESIGN_TEMPLATE_LATICINIOS,
+    "nata":                   DESIGN_TEMPLATE_LATICINIOS,
+    "queijo_provolone":       DESIGN_TEMPLATE_LATICINIOS,
+    "queijo_parmesao":        DESIGN_TEMPLATE_LATICINIOS,
+    "queijo_prato":           DESIGN_TEMPLATE_LATICINIOS,
+    "queijo_processado":      DESIGN_TEMPLATE_LATICINIOS,
+
+    # Pescado
+    "pescado_fresco":       DESIGN_TEMPLATE_PESCADO,
+    "pescado_congelado":    DESIGN_TEMPLATE_PESCADO,
+    "pescado_salgado":      DESIGN_TEMPLATE_PESCADO,
+    "camarao":              DESIGN_TEMPLATE_PESCADO,
+    "lagosta":              DESIGN_TEMPLATE_PESCADO,
+    "moluscos_cefalopodes": DESIGN_TEMPLATE_PESCADO,
+    "conserva_sardinha":    DESIGN_TEMPLATE_PESCADO,
+    "conserva_sardinhas":   DESIGN_TEMPLATE_PESCADO,
+    "conserva_atum":        DESIGN_TEMPLATE_PESCADO,
+    "conserva_atuns":       DESIGN_TEMPLATE_PESCADO,
+    "conserva_peixe":       DESIGN_TEMPLATE_PESCADO,
+    "conserva_peixes":      DESIGN_TEMPLATE_PESCADO,
+}
+
+def get_design_template(categoria: str) -> str:
+    """Retorna o template de design para a categoria detectada."""
+    return DESIGN_TEMPLATES.get(categoria, "")
+
+
 SP_DESIGN_ROTULO = """Você é um diretor de arte sênior de uma agência de branding especializada em embalagens de alimentos brasileiros. Seus trabalhos estão nas prateleiras de supermercados como Carrefour, Pão de Açúcar e Assaí. Você já criou identidades para marcas como Sadia, Perdigão, Vigor e Parati.
 
 RETORNE APENAS O CÓDIGO SVG. Nenhuma palavra antes ou depois. Nenhum markdown. Nenhum comentário fora do SVG.
@@ -5089,6 +5425,8 @@ PARTE 6 — QUALIDADE DO SVG (PADRÃO TÉCNICO)
 
 {evite_rules}
 
+{design_template}
+
 ═══════════════════════════════════════════════════════════════
 DADOS DO RÓTULO A GERAR
 ═══════════════════════════════════════════════════════════════
@@ -5164,10 +5502,15 @@ async def gerar_design_rotulo(request: Request):
             .replace("{gluten}", campos.get("gluten", ""))
             .replace("{lactose}", campos.get("lactose", ""))
             .replace("{evite_rules}", "")
+            .replace("{design_template}", design_template)
         )
 
         # Sistema 1: busca referências visuais da categoria
         categoria_design = campos.get("categoria", "outro")
+
+        # D2-D5: injeta template visual da categoria
+        design_template = get_design_template(categoria_design)
+
         refs = await _get_referencias_para_design(categoria_design, campos.get("orgao_sigla", ""))
         
         # Sistema 2: carrega regras EVITE acumuladas do feedback
