@@ -922,6 +922,85 @@ CAMPO 8 — CARIMBO SIE:
 • Produtos fabricados nesses estados que circulam APENAS no estado de origem"""
 
 
+RIISPOA_RJ_FALLBACK = """
+━━━ RIISPOA-RJ — Decreto Estadual 49.643/2025 (SIE/RJ) ━━━━━━━━━━━━━━━━━━━━━
+
+ÂMBITO: Aplica-se a todos os estabelecimentos POA com comércio INTRAESTADUAL no RJ.
+Órgão: SIE/RJ — COOIPOA/SUPDA/SEAPPA-RJ
+Publicação: DOERJ 26/05/2025 | Vigência: imediata
+
+── IDENTIFICAÇÃO DO ÓRGÃO NO RÓTULO (Art. 17 §XLII + Art. 8 V) ──────────────
+• Carimbo do SIE/RJ deve conter "SIE/RJ" + número do estabelecimento registrado na COOIPOA
+• Formato oval obrigatório (mesmo padrão federal — RIISPOA-RJ adota o padrão do Decreto 9.013/2017)
+• Produto do SIE/RJ só pode circular no Estado do RJ, salvo se aderido ao SISBI-POA (Art. 25 §1°)
+• Se produto tiver carimbo SIE/RJ e declarar venda nacional → ❌ NÃO CONFORME, salvo SISBI ativo
+• Verificar: após transferência de empresa, rótulos da firma anterior invalidados — prazo máx. 6 meses (Art. 37)
+
+── SIGLA NO RÓTULO ────────────────────────────────────────────────────────────
+• Sigla correta: "SIE/RJ" ou "SIE RJ" + número do registro na COOIPOA
+• Sigla SEAPPA/RJ (secretaria) ≠ carimbo de inspeção — não aceitar SEAPPA como substituto do carimbo
+• COOIPOA é a coordenadoria, não a sigla do carimbo
+
+── LEITE E DERIVADOS — EXIGÊNCIAS ESPECÍFICAS RJ (Arts. 240-270) ─────────────
+• Temperatura de conservação — leite pasteurizado até o consumidor: máx. 7°C (Art. 265 IV)
+  → Campo 7: "Manter refrigerado a no máximo 7°C" ou "Conservar abaixo de 7°C"
+• Temperatura no estabelecimento (pós-pasteurização): máx. 5°C (Art. 265 III)
+• Leite UHT/UAT: temperatura ambiente — sem refrigeração antes da abertura
+• Composição mínima leite in natura (Art. 255):
+  - Gordura: mín. 3,0g/100g
+  - Proteína total: mín. 2,9g/100g
+  - Lactose anidra: mín. 4,3g/100g
+  - Sólidos não gordurosos: mín. 8,4g/100g
+  - Sólidos totais: mín. 11,4g/100g
+• Leite misto de espécies (Art. 242 §2°): obrigatório declarar % de cada espécie no rótulo
+  → Ex: "Leite de Vaca (70%) e Leite de Cabra (30%)" — denominação e % obrigatórios
+• PROIBIDO: reutilização de sal, leite de fêmeas em tratamento, desnate parcial na propriedade
+
+── PESCADO — EXIGÊNCIAS ESPECÍFICAS RJ (Arts. 207-223) ──────────────────────
+• Pescado fresco: verificar temperatura Campo 7 — obrigatório 0°C a 4°C (gelo/refrigerado)
+• Temperatura para consumo cru (sushi/sashimi): congelamento prévio a -20°C por 7+ dias
+  ou -35°C por 15h para eliminação de Anisakidae (Art. 222 §1°)
+• Nome científico no rótulo: obrigatório para pescado (tilápia, salmão, camarão etc.)
+• Moluscos bivalves: vivos na embalagem; estação depuradora RJ deve estar registrada na COOIPOA
+• Camarão: se congelado, verificar % de glaze declarado (cobertura de gelo)
+
+── OVOS — EXIGÊNCIAS ESPECÍFICAS RJ (Arts. 224-239) ─────────────────────────
+• Categoria "A" obrigatória para consumo direto — verificar declaração no rótulo (Art. 231)
+• Categoria "B": apenas para industrialização — se rótulo declarar "consumo direto" com categoria B → ❌
+• Câmara de ar máx. 6mm para ovos categoria A (Art. 232 II)
+• PROIBIDO misturar ovos frescos com ovos conservados na mesma embalagem (Art. 238 I)
+• PROIBIDO misturar ovos de espécies diferentes na mesma embalagem (Art. 238 II)
+• Granja avícola RJ: deve estar registrada na COOIPOA E no serviço oficial de saúde animal (Art. 229)
+
+── PRODUTOS DE ABELHAS — EXIGÊNCIAS ESPECÍFICAS RJ (Arts. 271-276) ──────────
+• Mel de abelhas sem ferrão (meliponíneos): deve ser de meliponários autorizados pelo órgão ambiental RJ (Art. 276)
+• Se produto for "mel de abelha sem ferrão" (jataí, mandaçaia, etc.): verificar denominação específica
+• Descristalização/pasteurização: binômio tempo/temperatura deve constar no processo (não no rótulo)
+• Rastreabilidade: estabelecimento deve ter cadastro de produtores rurais fornecedores (Art. 274)
+
+── ADITIVOS E INGREDIENTES (Arts. 277-281) ───────────────────────────────────
+• Aditivos: somente os autorizados pelo MAPA E ANVISA podem ser usados — lista dupla de verificação
+• Sal: deve ser isento de substâncias estranhas (Art. 279)
+• PROIBIDO: recuperação de salmoura para produtos comestíveis sem aprovação (Art. 280)
+• RTIQs: devem ser os federais do MAPA ou, em casos específicos, normas complementares estaduais da COOIPOA (Art. 281)
+
+── CARIMBO E RASTREABILIDADE (Arts. 29, 37, 38) ─────────────────────────────
+• Cancelamento de registro → carimbo deve ser recolhido + rótulos inutilizados (Art. 38 §2°)
+• Transferência de empresa: rótulos da firma anterior podem ser usados por máx. 6 meses com acordo (Art. 37)
+• Número de registro é único por unidade fabril no território estadual (Art. 29 parágrafo único)
+
+── CHECKLIST SIE/RJ — itens adicionais vs SIF ───────────────────────────────
+□ Carimbo contém "SIE/RJ" + número do estabelecimento na COOIPOA
+□ Jurisdição de venda declarada está dentro do RJ (ou SISBI ativo para nacional)
+□ Temperatura do Campo 7 está dentro dos limites do RIISPOA-RJ (leite ≤7°C, pescado 0-4°C)
+□ Leite misto de espécies declara % de cada espécie
+□ Ovos com categoria declarada (A para consumo direto)
+□ Mel de abelha sem ferrão menciona espécie se aplicável
+□ Nome científico presente para pescado
+
+Fonte: Decreto Estadual RJ 49.643/2025 | DOERJ 26/05/2025 | COOIPOA/SEAPPA-RJ
+"""
+
 SIE_ESTADO_MAP = {
     # Estados com normas específicas relevantes
     "RS": CISPOA_RS_FALLBACK, "CISPOA": CISPOA_RS_FALLBACK,
@@ -929,6 +1008,7 @@ SIE_ESTADO_MAP = {
     "MG": IMA_MG_FALLBACK,    "IMA": IMA_MG_FALLBACK,
     "SC": CIDASC_SC_FALLBACK, "CIDASC": CIDASC_SC_FALLBACK,
     "PR": ADAPAR_PR_FALLBACK, "ADAPAR": ADAPAR_PR_FALLBACK,
+    "RJ": RIISPOA_RJ_FALLBACK, "COOIPOA": RIISPOA_RJ_FALLBACK, "SEAPPA": RIISPOA_RJ_FALLBACK,
     # 21 estados restantes — normas gerais SIE
     "AC": SIE_OUTROS_ESTADOS_FALLBACK, "IDAF": SIE_OUTROS_ESTADOS_FALLBACK,
     "AL": SIE_OUTROS_ESTADOS_FALLBACK, "ADEAL": SIE_OUTROS_ESTADOS_FALLBACK,
@@ -946,7 +1026,7 @@ SIE_ESTADO_MAP = {
     "PB": SIE_OUTROS_ESTADOS_FALLBACK,
     "PE": SIE_OUTROS_ESTADOS_FALLBACK, "ADAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
     "PI": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPI": SIE_OUTROS_ESTADOS_FALLBACK,
-    "RJ": SIE_OUTROS_ESTADOS_FALLBACK, "PESAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
+    "PESAGRO": SIE_OUTROS_ESTADOS_FALLBACK,  # RJ agora tem RIISPOA_RJ_FALLBACK específico (ver acima)
     "RN": SIE_OUTROS_ESTADOS_FALLBACK,
     "RO": SIE_OUTROS_ESTADOS_FALLBACK, "IDARON": SIE_OUTROS_ESTADOS_FALLBACK,
     "RR": SIE_OUTROS_ESTADOS_FALLBACK, "ADERR": SIE_OUTROS_ESTADOS_FALLBACK,
