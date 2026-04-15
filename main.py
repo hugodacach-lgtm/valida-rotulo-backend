@@ -1034,7 +1034,437 @@ SIE_ESTADO_MAP = {
     "TO": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPEC": SIE_OUTROS_ESTADOS_FALLBACK,
 }
 
-async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP1 — SUCOS, NÉCTARES E BEBIDAS DE FRUTAS
+# RDC 173/2006 + IN MAPA 37/2018 + Decreto 6.871/2009
+# ═══════════════════════════════════════════════════════════════════════════════
+NP1_SUCOS_FALLBACK = """SUCOS, NÉCTARES E BEBIDAS DE FRUTAS — RDC 173/2006 + IN MAPA 37/2018 + Decreto 6.871/2009
+
+DENOMINAÇÕES OBRIGATÓRIAS (Campo 1):
+• SUCO INTEGRAL: 100% fruta, sem adição de água, açúcar ou aditivos
+  → Denominação: "Suco Integral de [fruta]" — ex: "Suco Integral de Laranja"
+  → 'Suco de uva' com <100% suco = FRAUDE — alertar como ❌ NÃO CONFORME
+• SUCO RECONSTITUÍDO: suco concentrado + água, sem açúcar
+  → Denominação: "Suco de [fruta]" — ex: "Suco de Maçã"
+• NÉCTAR: mín. 30-50% suco dependendo da fruta (pode ter açúcar)
+  → Laranja/maçã/uva: mín. 50% | Maracujá/acerola: mín. 30%
+  → Denominação: "Néctar de [fruta]"
+• REFRESCO / BEBIDA DE FRUTA: mín. 10% de suco (pode ter açúcar)
+  → Denominação: "Refresco de [fruta]" ou "Bebida de [fruta]"
+• POLPA DE FRUTA: produto não diluído, obtido por despolpamento
+• ❌ PROIBIDO: usar "suco" sem ser 100% fruta — é fraude e embargável
+
+CAMPO 2 — INGREDIENTES:
+• Suco integral: declarar apenas "Suco integral de [fruta]" — sem mais nada
+• Néctar: declarar "Suco de [fruta] (X%)", água, açúcar (se houver)
+• Refresco: declarar % de suco obrigatoriamente
+• Vitamina C / ácido ascórbico: declarar como "Antioxidante: Ácido Ascórbico (INS 300)"
+• Conservantes: benzoato e sorbato autorizados apenas em refrescos, não em sucos integrais
+• Corantes: PROIBIDOS em sucos integrais — apenas em refrescos/néctares com autorização
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão (IN 75/2020): SUCO = 200mL | NÉCTAR = 200mL | REFRESCO = 200mL
+• Valores TACO por 100mL:
+  SUCO DE LARANJA 100%: kcal 43-50 | Carb 9-12g | Açúcares 8-11g | Sódio 0-5mg
+  SUCO DE UVA 100%: kcal 60-72 | Carb 14-18g | Açúcares 14-17g
+  SUCO DE MAÇÃ 100%: kcal 45-55 | Carb 10-13g | Açúcares 9-12g
+  NÉCTAR DE MARACUJÁ: kcal 35-55 | Carb 8-13g (pode ter açúcar adicionado)
+  SUCO DE ACEROLA: kcal 35-45 | Vit C: altíssimo (800-1000mg/100mL)
+
+ALERTAS CRÍTICOS:
+• Suco com Sódio >5mg/100mL → suspeita de adulteração ou adição de conservante
+• Suco integral com açúcar na lista → ❌ NÃO CONFORME — não pode ser chamado integral
+• Néctar sem % de suco declarado → ❌ NÃO CONFORME (IN 37/2018 Art. 6°)
+• "Vitamina C" como ingrediente: verificar se está sendo usada como antioxidante ou enriquecimento
+• Sucos 100%: PROIBIDO qualquer aditivo alimentar (inclusive conservantes)"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP2 — SUPLEMENTOS ALIMENTARES (WHEY, COLÁGENO, TERMOGÊNICOS)
+# RDC 243/2018 + RDC 786/2023 + IN 28/2018
+# ═══════════════════════════════════════════════════════════════════════════════
+NP2_SUPLEMENTOS_FALLBACK = """SUPLEMENTOS ALIMENTARES — RDC 243/2018 + RDC 786/2023 + IN 28/2018
+
+CAMPO 1 — DENOMINAÇÃO:
+• Obrigatório: categoria oficial + nome do produto
+  → "Suplemento Alimentar de Proteína" (whey)
+  → "Suplemento Alimentar de Colágeno Hidrolisado"
+  → "Suplemento Alimentar Termogênico"
+• NUNCA pode usar denominações de medicamento: "queimador de gordura", "anabolizante"
+• Notificação ANVISA obrigatória — verificar número no rótulo
+• Frase obrigatória (RDC 243/2018 Art. 8°): "Este produto não é um medicamento"
+
+CAMPO 2 — INGREDIENTES:
+• WHEY PROTEIN: declarar tipo exato — "Proteína do Soro de Leite Concentrada/Isolada/Hidrolisada"
+  Limite mín. proteína: 10g/porção (RDC 243/2018)
+• COLÁGENO: declarar "Colágeno Hidrolisado" — verificar se é bovino, suíno ou marinho
+  Alérgeno: colágeno bovino = CONTÉM LEITE? Não. Colágeno de peixe = CONTÉM PEIXE
+• TERMOGÊNICOS — ingredientes com limites máximos (RDC 786/2023):
+  Cafeína: máx. 420mg/dia (porção máx. 210mg) — declarar mg por porção obrigatório
+  Sinefrina: máx. 30mg/dia — declarar mg/porção
+  Guaraná: calcular cafeína equivalente
+  ❌ PROIBIDOS: efedrina, sibutramina, anfepramona — verificar lista negra ANVISA
+• BCAA/Aminoácidos: declarar cada aminoácido com quantidade em mg
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção: conforme declarado no produto (geralmente 30-40g para whey)
+• WHEY CONCENTRADO típico (por 30g): Proteínas 20-25g | Carb 3-8g | Gorduras 2-5g | Sódio 50-150mg
+• WHEY ISOLADO típico (por 30g): Proteínas 25-28g | Carb 0-2g | Gorduras 0-1g
+• CREATINA (por 3-5g): Proteínas 0g | Carb 0g | Gorduras 0g — qualquer nutriente ≠ 0 é suspeito
+• Vitaminas/minerais: declarar % VD obrigatório quando presentes
+• Cafeína: NÃO entra na tabela nutricional mas deve constar nos ingredientes com mg/porção
+
+ALERTAS CRÍTICOS:
+• Sem número de notificação ANVISA → ❌ NÃO CONFORME (obrigatório RDC 243/2018)
+• Cafeína sem mg/porção declarado → ❌ NÃO CONFORME (RDC 786/2023)
+• "Suplemento" sem frase "não é medicamento" → ❌ NÃO CONFORME
+• Colágeno de peixe sem declarar alérgeno PEIXE → ❌ NÃO CONFORME grave
+• Whey com <10g proteína/porção → ❌ NÃO CONFORME (abaixo do mínimo legal)
+• Termogênico com efedrina/sibutramina → ❌ GRAVÍSSIMO — produto ilegal"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP3 — PÃO, BISCOITO E MASSAS
+# RDC 90/2000 + RDC 263/2005 + RDC 93/2000 + RDC 711/2022 + RDC 712/2022
+# ═══════════════════════════════════════════════════════════════════════════════
+NP3_PAO_BISCOITO_FALLBACK = """PÃO, BISCOITO E MASSAS ALIMENTÍCIAS — RDC 90/2000 + RDC 263/2005 + RDC 711/2022
+
+CAMPO 1 — DENOMINAÇÃO E COMPOSIÇÃO MÍNIMA:
+• PÃO: fabricado com farinha de trigo ou outras farinhas — sem mín. de farinha fixado
+• PÃO INTEGRAL: mín. 50% de farinha integral no total de farinhas — verificar %
+  ❌ "Pão integral" com <50% farinha integral = fraude de denominação
+• BISCOITO / BOLACHA: produto assado, seco
+  "Biscoito de chocolate": mín. % de cacau ou chocolate declarado — verificar
+  "Biscoito amanteigado": mín. 10% de gordura na MS
+• WAFER: biscoito com recheio entre camadas crocantes
+• MACARRÃO / MASSA: "Massa com ovos" = mín. 3 ovos/kg | "Massa com espinafre" = mín. 3%
+• TORRADA: pão fatiado e torrado — denominação correta obrigatória
+• ❌ "Integral" sem ser: erro de denominação mais frequente nessa categoria
+
+CAMPO 2 — INGREDIENTES:
+• Farinha de trigo enriquecida: obrigatório declarar ferro e ácido fólico (Lei 9.782)
+• Fermento: químico (bicarbonato) ou biológico — declarar tipo
+• Gordura vegetal parcialmente hidrogenada: verificar presença de trans
+• Corante caramelo (INS 150a/b/c/d): declarar nome obrigatório se tartrazina
+• Emulsificantes: lecitina de soja (INS 322) = alérgeno SOJA obrigatório declarar
+• Glúten: farinha de trigo = CONTÉM GLÚTEN obrigatório
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção (IN 75/2020): Pão de forma = 50g (2-3 fatias) | Biscoito salgado = 30g
+  Biscoito doce/recheado = 30g | Macarrão cru = 80g | Torrada = 30g
+• Valores TACO típicos por 100g:
+  PÃO DE FORMA: kcal 255-275 | Carb 45-52g | Prot 7-10g | Gord 3-6g | Sódio 450-700mg
+  BISCOITO SALGADO: kcal 420-460 | Carb 65-72g | Gord 12-20g | Sódio 700-1200mg
+  BISCOITO DOCE: kcal 450-490 | Carb 68-75g | Açúcares 25-40g | Gord 15-22g
+  MACARRÃO CRU: kcal 368-376 | Carb 73-77g | Prot 10-12g | Gord 1-2g
+
+ALERTAS CRÍTICOS:
+• "Integral" sem mín. 50% farinha integral → ❌ NÃO CONFORME
+• Lecitina de soja sem alérgeno SOJA → ❌ NÃO CONFORME
+• Gordura trans >0,2g/porção → obrigatório declarar, não pode arredondar para 0g
+• Biscoito com ferro/ácido fólico não declarado na tabela → ❌ NÃO CONFORME"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP4 — VEGETAIS PROCESSADOS (PALMITO, COGUMELO, AZEITONA)
+# RDC 272/2005 + RDC 714/2022
+# ═══════════════════════════════════════════════════════════════════════════════
+NP4_VEGETAIS_FALLBACK = """VEGETAIS PROCESSADOS — RDC 272/2005 + RDC 714/2022
+
+CAMPO 1 — DENOMINAÇÃO ESPECÍFICA POR PRODUTO:
+• PALMITO: declarar espécie — "Palmito Juçara", "Palmito Pupunha", "Palmito Açaí"
+  Não pode ser apenas "Palmito" sem espécie — Resolução exige especificação
+• COGUMELO: declarar espécie — "Cogumelo Shitake", "Cogumelo Paris", "Cogumelo Champignon"
+  Nome científico recomendado mas não obrigatório
+• AZEITONA: declarar tipo e tratamento — "Azeitona Verde", "Azeitona Preta", "Azeitona Recheada"
+  Calibre obrigatório (ex: "Extra Grande", "Gigante", "Médio") — verificar tabela de calibres
+• MILHO EM CONSERVA: "Milho Verde em Conserva" — declarar meio de cobertura (água + sal)
+• ERVILHA EM CONSERVA: "Ervilha em Conserva" — idem
+
+CAMPO 2 — INGREDIENTES:
+• Salmoura: "Água, Sal" — proporção de sal deve estar correta para o tipo
+• Ácido cítrico (INS 330): conservante autorizado — declarar função + INS
+• Ácido ascórbico (INS 300): antioxidante — declarar
+• Sorbato de potássio (INS 202): conservante — declarar
+• Sulfito: ALÉRGENO — verificar se presente e se declarado
+
+CAMPO 3 — CONTEÚDO LÍQUIDO:
+• Conservas em meio líquido: OBRIGATÓRIO declarar PESO LÍQUIDO TOTAL e PESO DRENADO
+  ❌ Sem peso drenado = NÃO CONFORME (INMETRO Port. 157/2002)
+  Exemplo correto: "Peso líquido: 300g / Peso drenado: 180g"
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção (IN 75/2020): Palmito = 80g | Azeitona = 30g | Milho = 80g | Ervilha = 80g
+• Valores típicos por 100g (drenado):
+  PALMITO: kcal 28-38 | Carb 4-6g | Prot 2-3g | Sódio 500-800mg
+  AZEITONA: kcal 115-145 | Gord 11-15g | Sódio 1200-1800mg — ALTO EM SÓDIO
+  COGUMELO: kcal 20-35 | Carb 3-5g | Prot 2-4g | Sódio 300-600mg
+
+ALERTAS CRÍTICOS:
+• Palmito sem espécie → ❌ NÃO CONFORME
+• Azeitona sem calibre → ❌ NÃO CONFORME
+• Conserva sem peso drenado → ❌ NÃO CONFORME
+• Azeitona com Sódio >600mg/100g → Lupa "ALTO EM SÓDIO" obrigatória"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP5 — CHOCOLATES E CACAU
+# RDC 264/2005
+# ═══════════════════════════════════════════════════════════════════════════════
+NP5_CHOCOLATE_FALLBACK = """CHOCOLATES E CACAU — RDC 264/2005
+
+CAMPO 1 — DENOMINAÇÃO E % MÍNIMOS DE CACAU:
+• CHOCOLATE: mín. 25% de sólidos totais de cacau
+  → "Chocolate ao Leite": mín. 25% cacau + leite obrigatório
+  → "Chocolate Meio Amargo": mín. 40% sólidos de cacau
+  → "Chocolate Amargo": mín. 50% sólidos de cacau
+  → "Chocolate Branco": mín. 20% manteiga de cacau (SEM massa de cacau)
+• ❌ "Cobertura sabor chocolate" ≠ "Chocolate" — produtos com <25% cacau não podem usar
+  a palavra "chocolate" na denominação — alertar como NÃO CONFORME
+• CACAU EM PÓ: mín. 20% gordura (natural) ou 10-12% (alcalinizado)
+• BOMBOM / TRUFA: verificar recheio — se cobertura <25% cacau, não pode chamar "bombom de chocolate"
+
+CAMPO 2 — INGREDIENTES:
+• Massa de cacau / Liquor de cacau: principal ingrediente em chocolates amargos
+• Manteiga de cacau: verificar se substituída por gordura vegetal (qualidade inferior)
+• Lecitina de soja (INS 322): ALÉRGENO SOJA obrigatório declarar
+• Leite em pó: ALÉRGENO LEITE obrigatório declarar
+• Amêndoas/Avelã/Amendoim: ALÉRGENOS — verificar declaração
+• Vanilina: artificial — declarar "Aromatizante artificial (vanilina)"
+• Baunilha: natural — declarar "Aromatizante natural (baunilha)"
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção (IN 75/2020): Chocolate em barra = 30g | Bombom = 30g
+• Valores TACO típicos por 100g:
+  CHOCOLATE AO LEITE: kcal 540-570 | Carb 57-62g | Gord 30-36g | Gord.sat 16-22g | Açúcares 48-56g
+  CHOCOLATE MEIO AMARGO: kcal 530-565 | Carb 45-55g | Gord 35-42g | Açúcares 28-42g
+  CHOCOLATE BRANCO: kcal 550-580 | Carb 58-63g | Gord 32-38g | Açúcares 55-62g
+
+ALERTAS CRÍTICOS:
+• "Chocolate" com <25% cacau → ❌ NÃO CONFORME — denominação incorreta
+• Lecitina de soja sem alérgeno SOJA → ❌ NÃO CONFORME
+• Lupa: Gordura saturada ≥6g/porção de 30g (≥20g/100g) → lupa obrigatória
+• Lupa: Açúcar adicionado ≥15g/porção → lupa obrigatória (maioria dos chocolates)
+• "Zero açúcar" com adoçante: verificar se substitui açúcar e se edulcorante está declarado"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP6 — CONDIMENTOS, MOLHOS E TEMPEROS
+# RDC 276/2005
+# ═══════════════════════════════════════════════════════════════════════════════
+NP6_CONDIMENTOS_FALLBACK = """CONDIMENTOS, MOLHOS E TEMPEROS — RDC 276/2005
+
+CAMPO 1 — DENOMINAÇÃO ESPECÍFICA:
+• MAIONESE: mín. 50% lipídios, mín. 1% acidez em ácido acético
+  → "Maionese" sem mínimos = ❌ NÃO CONFORME
+  → "Molho tipo maionese" = produto com <50% lipídios
+• KETCHUP: mín. 6% de extrato de tomate (sólidos de tomate)
+  → Verificar % de tomate declarado nos ingredientes
+• MOSTARDA: mín. 4% de farinha de mostarda
+• MOLHO DE SOJA / SHOYU: obtido por fermentação de soja + trigo
+  → ALÉRGENO: SOJA + TRIGO (glúten) — obrigatório declarar ambos
+• MOLHO INGLÊS (Worcestershire): declarar todos os ingredientes
+• VINAGRE: mín. 4% de ácido acético
+• TEMPERO / CONDIMENTO COMPOSTO: mistura de especiarias — declarar todos
+
+CAMPO 2 — INGREDIENTES:
+• Amido modificado: declarar origem (trigo, milho, mandioca)
+• Corante caramelo (INS 150): declarar tipo (a, b, c ou d)
+• Glutamato monossódico (INS 621): realçador de sabor — declarar
+• Conservantes: sorbato (INS 202), benzoato (INS 211) — declarar com INS
+• Ovo / clara / gema: ALÉRGENO OVO — verificar declaração (maionese)
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção (IN 75/2020): Maionese = 15g (1 colher sopa) | Ketchup = 15g | Mostarda = 10g | Shoyu = 10mL
+• Valores TACO típicos por 100g:
+  MAIONESE: kcal 295-320 | Gord 30-33g | Gord.sat 3-5g | Sódio 500-800mg
+  KETCHUP: kcal 95-115 | Carb 22-27g | Açúcares 18-24g | Sódio 900-1200mg
+  MOSTARDA: kcal 60-90 | Carb 5-8g | Sódio 800-1200mg
+  SHOYU: kcal 55-70 | Prot 5-7g | Sódio 4500-6000mg — EXTREMAMENTE ALTO
+
+ALERTAS CRÍTICOS:
+• Maionese com <50% lipídios chamada "Maionese" → ❌ NÃO CONFORME
+• Shoyu sem alérgenos SOJA + TRIGO → ❌ NÃO CONFORME grave
+• Maionese sem alérgeno OVO → ❌ NÃO CONFORME grave
+• Ketchup com Sódio >600mg/porção → lupa ALTO EM SÓDIO obrigatória
+• Shoyu: sódio absurdamente alto — verificar se %VD está correto na tabela"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP7 — PORÇÕES PADRÃO ANVISA PARA CATEGORIAS NÃO-POA
+# IN 75/2020 — tabela completa de porções
+# ═══════════════════════════════════════════════════════════════════════════════
+NP7_PORCOES_FALLBACK = """PORÇÕES PADRÃO IN 75/2020 — CATEGORIAS NÃO-POA
+
+REGRA GERAL: A porção declarada na tabela nutricional DEVE seguir a IN 75/2020.
+Porção errada = %VD errado = relatório inteiro incorreto. Verificar sempre.
+
+BEBIDAS (mL):
+• Suco, néctar, refresco, bebida de fruta: 200mL
+• Refrigerante, bebida gaseificada: 200mL
+• Bebida energética, isotônica: 200mL
+• Cerveja, chope: 330mL (lata padrão)
+• Vinho: 150mL (1 taça)
+• Cachaça, destilados: 50mL (1 dose)
+• Água mineral: 200mL
+
+CEREAIS, PÃES E MASSAS (g):
+• Pão de forma, bisnaguinha: 50g (2 fatias médias)
+• Pão francês, baguete: 50g (1 unidade média)
+• Biscoito salgado, cracker: 30g
+• Biscoito doce, recheado: 30g
+• Wafer: 30g
+• Barra de cereal: 25g (1 unidade)
+• Granola, muesli: 40g
+• Cereal matinal: 30g
+• Macarrão cru: 80g
+• Macarrão cozido: 130g
+• Arroz cru: 50g | Arroz cozido: 125g
+• Farinha de trigo/milho: 50g
+• Torrada: 30g
+
+INDUSTRIALIZADOS (g):
+• Chocolate em barra, bombom: 30g
+• Sorvete, gelado: 60g (2 bolas)
+• Biscoito recheado: 30g
+• Salgadinho de pacote/chips: 25g
+• Barra de proteína/energética: 45g (1 unidade)
+
+CONDIMENTOS E MOLHOS (g ou mL):
+• Maionese: 15g (1 colher sopa)
+• Ketchup, mostarda: 15g
+• Shoyu, molho inglês: 10mL
+• Azeite, óleo vegetal: 10mL (1 colher sopa)
+• Margarina, manteiga: 10g
+• Sal: 5g (1 colher chá)
+• Vinagre: 10mL
+
+CONSERVAS VEGETAIS (g):
+• Palmito, cogumelo, azeitona, milho: 80g (peso drenado)
+• Ervilha, feijão em conserva: 80g (peso drenado)
+• Extrato de tomate: 30g | Molho de tomate: 60g
+
+SUPLEMENTOS (g):
+• Whey protein, proteína em pó: conforme declarado (tipicamente 30-40g)
+• Creatina: 5g | BCAA: 10g | Colágeno: 10g
+
+ALERTAS:
+• Porção diferente do padrão → alertar como ⚠️ divergência (verificar se há justificativa)
+• %VD calculado com porção errada → ❌ NÃO CONFORME — toda tabela está incorreta
+• Porção em unidades (ex: "1 biscoito"): verificar se o peso em gramas está declarado"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP8 — CAFEÍNA E TAURINA EM BEBIDAS ENERGÉTICAS
+# RDC 273/2005 + RDC 786/2023
+# ═══════════════════════════════════════════════════════════════════════════════
+NP8_ENERGETICO_FALLBACK = """BEBIDAS ENERGÉTICAS — RDC 273/2005 + RDC 786/2023
+
+CAMPO 1 — DENOMINAÇÃO:
+• "Bebida Energética" — único nome permitido para esse tipo de produto
+• Não pode usar "Energy Drink" como denominação principal em português
+• Obrigatório no painel principal: frase de advertência
+  "NÃO RECOMENDADO PARA CRIANÇAS, GESTANTES, IDOSOS E PORTADORES DE DOENÇAS CARDIOVASCULARES"
+  → Fonte mín. 2mm, destaque visual obrigatório
+
+CAMPO 2 — INGREDIENTES E LIMITES (RDC 786/2023):
+• CAFEÍNA: máx. 350mg por lata de 350mL (= 100mg/100mL)
+  → Declarar mg de cafeína por porção obrigatório
+  → Fontes: cafeína sintética, extrato de guaraná, extrato de chá verde — calcular total
+• TAURINA: sem limite máximo definido — declarar quantidade em mg
+• GLUCURONOLACTONA: sem limite — declarar
+• INOSITOL: sem limite — declarar
+• VITAMINAS DO COMPLEXO B: declarar com %VD obrigatório
+• GUARANÁ: calcular cafeína equivalente (guaraná contém ~3,5-5% cafeína)
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção: 200mL (IN 75/2020)
+• Valores típicos por 100mL:
+  kcal 42-50 | Carb 10-12g | Açúcares 8-11g | Sódio 30-80mg | Cafeína 30-35mg
+• Versão ZERO: kcal 2-5 | Carb 0-1g (adoçantes artificiais)
+• Cafeína NÃO entra na tabela nutricional padrão — vai em campo separado ou ingredientes
+
+ALERTAS CRÍTICOS:
+• Sem frase de advertência → ❌ NÃO CONFORME (obrigatório)
+• Cafeína >350mg/lata → ❌ NÃO CONFORME
+• Cafeína sem mg/porção declarado → ❌ NÃO CONFORME
+• Mistura com álcool (Four Loko style): PROIBIDA desde 2012 — verificar
+• Venda para menores: proibida — verificar se rótulo orienta sobre restrição de idade"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP9 — ALIMENTOS ORGÂNICOS — CERTIFICAÇÃO SISORG
+# Lei 10.831/2003 + Decreto 6.323/2007 + IN MAPA 19/2009
+# ═══════════════════════════════════════════════════════════════════════════════
+NP9_ORGANICO_FALLBACK = """ALIMENTOS ORGÂNICOS — Lei 10.831/2003 + Decreto 6.323/2007
+
+CAMPO 1 — DENOMINAÇÃO "ORGÂNICO":
+• A palavra "orgânico", "ecológico", "biodinâmico" ou "natural" com sentido de orgânico
+  SÓ pode ser usada se o produto tiver certificação válida por OAC (Organismo de Avaliação
+  da Conformidade) credenciado pelo MAPA
+• ❌ "Produto natural" ≠ "orgânico" — são conceitos diferentes
+• ❌ Usar "orgânico" sem certificação = fraude — passível de embargo e multa
+
+CAMPO 2 — VERIFICAÇÃO DE CERTIFICAÇÃO:
+No rótulo DEVEM aparecer obrigatoriamente:
+  1. SÍMBOLO SISORG do MAPA (círculo verde com folha)
+     → Verificar se símbolo está presente e legível
+  2. NOME DO ORGANISMO CERTIFICADOR (OAC)
+     → Ex: "Certificado por IBD Certificações"
+  3. NÚMERO DO CERTIFICADO ou CÓDIGO DE RASTREABILIDADE
+  → Se faltar qualquer um dos 3 → ❌ NÃO CONFORME
+
+VENDA DIRETA (exceção):
+• Agricultores familiares vendendo direto ao consumidor podem usar "orgânico" sem certificação
+  DESDE QUE vinculados a uma Organização de Controle Social (OCS) cadastrada no MAPA
+• Neste caso: mencionar a OCS no rótulo é obrigatório
+
+CAMPO 2 — INGREDIENTES:
+• Produto 100% orgânico: todos os ingredientes agrícolas devem ser orgânicos
+• Produto com ingredientes orgânicos: mín. 95% orgânicos para usar o símbolo
+  → Se 70-95%: pode listar ingredientes orgânicos mas sem símbolo SisOrg
+• Aditivos: lista restrita — a maioria de sintéticos é PROIBIDA em orgânicos
+
+ALERTAS CRÍTICOS:
+• "Orgânico" sem símbolo SisOrg → ❌ NÃO CONFORME — fraude de denominação
+• "Orgânico" sem nome do certificador → ❌ NÃO CONFORME
+• "Natural" sendo vendido como sinônimo de "orgânico" → ❌ Alerta ao cliente
+• Aditivos sintéticos comuns (conservantes, corantes) em produto orgânico → ❌ NÃO CONFORME"""
+
+# Mapeamento NP fallbacks por URL para injeção automática
+NP_FALLBACK_MAP = {
+    "suco": NP1_SUCOS_FALLBACK,
+    "néctar": NP1_SUCOS_FALLBACK,
+    "nectar": NP1_SUCOS_FALLBACK,
+    "refresco": NP1_SUCOS_FALLBACK,
+    "suplemento": NP2_SUPLEMENTOS_FALLBACK,
+    "whey": NP2_SUPLEMENTOS_FALLBACK,
+    "colágeno": NP2_SUPLEMENTOS_FALLBACK,
+    "termogênico": NP2_SUPLEMENTOS_FALLBACK,
+    "pão": NP3_PAO_BISCOITO_FALLBACK,
+    "biscoito": NP3_PAO_BISCOITO_FALLBACK,
+    "bolacha": NP3_PAO_BISCOITO_FALLBACK,
+    "macarrão": NP3_PAO_BISCOITO_FALLBACK,
+    "massa alimentícia": NP3_PAO_BISCOITO_FALLBACK,
+    "palmito": NP4_VEGETAIS_FALLBACK,
+    "cogumelo": NP4_VEGETAIS_FALLBACK,
+    "azeitona": NP4_VEGETAIS_FALLBACK,
+    "conserva vegetal": NP4_VEGETAIS_FALLBACK,
+    "chocolate": NP5_CHOCOLATE_FALLBACK,
+    "cacau": NP5_CHOCOLATE_FALLBACK,
+    "bombom": NP5_CHOCOLATE_FALLBACK,
+    "maionese": NP6_CONDIMENTOS_FALLBACK,
+    "ketchup": NP6_CONDIMENTOS_FALLBACK,
+    "mostarda": NP6_CONDIMENTOS_FALLBACK,
+    "shoyu": NP6_CONDIMENTOS_FALLBACK,
+    "molho": NP6_CONDIMENTOS_FALLBACK,
+    "energético": NP8_ENERGETICO_FALLBACK,
+    "energetico": NP8_ENERGETICO_FALLBACK,
+    "orgânico": NP9_ORGANICO_FALLBACK,
+    "organico": NP9_ORGANICO_FALLBACK,
+}
+
+def get_np_fallback(obs: str) -> str:
+    """Retorna o fallback NP relevante baseado na observação do usuário."""
+    if not obs:
+        return ""
+    obs_lower = obs.lower()
+    for keyword, fallback in NP_FALLBACK_MAP.items():
+        if keyword in obs_lower:
+            return f"\n\n## NORMA ESPECÍFICA NÃO-POA DETECTADA\n{fallback}"
+    return ""
     """Baixa PDF/HTML do MAPA e extrai texto. Usa fallback para PDFs scanned."""
     if "725" in url and "2022" in url:
         return RDC_725_FALLBACK
@@ -2978,7 +3408,10 @@ Use como referência primária na validação:
     }
     orgao_context = orgao_map.get(orgao_final.upper(), "")
 
-    # Injetar contexto de alimento funcional dual MAPA+ANVISA quando detectado
+    # Injetar contexto NP (não-POA) quando detectado
+    np_context = get_np_fallback(obs)
+    if np_context:
+        system_prompt += np_context
     funcional_context = ""
     if any(kw in obs.lower() for kw in ["funcional", "probiótico", "probiotico", "enriquecido",
                                           "ômega", "omega", "lactobacillus", "bifidobacterium",
