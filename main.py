@@ -7933,6 +7933,349 @@ async def billing_portal(request: Request):
                             headers={"Access-Control-Allow-Origin": "*"})
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP11 — TABELA NUTRICIONAL AVULSA (R$35/cálculo)
+# Fluxo: ingredientes → preview gratuito → Stripe checkout → PDF download
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_SP_TABELA_NUTRICIONAL = """Você é um nutricionista especializado em rotulagem alimentar brasileira.
+Calcule a tabela nutricional completa conforme RDC 429/2020 + IN 75/2020 (ANVISA).
+
+Dado os ingredientes com suas quantidades, retorne SOMENTE JSON válido:
+{
+  "produto": "Nome do produto",
+  "porcao_g": 30,
+  "porcao_descricao": "1 unidade (30g)",
+  "porcoes_por_embalagem": 10,
+  "energia_kcal": 150,
+  "energia_kj": 628,
+  "carboidratos_g": 20.5,
+  "acucares_totais_g": 8.2,
+  "acucares_adicionados_g": 5.0,
+  "proteinas_g": 3.1,
+  "gorduras_totais_g": 6.4,
+  "gorduras_saturadas_g": 2.1,
+  "gorduras_trans_g": 0.0,
+  "gorduras_monoinsaturadas_g": 2.8,
+  "gorduras_poliinsaturadas_g": 1.5,
+  "fibra_alimentar_g": 1.2,
+  "sodio_mg": 180,
+  "vd_carboidratos_pct": 7,
+  "vd_acucares_adicionados_pct": 10,
+  "vd_proteinas_pct": 4,
+  "vd_gorduras_totais_pct": 12,
+  "vd_gorduras_saturadas_pct": 11,
+  "vd_gorduras_trans_pct": null,
+  "vd_fibra_pct": 5,
+  "vd_sodio_pct": 8,
+  "lupa_alto_sodio": false,
+  "lupa_alto_gordura_saturada": false,
+  "lupa_alto_acucar": false,
+  "alergenos_contem": ["GLÚTEN", "LEITE"],
+  "alergenos_pode_conter": [],
+  "gluten": "CONTÉM GLÚTEN",
+  "lactose": "CONTÉM LACTOSE",
+  "observacoes": "Orientações técnicas sobre este produto",
+  "legislacao_base": ["RDC 429/2020", "IN 75/2020"]
+}
+
+REGRAS CRÍTICAS:
+- Use tabela TACO e IBGE como referência para composição dos ingredientes
+- %VD baseado nos valores de referência da IN 75/2020
+- Lupa: sódio ≥600mg/100g → lupa_alto_sodio=true | gordura saturada ≥6g/100g → lupa_alto_gordura_saturada=true | açúcar adicionado ≥15g/100g → lupa_alto_acucar=true
+- gorduras_trans_g: NUNCA arredondar para 0 se >0.2g/porção
+- Porção padrão: use IN 75/2020 para a categoria do produto
+- %VD gorduras trans: sempre null (sem VD definido pela ANVISA)
+- Calcule com precisão de 1 casa decimal para macros, inteiro para energia e sódio
+"""
+
+@app.post("/calcular-tabela")
+async def calcular_tabela(request: Request):
+    """
+    NP11 — Calcula tabela nutricional a partir de ingredientes.
+    Retorna preview gratuito. PDF requer pagamento via /tabela-checkout.
+    Body: { produto, ingredientes_lista, porcao_g, peso_total_g, obs }
+    """
+    try:
+        body = await request.json()
+        produto         = body.get("produto", "")
+        ingredientes    = body.get("ingredientes_lista", "")
+        porcao_g        = body.get("porcao_g", "")
+        peso_total_g    = body.get("peso_total_g", "")
+        obs             = body.get("obs", "")
+
+        if not ingredientes:
+            return JSONResponse({"error": "Ingredientes são obrigatórios."},
+                                status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        user_msg = f"""Calcule a tabela nutricional para:
+PRODUTO: {produto or "Produto alimentício"}
+PORÇÃO: {porcao_g or "conforme categoria IN 75/2020"}g
+PESO TOTAL DA EMBALAGEM: {peso_total_g or "não informado"}g
+OBSERVAÇÕES: {obs or "nenhuma"}
+
+INGREDIENTES (em ordem decrescente com quantidades):
+{ingredientes}
+
+Retorne SOMENTE o JSON conforme especificado."""
+
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+                         "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514",
+                      "max_tokens": 1500,
+                      "system": _SP_TABELA_NUTRICIONAL,
+                      "messages": [{"role": "user", "content": user_msg}]}
+            )
+            data = r.json()
+
+        raw = data["content"][0]["text"].strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"): raw = raw[4:]
+        raw = raw.strip().rstrip("```")
+        tabela = json.loads(raw)
+
+        return JSONResponse({"ok": True, "tabela": tabela},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    except json.JSONDecodeError:
+        return JSONResponse({"error": "Erro ao processar resposta. Tente novamente."},
+                            status_code=500, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/tabela-checkout")
+async def tabela_checkout(request: Request):
+    """
+    NP11 — Cria sessão Stripe Checkout para pagamento da tabela nutricional avulsa.
+    Body: { tabela_json, produto, email }
+    """
+    if not _STRIPE_KEY:
+        return JSONResponse({"error": "Stripe não configurado."},
+                            status_code=503, headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        body        = await request.json()
+        tabela_json = body.get("tabela_json", "{}")
+        produto     = body.get("produto", "Tabela Nutricional")
+        email       = body.get("email", "")
+
+        price_id = os.environ.get("STRIPE_PRICE_TABELA", "")
+        if not price_id:
+            return JSONResponse({"error": "Configure STRIPE_PRICE_TABELA no Render."},
+                                status_code=503, headers={"Access-Control-Allow-Origin": "*"})
+
+        import urllib.parse
+        tabela_encoded = urllib.parse.quote(tabela_json[:2000])
+
+        payload = {
+            "mode": "payment",
+            "line_items[0][price]": price_id,
+            "line_items[0][quantity]": "1",
+            "success_url": f"{_FRONTEND_URL}/tabela-nutricional.html?status=sucesso&tabela={tabela_encoded}",
+            "cancel_url":  f"{_FRONTEND_URL}/tabela-nutricional.html?status=cancelado",
+            "metadata[produto]": produto[:80],
+            "metadata[tipo]": "tabela_avulsa",
+        }
+        if email:
+            payload["customer_email"] = email
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(
+                "https://api.stripe.com/v1/checkout/sessions",
+                headers={"Authorization": f"Bearer {_STRIPE_KEY}",
+                         "Content-Type": "application/x-www-form-urlencoded"},
+                content="&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in payload.items())
+            )
+            data = r.json()
+
+        if r.status_code != 200:
+            return JSONResponse({"error": data.get("error", {}).get("message", "Erro Stripe")},
+                                status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        return JSONResponse({"url": data["url"], "session_id": data["id"]},
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/tabela-pdf")
+async def tabela_pdf(request: Request):
+    """
+    NP11 — Gera PDF da tabela nutricional após pagamento confirmado.
+    Body: { tabela_json, produto, nome_rt, crm_rt }
+    """
+    try:
+        body        = await request.json()
+        tabela      = body.get("tabela_json") or {}
+        if isinstance(tabela, str):
+            tabela = json.loads(tabela)
+        produto     = body.get("produto", tabela.get("produto", "Produto"))
+        nome_rt     = body.get("nome_rt", "")
+        crm_rt      = body.get("crm_rt", "")
+
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib import colors
+            from reportlab.lib.units import cm
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            import io as _io, datetime as _dt
+
+            buf = _io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4,
+                                    topMargin=2*cm, bottomMargin=2*cm,
+                                    leftMargin=2*cm, rightMargin=2*cm)
+            styles = getSampleStyleSheet()
+            verde  = colors.HexColor("#1A7A4A")
+            ambar  = colors.HexColor("#D4860A")
+            escuro = colors.HexColor("#060A0F")
+
+            elems = []
+
+            # Cabeçalho
+            titulo_style = ParagraphStyle("titulo", parent=styles["Heading1"],
+                                          fontSize=18, textColor=escuro, spaceAfter=4)
+            sub_style    = ParagraphStyle("sub", parent=styles["Normal"],
+                                          fontSize=10, textColor=verde, spaceAfter=16)
+            body_style   = ParagraphStyle("body", parent=styles["Normal"],
+                                          fontSize=9, textColor=escuro)
+            small_style  = ParagraphStyle("small", parent=styles["Normal"],
+                                          fontSize=8, textColor=colors.HexColor("#6b7280"))
+
+            elems.append(Paragraph("Tabela Nutricional", titulo_style))
+            elems.append(Paragraph(f"Produto: <b>{produto}</b> · Gerado por Inspect-IA", sub_style))
+
+            # Linha amarela decorativa
+            from reportlab.platypus import HRFlowable
+            elems.append(HRFlowable(width="100%", thickness=2, color=ambar))
+            elems.append(Spacer(1, 0.3*cm))
+
+            # Info de porção
+            porcao    = tabela.get("porcao_g", "—")
+            porcao_d  = tabela.get("porcao_descricao", f"{porcao}g")
+            porcoes   = tabela.get("porcoes_por_embalagem", "—")
+            elems.append(Paragraph(f"<b>Porção:</b> {porcao_d} | <b>Porções por embalagem:</b> {porcoes}", body_style))
+            elems.append(Spacer(1, 0.3*cm))
+
+            def vd(val):
+                return f"{val}%" if val is not None else "**"
+
+            # Tabela nutricional
+            dados = [
+                ["Informação Nutricional", f"Por porção ({porcao}g)", "% VD*"],
+                ["Valor energético", f"{tabela.get('energia_kcal','—')} kcal = {tabela.get('energia_kj','—')} kJ", "—"],
+                ["Carboidratos", f"{tabela.get('carboidratos_g','—')}g", vd(tabela.get('vd_carboidratos_pct'))],
+                ["    Açúcares totais", f"{tabela.get('acucares_totais_g','—')}g", "—"],
+                ["    Açúcares adicionados", f"{tabela.get('acucares_adicionados_g','—')}g", vd(tabela.get('vd_acucares_adicionados_pct'))],
+                ["Proteínas", f"{tabela.get('proteinas_g','—')}g", vd(tabela.get('vd_proteinas_pct'))],
+                ["Gorduras totais", f"{tabela.get('gorduras_totais_g','—')}g", vd(tabela.get('vd_gorduras_totais_pct'))],
+                ["    Gorduras saturadas", f"{tabela.get('gorduras_saturadas_g','—')}g", vd(tabela.get('vd_gorduras_saturadas_pct'))],
+                ["    Gorduras trans", f"{tabela.get('gorduras_trans_g','—')}g", "**"],
+                ["Fibra alimentar", f"{tabela.get('fibra_alimentar_g','—')}g", vd(tabela.get('vd_fibra_pct'))],
+                ["Sódio", f"{tabela.get('sodio_mg','—')}mg", vd(tabela.get('vd_sodio_pct'))],
+            ]
+
+            col_w = [9*cm, 4.5*cm, 2.5*cm]
+            t = Table(dados, colWidths=col_w)
+            t.setStyle(TableStyle([
+                ("BACKGROUND",  (0,0), (-1,0), verde),
+                ("TEXTCOLOR",   (0,0), (-1,0), colors.white),
+                ("FONTNAME",    (0,0), (-1,0), "Helvetica-Bold"),
+                ("FONTSIZE",    (0,0), (-1,0), 9),
+                ("ALIGN",       (1,0), (-1,-1), "CENTER"),
+                ("FONTNAME",    (0,1), (-1,-1), "Helvetica"),
+                ("FONTSIZE",    (0,1), (-1,-1), 8),
+                ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#f0fdf4")]),
+                ("GRID",        (0,0), (-1,-1), 0.3, colors.HexColor("#d1d5db")),
+                ("LEFTPADDING", (0,0), (-1,-1), 6),
+                ("RIGHTPADDING",(0,0), (-1,-1), 6),
+                ("TOPPADDING",  (0,0), (-1,-1), 4),
+                ("BOTTOMPADDING",(0,0), (-1,-1), 4),
+            ]))
+            elems.append(t)
+            elems.append(Spacer(1, 0.3*cm))
+
+            # Lutas
+            lutas = []
+            if tabela.get("lupa_alto_sodio"):     lutas.append("⚠ ALTO EM SÓDIO")
+            if tabela.get("lupa_alto_gordura_saturada"): lutas.append("⚠ ALTO EM GORDURAS SATURADAS")
+            if tabela.get("lupa_alto_acucar"):    lutas.append("⚠ ALTO EM AÇÚCAR")
+            if lutas:
+                elems.append(Paragraph(f"<b>Lupas obrigatórias:</b> {' | '.join(lutas)}", body_style))
+                elems.append(Spacer(1, 0.2*cm))
+
+            # Alérgenos
+            contem     = ", ".join(tabela.get("alergenos_contem", []))
+            pode_conter= ", ".join(tabela.get("alergenos_pode_conter", []))
+            if contem:
+                elems.append(Paragraph(f"<b>CONTÉM:</b> {contem} E DERIVADOS.", body_style))
+            if pode_conter:
+                elems.append(Paragraph(f"<b>PODE CONTER:</b> {pode_conter}.", body_style))
+            elems.append(Paragraph(tabela.get("gluten",""), body_style))
+            elems.append(Spacer(1, 0.2*cm))
+
+            # Rodapé técnico
+            elems.append(Paragraph("* % Valores Diários com base em uma dieta de 2.000 kcal ou 8.400 kJ. Seus valores diários podem ser maiores ou menores dependendo de suas necessidades energéticas.", small_style))
+            elems.append(Paragraph("** Gorduras trans não possuem Valor Diário de referência estabelecido.", small_style))
+            elems.append(Spacer(1, 0.5*cm))
+            elems.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#e5e7eb")))
+            elems.append(Spacer(1, 0.3*cm))
+
+            # Obs técnicas
+            obs_txt = tabela.get("observacoes", "")
+            if obs_txt:
+                elems.append(Paragraph(f"<b>Observações técnicas:</b> {obs_txt}", small_style))
+                elems.append(Spacer(1, 0.3*cm))
+
+            # Legislação
+            legs = ", ".join(tabela.get("legislacao_base", ["RDC 429/2020", "IN 75/2020"]))
+            elems.append(Paragraph(f"<b>Legislação aplicada:</b> {legs}", small_style))
+            elems.append(Spacer(1, 0.5*cm))
+
+            # Assinatura RT
+            if nome_rt or crm_rt:
+                elems.append(HRFlowable(width="50%", thickness=0.5, color=escuro))
+                elems.append(Paragraph(f"{nome_rt}", body_style))
+                elems.append(Paragraph(f"{crm_rt}", body_style))
+                elems.append(Paragraph("Responsável Técnico", small_style))
+                elems.append(Spacer(1, 0.3*cm))
+
+            # Gerado por
+            elems.append(Paragraph(
+                f"Documento gerado por Inspect-IA — inspect-ia.com.br | {_dt.datetime.now().strftime('%d/%m/%Y %H:%M')}",
+                small_style))
+            elems.append(Paragraph("⚠ Este documento é auxiliar. A responsabilidade técnica permanece com o RT habilitado.", small_style))
+
+            doc.build(elems)
+            pdf_bytes = buf.getvalue()
+
+        except ImportError:
+            return JSONResponse({"error": "reportlab não instalado."},
+                                status_code=500, headers={"Access-Control-Allow-Origin": "*"})
+
+        from fastapi.responses import Response as _Resp
+        return _Resp(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="tabela_nutricional_{produto[:30].replace(" ","_")}.pdf"',
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
 @app.get("/")
 def health():
     return {
