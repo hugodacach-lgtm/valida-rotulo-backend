@@ -1465,6 +1465,9 @@ def get_np_fallback(obs: str) -> str:
         if keyword in obs_lower:
             return f"\n\n## NORMA ESPECÍFICA NÃO-POA DETECTADA\n{fallback}"
     return ""
+
+
+async def fetch_pdf_text(url: str, max_chars: int = 4500) -> str:
     """Baixa PDF/HTML do MAPA e extrai texto. Usa fallback para PDFs scanned."""
     if "725" in url and "2022" in url:
         return RDC_725_FALLBACK
@@ -5013,6 +5016,109 @@ REGRAS OBRIGATÓRIAS:
 7. Conteúdo líquido: incluir símbolo ℮ (INMETRO) e unidade correta
 """
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# NP10 — SPs ESPECÍFICOS POR CAMINHO/CATEGORIA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+SP_CRIAR_POA = SP_CRIAR_ROTULO + """
+CAMINHO: POA — PRODUTO DE ORIGEM ANIMAL
+Normas: IN 22/2005 + Port. 1485/2025 (MAPA) + RTIQ específico da categoria.
+OBRIGATÓRIO: carimbo SIF/SIE/SIM nunca pode ser null. Declarar espécie animal na denominação.
+Citar RTIQ aplicável em legislacoes[]. CMS declarar espécie e %. Proteína de soja: declarar % em embutidos.
+"""
+
+SP_CRIAR_SUPLEMENTO = SP_CRIAR_ROTULO + """
+CAMINHO: SUPLEMENTOS ALIMENTARES — RDC 243/2018 + RDC 786/2023 + IN 28/2018
+carimbo: null (suplementos não têm SIF/SIE/SIM).
+Adicione ao JSON: "notificacao_anvisa": "Notificação ANVISA nº XXXXXX" (obrigatório),
+"frase_nao_medicamento": "Este produto não é um medicamento" (obrigatório),
+"cafeina_mg_porcao": mg de cafeína por porção se houver (RDC 786/2023).
+Whey: mín. 10g proteína/porção. Cafeína: máx. 210mg/porção. Colágeno de peixe = alérgeno PEIXE.
+"""
+
+SP_CRIAR_BEBIDA = SP_CRIAR_ROTULO + """
+CAMINHO: BEBIDAS — Decreto 6.871/2009 + RDC 173/2006 + IN MAPA 37/2018 + RDC 273/2005
+carimbo: null (exceto bebidas lácteas POA).
+Adicione ao JSON: "tipo_bebida": "suco_integral"|"nectar"|"refresco"|"energetico"|"cerveja"|"vinho"|"agua",
+"percentual_suco": % de suco (obrigatório para néctar e refresco),
+"teor_alcoolico": % v/v (obrigatório para cerveja e vinho),
+"cafeina_mg_porcao": mg por porção se energético.
+Suco integral = 100% fruta, PROIBIDO aditivos conservantes. Néctar: mín. 30-50% suco por fruta.
+Energético: frase advertência: "NÃO RECOMENDADO PARA CRIANÇAS, GESTANTES, IDOSOS E PORTADORES DE DOENÇAS CARDIOVASCULARES".
+Porções IN 75/2020: suco/néctar=200mL, cerveja=330mL, vinho=150mL.
+"""
+
+SP_CRIAR_PANIFICACAO = SP_CRIAR_ROTULO + """
+CAMINHO: PANIFICAÇÃO — RDC 90/2000 + RDC 263/2005 + RDC 711/2022 + RDC 712/2022
+carimbo: null.
+Adicione ao JSON: "tipo_produto": "pao"|"biscoito_salgado"|"biscoito_doce"|"massa"|"torrada"|"wafer",
+"percentual_integral": % de farinha integral (obrigatório se "integral" na denominação — mín. 50%).
+Farinha de trigo enriquecida: declarar ferro e ácido fólico. Lecitina de soja = alérgeno SOJA.
+Qualquer trigo = CONTÉM GLÚTEN. Porções: pão=50g, biscoito=30g, macarrão cru=80g.
+"""
+
+SP_CRIAR_CHOCOLATE = SP_CRIAR_ROTULO + """
+CAMINHO: CHOCOLATES E CACAU — RDC 264/2005
+carimbo: null.
+Adicione ao JSON: "tipo_chocolate": "ao_leite"|"meio_amargo"|"amargo"|"branco"|"cobertura",
+"percentual_cacau": % de sólidos de cacau.
+Mínimos: ao leite=25%, meio amargo=40%, amargo=50%, branco=20% manteiga de cacau.
+Cobertura (<25% cacau): PROIBIDO usar "chocolate" na denominação.
+Lecitina de soja = SOJA. Leite em pó = LEITE. Porção=30g.
+"""
+
+SP_CRIAR_CONDIMENTO = SP_CRIAR_ROTULO + """
+CAMINHO: CONDIMENTOS, MOLHOS E TEMPEROS — RDC 276/2005
+carimbo: null.
+Adicione ao JSON: "tipo_condimento": "maionese"|"ketchup"|"mostarda"|"shoyu"|"molho_ingles"|"tempero_composto"|"vinagre",
+"percentual_lipidios": % lipídios (maionese mín. 50% — abaixo disso = "Molho tipo maionese"),
+"percentual_tomate": % extrato tomate (ketchup mín. 6%).
+Shoyu: alérgenos SOJA + TRIGO obrigatórios. Maionese: alérgeno OVO obrigatório.
+Porções: maionese/ketchup=15g, shoyu=10mL.
+"""
+
+SP_CRIAR_VEGETAL = SP_CRIAR_ROTULO + """
+CAMINHO: VEGETAIS PROCESSADOS E CONSERVAS — RDC 272/2005 + RDC 714/2022
+carimbo: null.
+Adicione ao JSON: "tipo_vegetal": "palmito"|"cogumelo"|"azeitona"|"milho_conserva"|"ervilha_conserva"|"outros",
+"especie_vegetal": espécie obrigatória (ex: "Pupunha", "Shitake", "Preta"),
+"calibre": calibre da azeitona (obrigatório — ex: "Extra Grande"),
+"peso_drenado": peso drenado em gramas (obrigatório — INMETRO Port. 157/2002).
+Conteúdo líquido: declarar peso total E peso drenado. Palmito e cogumelo: espécie na denominação.
+"""
+
+SP_CRIAR_ORGANICO = SP_CRIAR_ROTULO + """
+CAMINHO: ALIMENTOS ORGÂNICOS — Lei 10.831/2003 + Decreto 6.323/2007
+carimbo: null se não-POA, SIF/SIE/SIM se POA orgânico.
+Adicione ao JSON: "certificadora": "nome do OAC credenciado pelo MAPA",
+"numero_certificado": "número do certificado",
+"simbolo_sisorg": true (obrigatório no painel principal).
+"Orgânico" sem certificação = fraude. Aditivos sintéticos: maioria proibida em orgânicos.
+"""
+
+SP_CRIAR_POR_CAMINHO = {
+    "poa": SP_CRIAR_POA, "laticinios": SP_CRIAR_POA, "embutidos": SP_CRIAR_POA,
+    "presunto": SP_CRIAR_POA, "bacon": SP_CRIAR_POA, "hamburguer": SP_CRIAR_POA,
+    "salame": SP_CRIAR_POA, "charque": SP_CRIAR_POA, "aves": SP_CRIAR_POA,
+    "pescado": SP_CRIAR_POA, "mel": SP_CRIAR_POA, "ovos": SP_CRIAR_POA,
+    "carnes": SP_CRIAR_POA,
+    "suplemento": SP_CRIAR_SUPLEMENTO, "whey": SP_CRIAR_SUPLEMENTO,
+    "bebida": SP_CRIAR_BEBIDA, "suco": SP_CRIAR_BEBIDA,
+    "cerveja": SP_CRIAR_BEBIDA, "vinho": SP_CRIAR_BEBIDA,
+    "panificacao": SP_CRIAR_PANIFICACAO, "pao": SP_CRIAR_PANIFICACAO,
+    "biscoito": SP_CRIAR_PANIFICACAO, "massa": SP_CRIAR_PANIFICACAO,
+    "chocolate": SP_CRIAR_CHOCOLATE, "cacau": SP_CRIAR_CHOCOLATE,
+    "condimento": SP_CRIAR_CONDIMENTO, "molho": SP_CRIAR_CONDIMENTO,
+    "maionese": SP_CRIAR_CONDIMENTO,
+    "vegetal": SP_CRIAR_VEGETAL, "conserva": SP_CRIAR_VEGETAL,
+    "palmito": SP_CRIAR_VEGETAL,
+    "organico": SP_CRIAR_ORGANICO,
+}
+
+def get_sp_criar(caminho: str) -> str:
+    """Retorna o SP correto para o caminho/categoria selecionado."""
+    return SP_CRIAR_POR_CAMINHO.get((caminho or "").lower(), SP_CRIAR_ROTULO)
+
 import tempfile as _tempfile, uuid as _uuid
 
 def _gerar_pdf_label(campos: dict, formato: str, tema: str) -> tuple[bytes, bytes]:
@@ -5332,6 +5438,7 @@ async def criar_rotulo(request: Request):
     form = await request.form()
     produto     = form.get("produto", "")
     categoria   = form.get("categoria", "")
+    caminho     = form.get("caminho", categoria)
     especie     = form.get("especie", "")
     orgao       = form.get("orgao", "SIF")
     num_reg     = form.get("num_registro", "")
@@ -5344,12 +5451,33 @@ async def criar_rotulo(request: Request):
     obs         = form.get("obs", "")
     formato     = form.get("formato", "retangular")
     tema        = form.get("tema", "moderno")
+    # Campos extras por caminho (NP10)
+    cafeina_mg         = form.get("cafeina_mg", "")
+    notificacao_anvisa = form.get("notificacao_anvisa", "")
+    tipo_bebida        = form.get("tipo_bebida", "")
+    percentual_suco    = form.get("percentual_suco", "")
+    teor_alcoolico     = form.get("teor_alcoolico", "")
+    tipo_produto       = form.get("tipo_produto", "")
+    percentual_integral= form.get("percentual_integral", "")
+    tipo_chocolate     = form.get("tipo_chocolate", "")
+    percentual_cacau   = form.get("percentual_cacau", "")
+    tipo_condimento    = form.get("tipo_condimento", "")
+    percentual_lipidios= form.get("percentual_lipidios", "")
+    tipo_vegetal       = form.get("tipo_vegetal", "")
+    especie_vegetal    = form.get("especie_vegetal", "")
+    peso_drenado       = form.get("peso_drenado", "")
+    certificadora      = form.get("certificadora", "")
+    numero_certificado = form.get("numero_certificado", "")
 
     if not produto or not categoria:
         return JSONResponse({"error": "Produto e categoria são obrigatórios"},
                             headers={"Access-Control-Allow-Origin": "*"})
 
+    # NP10 — seleciona SP correto pelo caminho
+    sp_ativo = get_sp_criar(caminho)
+
     user_msg = f"""Gere o rótulo para:
+CAMINHO: {caminho.upper()}
 PRODUTO: {produto}
 CATEGORIA: {categoria}
 ESPÉCIE: {especie or "não informado"}
@@ -5361,6 +5489,22 @@ CNPJ: {cnpj}
 INGREDIENTES FORNECIDOS: {ingredientes or "gerar com base na categoria"}
 INFO NUTRICIONAL: {nutricional or "calcular pela tabela TACO"}
 OBSERVAÇÕES: {obs}
+{f"CAFEÍNA POR PORÇÃO: {cafeina_mg}mg" if cafeina_mg else ""}
+{f"NOTIFICAÇÃO ANVISA: {notificacao_anvisa}" if notificacao_anvisa else ""}
+{f"TIPO DE BEBIDA: {tipo_bebida}" if tipo_bebida else ""}
+{f"% SUCO: {percentual_suco}" if percentual_suco else ""}
+{f"TEOR ALCOÓLICO: {teor_alcoolico}% v/v" if teor_alcoolico else ""}
+{f"TIPO DE PRODUTO: {tipo_produto}" if tipo_produto else ""}
+{f"% FARINHA INTEGRAL: {percentual_integral}" if percentual_integral else ""}
+{f"TIPO DE CHOCOLATE: {tipo_chocolate}" if tipo_chocolate else ""}
+{f"% SÓLIDOS DE CACAU: {percentual_cacau}" if percentual_cacau else ""}
+{f"TIPO DE CONDIMENTO: {tipo_condimento}" if tipo_condimento else ""}
+{f"% LIPÍDIOS: {percentual_lipidios}" if percentual_lipidios else ""}
+{f"TIPO DE VEGETAL: {tipo_vegetal}" if tipo_vegetal else ""}
+{f"ESPÉCIE/CALIBRE: {especie_vegetal}" if especie_vegetal else ""}
+{f"PESO DRENADO: {peso_drenado}g" if peso_drenado else ""}
+{f"CERTIFICADORA ORGÂNICA: {certificadora}" if certificadora else ""}
+{f"Nº CERTIFICADO: {numero_certificado}" if numero_certificado else ""}
 
 Retorne SOMENTE o JSON conforme especificado."""
 
@@ -5379,7 +5523,7 @@ Retorne SOMENTE o JSON conforme especificado."""
                              "content-type": "application/json"},
                     json={"model": "claude-sonnet-4-20250514",
                           "max_tokens": 2000,
-                          "system": SP_CRIAR_ROTULO,
+                          "system": sp_ativo,
                           "messages": [{"role": "user", "content": user_msg}]}
                 )
                 data = r.json()
