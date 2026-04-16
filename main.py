@@ -3383,7 +3383,10 @@ async def _revisao_background(relatorio: str):
     except Exception:
         pass
 
-async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = "", extra_images: list = None):
+async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = "",
+                            extra_images: list = None,
+                            seg_tipo: str = "", seg_np_categoria: str = "",
+                            seg_estado: str = "", seg_categoria: str = ""):
     # ── PARSER DE DIMENSÕES: extrai mm do obs e calcula área e fontes ─────
     dim_context = ""
     import re as _re
@@ -3487,13 +3490,18 @@ Use como referência primária na validação:
     }
     orgao_context = orgao_map.get(orgao_final.upper(), "")
 
-    # Injetar contexto NP (não-POA) — prioriza categoria detectada pela imagem
-    # O SP_DETECT retorna categoria POA. Para não-POA, usamos a Fase 1 do agente principal
-    # que agora declara "CATEGORIA NÃO-POA: [x]" — capturamos via streaming logo abaixo.
-    # Por ora, injeta baseado no obs do usuário (fallback) — será enriquecido pelo streaming
-    np_context = get_np_fallback(obs)
+    # Injetar contexto NP (não-POA) — prioriza: seg_np_categoria > categoria detectada > obs
+    # seg_np_categoria: categoria selecionada pelo RT antes do upload (Task #4)
+    np_context = get_np_fallback(obs, categoria_detectada=seg_np_categoria)
     if np_context:
         system_prompt += np_context
+
+    # Se RT selecionou estado SIE explicitamente, injeta normas estaduais diretamente
+    if seg_estado and not sie_context:
+        for estado_key, fallback_text in SIE_ESTADO_MAP.items():
+            if estado_key.upper() == seg_estado.upper():
+                sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {seg_estado.upper()} (selecionado pelo RT)\n{fallback_text}"
+                break
     funcional_context = ""
     if any(kw in obs.lower() for kw in ["funcional", "probiótico", "probiotico", "enriquecido",
                                           "ômega", "omega", "lactobacillus", "bifidobacterium",
@@ -3963,6 +3971,10 @@ async def validar_rotulo(
     obs: str = Form(default=""),
     orgao: str = Form(default=""),
     user_id: str = Form(default=""),
+    seg_tipo: str = Form(default=""),
+    seg_np_categoria: str = Form(default=""),
+    seg_estado: str = Form(default=""),
+    seg_categoria: str = Form(default=""),
 ):
     if not ANTHROPIC_API_KEY:
         return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
@@ -4094,7 +4106,9 @@ async def validar_rotulo(
         extra_b64_list = []
 
     return StreamingResponse(
-        stream_validation(image_b64, mime_type, obs, orgao, extra_images=extra_b64_list),
+        stream_validation(image_b64, mime_type, obs, orgao, extra_images=extra_b64_list,
+                          seg_tipo=seg_tipo, seg_np_categoria=seg_np_categoria,
+                          seg_estado=seg_estado, seg_categoria=seg_categoria),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
