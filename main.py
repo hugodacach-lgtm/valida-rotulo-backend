@@ -326,6 +326,8 @@ MAPA_URLS = {
     "amendoim_castanhas":     ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf"],
 }
 _kb_cache: dict = {}
+_startup_ready: bool = False  # T1: True após warmup completo
+_startup_ts: str = ""          # T1: timestamp do último startup bem-sucedido
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DETECÇÃO DE CATEGORIA — palavras-chave por produto
@@ -4448,15 +4450,19 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
 
-    # Task #17 — Envio automático do relatório por email
-    # Dispara em background sem bloquear o stream
+    # Task #17 + T3 fix — Envio automático do relatório por email
+    # Prioridade: 1) email_destino do form (campo explícito) 2) X-User-Email header (login)
+    # Assim funciona mesmo sem login
     try:
-        user_email = request.headers.get("X-User-Email", "")
-        user_nome  = request.headers.get("X-User-Name", "")
-        if user_email and relatorio:
+        email_header = request.headers.get("X-User-Email", "") if request else ""
+        nome_header  = request.headers.get("X-User-Name", "") if request else ""
+        # email_destino vem do form (parâmetro novo — T3 fix)
+        # fallback para header se form vazio
+        email_final = email_destino.strip() if email_destino and email_destino.strip() else email_header
+        if email_final and relatorio:
             asyncio.ensure_future(_enviar_email_relatorio(
-                email=user_email,
-                nome=user_nome,
+                email=email_final,
+                nome=nome_header or "",
                 produto=prod_auto or obs[:50] if obs else "",
                 veredicto=veredicto_auto,
                 score=score_auto,
@@ -4758,6 +4764,8 @@ async def validar_rotulo(
     seg_estado: str = Form(default=""),
     seg_categoria: str = Form(default=""),
     modo_output: str = Form(default="completo"),
+    email_destino: str = Form(default=""),  # T3 fix: email explícito no form (não depende de login)
+    request: Request = None,
 ):
     if not ANTHROPIC_API_KEY:
         return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
@@ -5969,10 +5977,16 @@ Citar RTIQ aplicável em legislacoes[]. CMS declarar espécie e %. Proteína de 
 SP_CRIAR_SUPLEMENTO = SP_CRIAR_ROTULO + """
 CAMINHO: SUPLEMENTOS ALIMENTARES — RDC 243/2018 + RDC 786/2023 + IN 28/2018
 carimbo: null (suplementos não têm SIF/SIE/SIM).
-Adicione ao JSON: "notificacao_anvisa": "Notificação ANVISA nº XXXXXX" (obrigatório),
+Adicione ao JSON: "notificacao_anvisa": "FICTÍCIO — O RT DEVE OBTER O NÚMERO REAL NO PORTAL ANVISA ANTES DE USAR" (NUNCA invente um número real — use exatamente esse texto de aviso),
 "frase_nao_medicamento": "Este produto não é um medicamento" (obrigatório),
 "cafeina_mg_porcao": mg de cafeína por porção se houver (RDC 786/2023).
 Whey: mín. 10g proteína/porção. Cafeína: máx. 210mg/porção. Colágeno de peixe = alérgeno PEIXE.
+
+⚠️ AVISO CRÍTICO SOBRE NOTIFICAÇÃO ANVISA:
+NUNCA gere um número de notificação ANVISA real ou verossímil (ex: "123456789", "XXXXXXXX").
+O número de notificação é obtido exclusivamente pelo fabricante no Portal ANVISA (consultas.anvisa.gov.br).
+Usar um número fictício em produto real configura FRAUDE e pode resultar em embargo e multa.
+O campo "notificacao_anvisa" DEVE conter o aviso de texto acima, não um número inventado.
 """
 
 SP_CRIAR_BEBIDA = SP_CRIAR_ROTULO + """
@@ -8737,27 +8751,72 @@ async def _startup_background():
     """
     Carrega Supabase em background sem bloquear o health check.
     Tenta 3 vezes com backoff — Render free tier pode ser lento no cold start.
+    T1 fix: também faz warmup do _kb_cache com as categorias mais usadas.
     """
-    global _cases_db, _monitor_history
+    global _cases_db, _monitor_history, _kb_cache, _startup_ready, _startup_ts
     if not _SUPABASE_ON:
         return
     import asyncio as _aio
+    import datetime as _dt_startup
+
+    # ── 1. Recarrega _cases_db ──────────────────────────────────────────────
     for attempt in range(3):
         try:
             rows = await _aio.wait_for(load_cases_from_supabase(), timeout=15.0)
             if rows:
                 _cases_db = rows
-                break  # sucesso — para de tentar
+                break
         except Exception:
             if attempt < 2:
-                await _aio.sleep(3 * (attempt + 1))  # 3s, 6s
-    # Monitor de alertas — uma tentativa
+                await _aio.sleep(3 * (attempt + 1))
+
+    # ── 2. Monitor de alertas ───────────────────────────────────────────────
     try:
         alerts = await _aio.wait_for(load_monitor_from_supabase(), timeout=8.0)
         if alerts:
             _monitor_history = alerts
     except Exception:
         pass
+
+    # ── 3. T1 fix — Warmup do _kb_cache com normas mais usadas ────────────
+    # Pré-carrega as categorias POA/NP mais frequentes para que as primeiras
+    # validações pós-restart já tenham o conteúdo completo dos PDFs.
+    TOP_WARMUP_CATEGORIES = [
+        # POA — carnes e embutidos (mais validados)
+        "embutidos", "salame", "presunto", "mortadela",
+        # POA — laticínios
+        "leite_uht", "iogurte", "queijo_mussarela",
+        # POA — aves e pescado
+        "aves_frango", "pescado_congelado",
+        # Gerais ANVISA (aplicam a todos)
+        "rotulagem_anvisa_rdc715", "rdc_429_rotulagem_nutri", "in_75_porcoes",
+        "alergenos_rdc727", "cereais_rdc711",
+        # Bebidas MAPA
+        "bebidas_dec6871", "lei_8918_bebidas",
+    ]
+    warmed = 0
+    for cat in TOP_WARMUP_CATEGORIES:
+        if cat in _kb_cache:
+            warmed += 1
+            continue
+        urls = MAPA_URLS.get(cat, [])
+        if not urls:
+            continue
+        try:
+            texts = await _aio.gather(*[
+                _aio.wait_for(fetch_pdf_text(u, max_chars=3000), timeout=5.0)
+                for u in urls[:2]  # max 2 URLs por categoria no warmup
+            ], return_exceptions=True)
+            result = "\n\n".join(t for t in texts if isinstance(t, str) and t)
+            if result:
+                _kb_cache[cat] = result
+                warmed += 1
+        except Exception:
+            pass
+        await _aio.sleep(0.3)  # throttle para não sobrecarregar no cold start
+
+    _startup_ready = True
+    _startup_ts = _dt_startup.datetime.now().isoformat()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -9800,6 +9859,96 @@ async def get_historico(
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=500,
                             headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/kb/discover-anvisa")
+async def discover_anvisa_kb():
+    """
+    T2 fix — Tenta descobrir e indexar normas ANVISA via padrão direto de URL.
+    antigo.anvisa.gov.br/documents/33916/392655/ contém todas as RDCs de alimentos.
+    Testa URLs de RDCs conhecidas que ainda não estão no cache.
+    Execute mensalmente ou sempre que suspeitar de normas novas.
+    """
+    # RDCs de alimentos conhecidas no antigo.anvisa.gov.br — padrão direto de PDF
+    ANVISA_DIRECT_URLS = {
+        # Rotulagem geral (base)
+        "rdc_259_rotulagem_geral":   "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+259+2002.pdf",
+        "rdc_360_info_nutri":        "https://antigo.anvisa.gov.br/documents/33916/392655/RDC360_2003.pdf",
+        # Categorias de alimentos
+        "rdc_263_cereais":           "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+263_2005.pdf",
+        "rdc_265_amido":             "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+265_2005.pdf",
+        "rdc_267_cogumelos":         "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+267_2005.pdf",
+        "rdc_269_proteinas":         "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+269_2005.pdf",
+        "rdc_271_acucar":            "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+271_2005.pdf",
+        "rdc_272_vegetais":          "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf",
+        "rdc_273_alim_enriquecidos": "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+273_2005.pdf",
+        "rdc_274_bebidas_nao_alc":   "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+274_2005.pdf",
+        "rdc_275_boas_praticas":     "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+275_2005.pdf",
+        "rdc_278_vinagre":           "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+278_2005.pdf",
+        # Aditivos e aromas
+        "rdc_2_aditivos":            "https://antigo.anvisa.gov.br/documents/33916/392655/RDC+02+2007+Aromas.pdf",
+        "resolucao_386_aditivos":    "https://antigo.anvisa.gov.br/documents/33916/392655/RESOLUCAO_386_1999_.pdf",
+        # Contaminantes e limites
+        "rdc_42_contaminantes":      "https://antigo.anvisa.gov.br/documents/33916/392655/RDC42_2013_contaminantes.pdf",
+        "rdc_722_moldes_2022":       "https://antigo.anvisa.gov.br/documents/33916/392655/RDC_722_2022.pdf",
+    }
+
+    results = {}
+    discovered = 0
+    already_cached = 0
+    failed = 0
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for key, url in ANVISA_DIRECT_URLS.items():
+            if key in _kb_cache and _kb_cache[key]:
+                already_cached += 1
+                results[key] = f"cache ({len(_kb_cache[key])} chars)"
+                continue
+            try:
+                text = await asyncio.wait_for(fetch_pdf_text(url, max_chars=4000), timeout=8.0)
+                if text and len(text) > 100:
+                    _kb_cache[key] = text
+                    # Adiciona à MAPA_URLS para uso futuro
+                    if key not in MAPA_URLS:
+                        MAPA_URLS[key] = [url]
+                    discovered += 1
+                    results[key] = f"descoberto ({len(text)} chars)"
+                else:
+                    failed += 1
+                    results[key] = "vazio/inacessivel"
+            except Exception as e:
+                failed += 1
+                results[key] = f"erro: {str(e)[:50]}"
+            await asyncio.sleep(0.5)  # throttle
+
+    return JSONResponse({
+        "ok": True,
+        "descobertos": discovered,
+        "ja_em_cache": already_cached,
+        "falhou": failed,
+        "total_testados": len(ANVISA_DIRECT_URLS),
+        "nota": "AnvisaLegis tem falha de banco Oracle (ORA-28001) — usando URLs diretas do antigo.anvisa.gov.br",
+        "detalhes": results,
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/health/readiness")
+def health_readiness():
+    """
+    T1 fix — Endpoint de readiness: mostra o estado real do sistema pós-startup.
+    Útil para diagnosticar se o warmup foi concluído e quantas normas estão em cache.
+    """
+    return JSONResponse({
+        "startup_completo": _startup_ready,
+        "startup_ts": _startup_ts,
+        "casos_em_memoria": len(_cases_db),
+        "kb_cache_entradas": len(_kb_cache),
+        "kb_cache_keys": list(_kb_cache.keys())[:20],
+        "supabase_on": _SUPABASE_ON,
+        "resend_on": bool(_RESEND_KEY),
+        "stripe_on": bool(_STRIPE_KEY),
+        "anthropic_on": bool(ANTHROPIC_API_KEY),
+    }, headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/")
