@@ -4104,7 +4104,8 @@ async def _revisao_background(relatorio: str):
 async def stream_validation(image_b64: str, mime_type: str, obs: str, orgao: str = "",
                             extra_images: list = None,
                             seg_tipo: str = "", seg_np_categoria: str = "",
-                            seg_estado: str = "", seg_categoria: str = ""):
+                            seg_estado: str = "", seg_categoria: str = "",
+                            modo_output: str = "completo"):
     # ── PARSER DE DIMENSÕES: extrai mm do obs e calcula área e fontes ─────
     dim_context = ""
     import re as _re
@@ -4296,6 +4297,23 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += fewshot
     if detection_context:
         system_prompt += f"\n\n{detection_context}"
+
+    # Task #17 -- Modo de output
+    if modo_output == "rapido":
+        system_prompt += (
+            "\n\n## MODO REVISAO RAPIDA -- INSTRUCAO ESPECIAL\n"
+            "Voce esta no modo REVISAO RAPIDA. Siga rigorosamente:\n"
+            "1. NAO liste campos conformes. Pule-os completamente.\n"
+            "2. SOMENTE reporte campos com problemas (NAO CONFORME ou COM RESSALVAS).\n"
+            "3. Para cada campo problemático: nome do campo | problema | artigo da norma | como corrigir.\n"
+            "4. Formato: uma linha por campo. Sem introducao, sem conclusao extensa.\n"
+            "5. Finalize com: SCORE: X/14 | VEREDICTO: [APROVADO/APROVADO COM RESSALVAS/REPROVADO]\n"
+            "6. Se nao houver problemas: escreva apenas 'Sem nao conformidades detectadas. Score: 14/14 -- APROVADO'\n"
+            "Exemplo de output:\n"
+            "CAMPO 2 -- Ingredientes: aditivo INS 250 sem funcao declarada. RDC 727/2022 Art. 18 §2° -- adicionar 'conservante'.\n"
+            "CAMPO 9 -- Tabela: porcao 25g mas IN 75/2020 exige 30g para biscoito -- corrigir porcao.\n"
+            "SCORE: 12/14 | VEREDICTO: APROVADO COM RESSALVAS\n"
+        )
     if dim_context:
         system_prompt += dim_context
 
@@ -4739,6 +4757,7 @@ async def validar_rotulo(
     seg_np_categoria: str = Form(default=""),
     seg_estado: str = Form(default=""),
     seg_categoria: str = Form(default=""),
+    modo_output: str = Form(default="completo"),
 ):
     if not ANTHROPIC_API_KEY:
         return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
@@ -4872,7 +4891,8 @@ async def validar_rotulo(
     return StreamingResponse(
         stream_validation(image_b64, mime_type, obs, orgao, extra_images=extra_b64_list,
                           seg_tipo=seg_tipo, seg_np_categoria=seg_np_categoria,
-                          seg_estado=seg_estado, seg_categoria=seg_categoria),
+                          seg_estado=seg_estado, seg_categoria=seg_categoria,
+                          modo_output=modo_output),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
