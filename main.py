@@ -3206,57 +3206,84 @@ d) Se nenhum OGM >1%: omissão ou "Não contém transgênicos" (ambos corretos)
 PASSO 4 — RELATÓRIO FINAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-### PRODUTO: [nome + espécie + categoria]
-### ÓRGÃO: [SIF/SIE/SIM] | CARIMBO: [número] | RTIQ: [norma]
+### PRODUTO: [nome + espécie/categoria]
+### ÓRGÃO: [SIF/SIE/SIM ou ANVISA] | CARIMBO/REGISTRO: [número] | RTIQ/NORMA: [norma]
 
-### SCORE: [X]/12 campos conformes ([Y]%)
+SISTEMA DE SCORE — 3 NÍVEIS POR CAMPO:
+• ✅ CONFORME = 1.0 ponto — campo 100% correto, todos os sub-requisitos atendidos
+• ⚠️ COM RESSALVAS = 0.5 ponto — campo correto na substância mas com erro de forma,
+  formatação incorreta, ou sub-requisito parcialmente atendido
+  (ex: tabela com valores corretos mas porção errada; denominação correta mas sem espécie;
+   ingredientes em ordem certa mas aditivo sem INS; carimbo presente mas formato errado)
+• ❌ NÃO CONFORME = 0 pontos — campo ausente, errado na substância, ou violação grave de norma
+
+CALCULE o score como soma dos pontos (pode resultar em 0.5 increments, ex: 9.5/12):
+
+### SCORE: [X.X]/12 | [conformes completos] conformes + [com ressalvas] com ressalvas + [não conformes] não conformes
 
 ### VEREDICTO:
-✅ APROVADO — 11-12 conformes, sem não conformidade crítica
-⚠️ APROVADO COM RESSALVAS — 7-10 conformes, não conformidades corrigíveis
-❌ REPROVADO — ≤6 conformes OU qualquer não conformidade crítica:
-   (sem carimbo oval | denominação incorreta | alérgenos ausentes | sem tabela nutricional)
+✅ APROVADO — score ≥ 11.0/12, sem não conformidade crítica
+⚠️ APROVADO COM RESSALVAS — score 7.0–10.5/12, não conformidades corrigíveis
+❌ REPROVADO — score < 7.0/12 OU qualquer não conformidade crítica:
+   (sem carimbo/registro | denominação incorreta | alérgenos ausentes | sem tabela nutricional)
 
-### CORREÇÕES PRIORITÁRIAS:
+### ANÁLISE CAMPO A CAMPO:
 
-**1ª PRIORIDADE — IMPEDE COMERCIALIZAÇÃO IMEDIATA (corrigir antes de submeter ao órgão):**
-[Para cada não conformidade crítica, use este formato:]
-❌ [CAMPO X — nome do campo]: [descrição do problema]
-   📌 Norma violada: [nome da norma, artigo, parágrafo específico]
-   ✏️ Correção sugerida: "[texto exato de como deveria estar no rótulo]"
+Para CADA um dos 12 campos, use EXATAMENTE este formato:
 
-**2ª PRIORIDADE — NÃO CONFORMIDADES TÉCNICAS (multa e retrabalho, mas não embarga imediatamente):**
-[mesmo formato acima]
+**CAMPO X — [NOME DO CAMPO]: [✅ CONFORME | ⚠️ COM RESSALVAS | ❌ NÃO CONFORME] ([1.0 | 0.5 | 0] pt)**
+[Se CONFORME]: ✅ [breve justificativa — o que está correto e qual norma confirma]
+[Se COM RESSALVAS]: ⚠️ O que está correto: [descrever]. O que precisa ajuste: [descrever especificamente]
+   📌 Norma: [norma específica com artigo]
+   ✏️ Ajuste: "[texto exato de como corrigir a parte com ressalva]"
+[Se NÃO CONFORME]: ❌ Problema: [descrição clara do que está errado]
+   📌 Norma violada: [norma com artigo e parágrafo]
+   ✏️ Correção: "[texto exato de como deveria estar no rótulo]"
 
-**3ª PRIORIDADE — MELHORIAS RECOMENDADAS (boas práticas, não obrigatório):**
-[mesmo formato, sem ✏️ obrigatório]
+### CORREÇÕES PRIORITÁRIAS (resumo executivo):
 
-### PONTOS CONFORMES:
-[campos aprovados com breve justificativa — ex: "✅ CAMPO 2 — Ingredientes em ordem decrescente, aditivos com função tecnológica e INS declarados (RDC 272/2019)"]"""
+**1ª PRIORIDADE — IMPEDE COMERCIALIZAÇÃO:**
+[Campos com ❌ NÃO CONFORME crítico]
+
+**2ª PRIORIDADE — NÃO CONFORMIDADES TÉCNICAS:**
+[Campos com ❌ NÃO CONFORME não crítico]
+
+**3ª PRIORIDADE — RESSALVAS A CORRIGIR:**
+[Campos com ⚠️ COM RESSALVAS]"""
 
 
-SP_REVISAO = """Você é um auditor sênior de rotulagem com 20 anos de MAPA/DIPOA.
+SP_REVISAO = """Você é um auditor sênior de rotulagem com 20 anos de experiência em MAPA/DIPOA e ANVISA.
 
 RELATÓRIO A REVISAR:
 {relatorio}
 
 Revise criticamente o relatório acima. Foque APENAS em erros reais — não repita o que já está correto.
 
-CHECKLIST DE REVISÃO — verifique cada item:
-1. Todos os 12 campos foram avaliados? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos)
-2. Lote e validade foram corretamente IGNORADOS? (impressos na produção, não na arte)
-3. DENOMINAÇÃO: composição mínima obrigatória foi verificada para o tipo de produto? Claims como LIGHT/DIET/ZERO tiveram critério matemático conferido?
-4. INGREDIENTES: cruzamento ↔ alérgenos foi feito? Proteína de soja com % declarado? Aditivos com função e INS?
-5. FABRICANTE: todos os 6 elementos do endereço foram verificados individualmente (logradouro, número, bairro, CEP, cidade, UF)?
-6. CARIMBO: jurisdição coerente (SIM=municipal, SIE=estadual, SIF=nacional)? Formato oval correto?
-7. TABELA NUTRICIONAL: cálculo de Atwater foi feito e resultado citado? %VD conferido? Trans com limiar verificado?
-8. ALÉRGENOS: formatação verificada (caixa alta + negrito + 2mm)? Cruzamento com ingredientes?
-9. TEXTO DE CORREÇÃO: para cada NÃO CONFORME, o relatório sugere o texto exato de como corrigir?
-10. NORMAS CITADAS: cada não conformidade cita a norma específica com artigo e parágrafo?
-11. AGRUPAMENTO: as correções estão separadas por prioridade (1ª impede comercialização / 2ª técnica / 3ª recomendação)?
-12. PESCADO: se produto for peixe/frutos do mar, nome científico foi verificado?
-13. MEL: se produto for mel, pureza e ausência de aditivos foi verificada?
-14. ALIMENTOS COM CLAIMS DE SAÚDE: alegações funcionais/nutricionais com critérios conferidos?
+CHECKLIST UNIVERSAL (aplica a TODOS os produtos — POA e não-POA):
+0. SCORE 3 NÍVEIS: cada campo tem ✅ CONFORME (1.0) | ⚠️ COM RESSALVAS (0.5) | ❌ NÃO CONFORME (0)? Score total correto em X.X/12?
+1. Todos os 12 campos foram avaliados com nota individual? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo/Registro, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos)
+2. DENOMINAÇÃO: composição mínima obrigatória foi verificada para o tipo de produto? Claims LIGHT/DIET/ZERO/INTEGRAL tiveram critério conferido?
+3. INGREDIENTES: cruzamento ↔ alérgenos foi feito? Aditivos com INS e função tecnológica declarados?
+4. FABRICANTE: todos os 6 elementos (logradouro, número, bairro, CEP, cidade, UF) verificados individualmente?
+5. TABELA NUTRICIONAL: %VD conferido? Porção padrão IN 75/2020 correta para a categoria? Trans com limiar verificado?
+6. ALÉRGENOS: 14 grupos RDC 727/2022? Formatação (caixa alta + negrito + 2mm mínimo)?
+7. TEXTO DE CORREÇÃO: para cada NÃO CONFORME, o relatório sugere o texto exato de como corrigir?
+8. NORMAS CITADAS: cada não conformidade cita a norma com número, ano e artigo?
+9. AGRUPAMENTO: correções separadas por prioridade (1ª impede comercialização / 2ª técnica / 3ª recomendação)?
+
+CHECKLIST POA (só se produto for de origem animal):
+10. CARIMBO: SIF/SIE/SIM com jurisdição coerente? Formato oval correto? Número do estabelecimento?
+11. RTIQ: denominação segue exatamente o RTIQ aplicável (nome técnico + espécie)?
+12. CMS: se presente, espécie e % declarados?
+13. PESCADO: nome científico verificado? Forma de apresentação declarada?
+14. MEL: pureza e ausência de aditivos verificada? Origem floral/geográfica se declarada?
+
+CHECKLIST NÃO-POA (só se produto vegetalIndustrializado/bebida/suplemento):
+10. REGISTRO/NOTIFICAÇÃO: número de notificação ANVISA presente se obrigatório (suplementos, bebidas especiais)?
+11. % OBRIGATÓRIOS: suco integral = 100% fruta? Néctar com % suco declarado? Maionese com % lipídios? Chocolate com % cacau? "Integral" com mín. 50% farinha integral?
+12. PORÇÃO IN 75/2020: porção específica da categoria foi verificada (suco=200mL, biscoito=30g, pão=50g, etc.)?
+13. LUTAS ESPECÍFICAS: sódio ≥600mg/100g? Gordura saturada ≥6g/100g? Açúcar adicionado ≥15g/100g?
+14. ADITIVOS PROIBIDOS: conservantes em suco integral? Corantes não autorizados? Cafeína ≥210mg/porção em energético?
 
 Se identificar qualquer erro ou omissão no relatório, adicione ao final:
 ## ADENDO DO AUDITOR:
@@ -3287,8 +3314,17 @@ async def call_claude_simple(system: str, user: str, max_tokens: int = 350) -> s
         return r.json().get("content", [{}])[0].get("text", "")
 
 def extrair_score(texto: str):
+    """
+    Extrai score do relatório — suporta formato X/12 (binário) e X.X/12 (3 níveis).
+    Retorna float para preservar valores como 9.5, 10.5, etc.
+    """
+    # Tenta X.X/12 (novo formato com 3 níveis)
+    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*12", texto, re.IGNORECASE)
+    if m:
+        return float(m.group(1).replace(",", "."))
+    # Fallback: X/12 (formato binário antigo)
     m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*12", texto, re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    return float(m.group(1)) if m else None
 
 def extrair_veredicto(texto: str) -> str:
     m = re.search(r"VEREDICTO[:\s]+(APROVADO COM RESSALVAS|APROVADO|REPROVADO)", texto, re.IGNORECASE)
@@ -3547,7 +3583,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     # Injeta exemplos few-shot de validações anteriores (Sistema 2)
     fewshot = ""
     if categories:
-        fewshot = get_fewshot_examples(categories[0])
+        fewshot = get_fewshot_examples(categories[0], caminho_np=seg_np_categoria)
 
     system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
     if orgao_context:
@@ -3647,28 +3683,39 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     # Segunda leitura crítica — apenas se score baixo, em background (não bloqueia o stream)
     score_pre = extrair_score(relatorio)
-    if score_pre is not None and score_pre < 9:
+    if score_pre is not None and score_pre < 9.0:  # inclui 8.5, 8.0, etc.
         asyncio.ensure_future(_revisao_background(relatorio))
 
     # ── Auto-aprendizado: armazena resultado sem precisar de feedback RT ───────
     try:
         import re as _re2
-        score_match  = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
-        score_auto   = int(score_match.group(1)) if score_match else None
+        # Score: suporta X.X/12 (3 níveis) e X/12 (legado)
+        score_match = _re2.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*12", relatorio, _re2.IGNORECASE)
+        if not score_match:
+            score_match = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
+        score_auto = float(score_match.group(1).replace(",",".")) if score_match else None
         prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
         prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
+        # Captura campos NÃO CONFORME e COM RESSALVAS
         erros_auto_list = _re2.findall(
             r"CAMPO (\d+)[^\n]*(?:NÃO CONFORME|AUSENTE)[^\n]*\n([^\n]{0,120})",
             relatorio, _re2.IGNORECASE
         )
+        ressalvas_auto_list = _re2.findall(
+            r"CAMPO (\d+)[^\n]*COM RESSALVAS[^\n]*\n([^\n]{0,120})",
+            relatorio, _re2.IGNORECASE
+        )
         erros_auto = "; ".join(f"C{num}: {desc[:60]}" for num, desc in erros_auto_list[:5])
+        ressalvas_auto = "; ".join(f"C{num}: {desc[:60]}" for num, desc in ressalvas_auto_list[:5])
         auto_case = {
             "case_id":      case_id,
             "produto":      prod_auto or (obs[:50] if obs else ""),
             "categoria":    categories[0] if categories else "",
+            "caminho_np":   seg_np_categoria,
             "feedback":     None,
             "erros_auto":   erros_auto,
             "erros_encontrados": erros_auto,
+            "ressalvas_auto": ressalvas_auto,
             "score_agente": score_auto,
             "timestamp":    __import__("datetime").datetime.now().isoformat(),
             "auto_stored":  True,
@@ -4509,27 +4556,35 @@ def _case_id(image_b64: str) -> str:
     """Gera ID único para uma imagem."""
     return _hashlib.md5(image_b64[:500].encode()).hexdigest()[:12]
 
-def get_fewshot_examples(categoria: str, max_examples: int = 3) -> str:
+def get_fewshot_examples(categoria: str, max_examples: int = 3,
+                         caminho_np: str = "") -> str:
     """
     Recupera exemplos para few-shot injection.
-    Usa TODOS os casos armazenados — com ou sem feedback do RT.
+    Paridade POA/não-POA: agrupa por categoria POA OU por caminho_np para não-POA.
     Prioridade:
-      1. Mesma categoria + feedback RT positivo (mais confiável)
-      2. Mesma categoria + auto-validado com score alto (≥10/12)
-      3. Qualquer categoria + alta confiança
+      1. Mesma categoria/caminho + feedback RT positivo (mais confiável)
+      2. Mesma categoria/caminho + auto-validado com score alto (≥10/12)
+      3. Qualquer categoria com alta confiança
     Extrai padrões de erros recorrentes para alertar proativamente.
     """
     if not _cases_db:
         return ""
 
-    # Tier 1: feedback RT explícito + mesma categoria
+    # Chave de agrupamento: categoria POA ou caminho_np para não-POA
+    def _match(c: dict) -> bool:
+        if caminho_np:
+            return (c.get("caminho_np") == caminho_np or
+                    c.get("categoria") == caminho_np)
+        return c.get("categoria") == categoria
+
+    # Tier 1: feedback RT explícito + mesma categoria/caminho
     tier1 = [c for c in _cases_db
-             if c.get("categoria") == categoria
+             if _match(c)
              and c.get("feedback") in ("correto", "parcialmente_correto")]
 
-    # Tier 2: auto-validado com score ≥10 + mesma categoria (confiança alta)
+    # Tier 2: auto-validado com score ≥10 + mesma categoria/caminho
     tier2 = [c for c in _cases_db
-             if c.get("categoria") == categoria
+             if _match(c)
              and c.get("feedback") is None
              and (c.get("score_agente") or 0) >= 10
              and c.get("erros_auto")]
@@ -4543,9 +4598,9 @@ def get_fewshot_examples(categoria: str, max_examples: int = 3) -> str:
     if not pool:
         return ""
 
-    # Detecta erros RECORRENTES na categoria (aparece em >30% dos casos)
+    # Detecta erros RECORRENTES na categoria/caminho
     from collections import Counter
-    cat_cases = [c for c in _cases_db if c.get("categoria") == categoria]
+    cat_cases = [c for c in _cases_db if _match(c)]
     erros_recorrentes = ""
     if len(cat_cases) >= 3:
         all_erros = " ".join(
@@ -4666,6 +4721,7 @@ async def store_feedback(request: Request):
             "case_id":              body.get("case_id", ""),
             "produto":              body.get("produto", ""),
             "categoria":            body.get("categoria", ""),
+            "caminho_np":           body.get("caminho_np", ""),
             "orgao":                body.get("orgao", ""),
             "feedback":             body.get("feedback", ""),
             "score_agente":         body.get("score_agente"),
