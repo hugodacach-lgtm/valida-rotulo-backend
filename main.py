@@ -1664,18 +1664,21 @@ async def get_kb_for_categories(categories: list[str]) -> str:
 # CAMPOS NOME
 # ═══════════════════════════════════════════════════════════════════════════════
 CAMPOS_NOME = {
-    1: "Denominação de venda",
-    2: "Lista de ingredientes",
-    3: "Conteúdo líquido",
-    4: "Identificação do fabricante",
-    5: "Lote",
-    6: "Prazo de validade",
-    7: "Instruções de conservação",
-    8: "Carimbo SIF/SIE/SIM",
-    9: "Tabela nutricional",
+    1:  "Denominação de venda",
+    2:  "Lista de ingredientes",
+    3:  "Conteúdo líquido",
+    4:  "Identificação do fabricante",
+    5:  "Declaração de glúten",
+    6:  "Declaração de lactose",
+    7:  "Instruções de conservação",
+    8:  "Carimbo / Registro / Notificação",
+    9:  "Tabela nutricional",
     10: "Rotulagem nutricional frontal (lupa)",
     11: "Declaração de alérgenos",
     12: "Declaração de transgênicos",
+    13: "Lote e prazo de validade",
+    14: "Porção padrão (IN 75/2020)",
+    15: "Alegações funcionais/nutricionais (condicional)",
 }
 
 
@@ -1710,7 +1713,7 @@ REGRAS ABSOLUTAS:
      FORMATO OBRIGATÓRIO quando NÃO VERIFICÁVEL: 
      🔍 NÃO VERIFICÁVEL — [causa]. 💡 Sugestão: [ação específica para o RT melhorar a foto] linha de produção. NÃO avalie esses campos.
 4. Cite sempre a norma específica (número e ano) para cada avaliação
-5. Nunca pule nenhum dos 12 campos obrigatórios
+5. Nunca pule nenhum dos 14 campos obrigatórios + Campo 15 se houver alegação no rótulo
 6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
 7. FONTE ESTILIZADA: se não for possível ler com certeza, descreva o que é visível e indique a incerteza — nunca ignore o campo.
 8. CORTES COM OSSO: valores por 100g de produtos com osso (costela, bisteca, asa de frango) são naturalmente menores que TACO para carne pura — considere antes de alertar plausibilidade.
@@ -3202,6 +3205,65 @@ b) Texto: "[ingrediente] transgênico" ou "Contém X% de [ingrediente] transgên
 c) Atenção: soja, milho frequentemente transgênicos em embutidos
 d) Se nenhum OGM >1%: omissão ou "Não contém transgênicos" (ambos corretos)
 
+CAMPO 13 — LOTE E PRAZO DE VALIDADE (RDC 727/2022 Art. 9)
+─────────────────────────────────────────────
+a) LOTE: indicado como "Lote:", "L:", "Lot:" ou referencia: "Veja fundo", "Veja Tampa"
+b) PRAZO DE VALIDADE: "Validade:", "Val:", "Vencimento:" ou referencia ao local
+   Formato aceito: DD/MM/AA, MM/AA, DD/MM/AAAA
+c) Arte deve indicar onde lote/validade serao impressos: "Veja fundo" = CONFORME
+d) Ausencia total de qualquer indicacao -> NAO CONFORME
+e) Somente "Veja fundo" sem data visivel -> CONFORME (local indicado)
+
+CAMPO 14 — PORCAO PADRAO (IN 75/2020 Anexo I)
+─────────────────────────────────────────────
+Analisa EXCLUSIVAMENTE se a porcao declarada segue IN 75/2020 Anexo I.
+(Valores nutricionais sao avaliados no Campo 9)
+
+Porcoes de referencia (IN 75/2020):
+CARNES in natura: 100g | EMBUTIDOS fatiados: 30g | EMBUTIDOS inteiros: 80g
+PESCADO fresco: 100g | PESCADO enlatado: 30g
+LEITE: 200mL | IOGURTE: 100g | QUEIJO: 30g | REQUEIJAO: 30g | MANTEIGA: 10g
+OVOS: 50g (1 und) | MEL: 20g
+PAO/BOLO: 50g | BISCOITO salgado: 30g | BISCOITO doce/recheado: 30g
+MACARRAO cru: 80g | MACARRAO cozido: 140g
+SUCO INTEGRAL/NECTAR: 200mL | REFRIGERANTE: 350mL | ENERGETICO: 200mL
+CHOCOLATE: 30g | SORVETE: 60g | OLEO/AZEITE: 13mL | MAIONESE: 15g | KETCHUP: 10g
+SUPLEMENTO EM PO: dose do fabricante (sem padrao obrigatorio IN 75/2020)
+
+Variacao aceitavel: +-20% do valor de referencia
+Porcao diverge >20%: COM RESSALVAS com sugestao de ajuste
+Categoria sem porcao definida na IN 75/2020: CONFORME (fabricante define)
+
+CAMPO 15 — ALEGAÇÕES FUNCIONAIS/NUTRICIONAIS (RDC 18/1999 + RDC 54/2012 + RDC 727/2022 Art.17)
+─────────────────────────────────────────────
+CAMPO CONDICIONAL — avalie APENAS se o rótulo contém alguma alegação funcional ou nutricional.
+Se nenhuma alegação detectada: declare "CAMPO 15 — N/A (sem alegações no rótulo)" e NÃO inclua no score.
+Se alegações presentes: inclua no score (total passa a ser X/15).
+
+ALEGAÇÕES NUTRICIONAIS (RDC 54/2012) — critérios obrigatórios:
+• "Fonte de [nutriente]": deve conter ≥15% da IDR por porção
+• "Rico em [nutriente]": deve conter ≥30% da IDR por porção
+• "Alto teor de [nutriente]": deve conter ≥30% da IDR por porção (sólido) ou ≥7,5% (líquido)
+• "Reduzido em sódio": deve ter ≥25% menos sódio que o produto de referência
+• "Baixo sódio": ≤40mg/100g (sólido) ou ≤20mg/100mL (líquido)
+• "Sem sódio": ≤5mg/100g
+• "Light": redução mínima de 25% em calorias OU nutriente específico vs referência
+• "Zero açúcar / Sem açúcar": ≤0,5g/porção
+• "Zero lactose": ≤0,1g lactose/100g ou 100mL (RDC 715/2022 Art. 9)
+• "Integral" (cereais/farinhas): mín. 50% ingredientes integrais (RDC 712/2022)
+
+ALEGAÇÕES FUNCIONAIS (RDC 18/1999) — apenas se constar na lista ANVISA aprovada:
+• Probióticos (Lactobacillus, Bifidobacterium): dose mínima e texto aprovado pela ANVISA
+• Ômega-3: mín. 0,3g EPA+DHA por porção para alegação cardiovascular
+• Fibras (psyllium, beta-glucana): dose mínima conforme evidência científica
+• Verificar: texto da alegação é EXATAMENTE o aprovado pela ANVISA?
+
+VERIFICAÇÃO OBRIGATÓRIA quando há alegação:
+1. O critério quantitativo da RDC 54/2012 é atendido pelos valores da tabela nutricional?
+2. O texto da alegação segue o modelo aprovado pela ANVISA (sem personalizar)?
+3. Não há alegação proibida (cura, tratamento, prevenção de doenças)?
+4. Claims de "natural", "orgânico" têm certificação correspondente no rótulo?
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 4 — RELATÓRIO FINAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3217,19 +3279,19 @@ SISTEMA DE SCORE — 3 NÍVEIS POR CAMPO:
    ingredientes em ordem certa mas aditivo sem INS; carimbo presente mas formato errado)
 • ❌ NÃO CONFORME = 0 pontos — campo ausente, errado na substância, ou violação grave de norma
 
-CALCULE o score como soma dos pontos (pode resultar em 0.5 increments, ex: 9.5/12):
+CALCULE o score como soma dos pontos (pode resultar em 0.5 increments, ex: 11.5/14):
 
-### SCORE: [X.X]/12 | [conformes completos] conformes + [com ressalvas] com ressalvas + [não conformes] não conformes
+### SCORE: [X.X]/14 (ou /15 se Campo 15 aplicável) | [conformes] conformes + [ressalvas] com ressalvas + [não conformes] não conformes
 
 ### VEREDICTO:
-✅ APROVADO — score ≥ 11.0/12, sem não conformidade crítica
-⚠️ APROVADO COM RESSALVAS — score 7.0–10.5/12, não conformidades corrigíveis
-❌ REPROVADO — score < 7.0/12 OU qualquer não conformidade crítica:
+✅ APROVADO — score ≥ 13.0/14, sem não conformidade crítica
+⚠️ APROVADO COM RESSALVAS — score 8.0–12.5/14, não conformidades corrigíveis
+❌ REPROVADO — score < 8.0/14 OU qualquer não conformidade crítica:
    (sem carimbo/registro | denominação incorreta | alérgenos ausentes | sem tabela nutricional)
 
 ### ANÁLISE CAMPO A CAMPO:
 
-Para CADA um dos 12 campos, use EXATAMENTE este formato:
+Para CADA um dos 14 campos, use EXATAMENTE este formato:
 
 **CAMPO X — [NOME DO CAMPO]: [✅ CONFORME | ⚠️ COM RESSALVAS | ❌ NÃO CONFORME] ([1.0 | 0.5 | 0] pt)**
 [Se CONFORME]: ✅ [breve justificativa — o que está correto e qual norma confirma]
@@ -3260,8 +3322,8 @@ RELATÓRIO A REVISAR:
 Revise criticamente o relatório acima. Foque APENAS em erros reais — não repita o que já está correto.
 
 CHECKLIST UNIVERSAL (aplica a TODOS os produtos — POA e não-POA):
-0. SCORE 3 NÍVEIS: cada campo tem ✅ CONFORME (1.0) | ⚠️ COM RESSALVAS (0.5) | ❌ NÃO CONFORME (0)? Score total correto em X.X/12?
-1. Todos os 12 campos foram avaliados com nota individual? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo/Registro, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos)
+0. SCORE 3 NÍVEIS: cada campo tem ✅ CONFORME (1.0) | ⚠️ COM RESSALVAS (0.5) | ❌ NÃO CONFORME (0)? Score total correto em X.X/14?
+1. Todos os 14 campos foram avaliados com nota individual? (1-Denominação, 2-Ingredientes, 3-Conteúdo líquido, 4-Fabricante, 5-Glúten, 6-Lactose, 7-Conservação, 8-Carimbo/Registro, 9-Tabela nutricional, 10-Lupa, 11-Alérgenos, 12-Transgênicos, 13-Lote/Validade, 14-Porção padrão). Se rótulo contém alegações funcionais/nutricionais: Campo 15 foi avaliado?
 2. DENOMINAÇÃO: composição mínima obrigatória foi verificada para o tipo de produto? Claims LIGHT/DIET/ZERO/INTEGRAL tiveram critério conferido?
 3. INGREDIENTES: cruzamento ↔ alérgenos foi feito? Aditivos com INS e função tecnológica declarados?
 4. FABRICANTE: todos os 6 elementos (logradouro, número, bairro, CEP, cidade, UF) verificados individualmente?
@@ -3315,15 +3377,22 @@ async def call_claude_simple(system: str, user: str, max_tokens: int = 350) -> s
 
 def extrair_score(texto: str):
     """
-    Extrai score do relatório — suporta formato X/12 (binário) e X.X/12 (3 níveis).
+    Extrai score do relatório — suporta /14 (padrão) e /15 (com Campo 15 de alegações).
     Retorna float para preservar valores como 9.5, 10.5, etc.
     """
-    # Tenta X.X/12 (novo formato com 3 níveis)
-    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*12", texto, re.IGNORECASE)
+    # Tenta X.X/15 (com Campo 15 de alegações)
+    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*15", texto, re.IGNORECASE)
     if m:
         return float(m.group(1).replace(",", "."))
-    # Fallback: X/12 (formato binário antigo)
-    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*12", texto, re.IGNORECASE)
+    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*15", texto, re.IGNORECASE)
+    if m:
+        return float(m.group(1))
+    # Padrão: X.X/14
+    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*14", texto, re.IGNORECASE)
+    if m:
+        return float(m.group(1).replace(",", "."))
+    # Fallback: X/14
+    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*14", texto, re.IGNORECASE)
     return float(m.group(1)) if m else None
 
 def extrair_veredicto(texto: str) -> str:
@@ -3690,9 +3759,9 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     try:
         import re as _re2
         # Score: suporta X.X/12 (3 níveis) e X/12 (legado)
-        score_match = _re2.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*12", relatorio, _re2.IGNORECASE)
+        score_match = _re2.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*14", relatorio, _re2.IGNORECASE)
         if not score_match:
-            score_match = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*12", relatorio, _re2.IGNORECASE)
+            score_match = _re2.search(r"SCORE[:\s]+(\d+)\s*/\s*14", relatorio, _re2.IGNORECASE)
         score_auto = float(score_match.group(1).replace(",",".")) if score_match else None
         prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
         prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
@@ -4563,7 +4632,7 @@ def get_fewshot_examples(categoria: str, max_examples: int = 3,
     Paridade POA/não-POA: agrupa por categoria POA OU por caminho_np para não-POA.
     Prioridade:
       1. Mesma categoria/caminho + feedback RT positivo (mais confiável)
-      2. Mesma categoria/caminho + auto-validado com score alto (≥10/12)
+      2. Mesma categoria/caminho + auto-validado com score alto (≥12/14)
       3. Qualquer categoria com alta confiança
     Extrai padrões de erros recorrentes para alertar proativamente.
     """
@@ -4630,8 +4699,8 @@ def get_fewshot_examples(categoria: str, max_examples: int = 3,
 
         bloco = (
             f"[{ex.get('produto','produto')} — {ex.get('categoria','?')} | origem: {origem}"
-            + (f" | score agente: {score}/12" if score else "")
-            + (f" | score real RT: {ex.get('score_real')}/12" if ex.get('score_real') else "")
+            + (f" | score agente: {score}/14" if score else "")
+            + (f" | score real RT: {ex.get("score_real")}/14" if ex.get('score_real') else "")
             + "]"
         )
         if erros and erros != "nenhum registrado":
@@ -4894,7 +4963,7 @@ async def gerar_relatorio_pdf(request: Request):
                                         textColor=colors.HexColor("#6b7280"), spaceAfter=6)))
         story.append(Spacer(1, 3*mm))
 
-        score_str = f"{score}/12" if score is not None else "—"
+        score_str = f"{score}/14" if score is not None else "—"
         vd = Table([[
             Paragraph(f"<b>VEREDICTO: {veredicto}</b>",
                       ParagraphStyle("v", fontSize=12, fontName="Helvetica-Bold",
@@ -7507,7 +7576,7 @@ _EMAILS_ONBOARDING = {
         "html": """<h2>Olá {nome}! Seu trial de 14 dias começou.</h2>
 <p>Você tem acesso completo ao ValidaRótulo IA por 14 dias. Aqui está o que você pode fazer:</p>
 <ul>
-  <li>✅ <b>Validar rótulos</b> — envie a arte e receba relatório com 12 campos avaliados</li>
+  <li>✅ <b>Validar rótulos</b> — envie a arte e receba relatório com 14 campos avaliados</li>
   <li>✏️ <b>Criar rótulos</b> — gere campos legais + design profissional com IA</li>
   <li>📄 <b>Baixar relatório PDF</b> — documento formal com campo de assinatura do RT</li>
 </ul>
@@ -8541,6 +8610,180 @@ async def feedback_status():
         "saude": "ok" if supabase_total > 0 or not _SUPABASE_ON else "aviso: Supabase vazio",
         "nota": "Casos em memória devem ser iguais ou menores que Supabase (máx 500 em RAM)."
     }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VALIDAÇÃO EM LOTE — Task #9
+# Processa N rótulos sequencialmente, emite progresso via SSE
+# Retorna relatório consolidado ao final
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/validar-lote")
+async def validar_lote(
+    imagens: list[UploadFile] = File(...),
+    obs_geral: str = Form(default=""),
+    seg_tipo: str = Form(default=""),
+    seg_np_categoria: str = Form(default=""),
+    seg_estado: str = Form(default=""),
+    seg_categoria: str = Form(default=""),
+    user_id: str = Form(default=""),
+):
+    """
+    Valida N rótulos em sequência.
+    Emite eventos SSE:
+      { tipo: 'inicio',    total: N }
+      { tipo: 'progresso', idx: i, nome: str, status: 'processando' }
+      { tipo: 'resultado', idx: i, nome: str, score: float, veredicto: str, resumo: str }
+      { tipo: 'erro',      idx: i, nome: str, msg: str }
+      { tipo: 'concluido', resultados: [...], resumo_geral: str }
+    """
+    if not ANTHROPIC_API_KEY:
+        return JSONResponse({"error": "ANTHROPIC_API_KEY não configurada"}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    if len(imagens) < 1:
+        return JSONResponse({"error": "Envie ao menos 1 imagem."}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    if len(imagens) > 20:
+        return JSONResponse({"error": "Máximo de 20 rótulos por lote."}, status_code=400,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+    # Rate limiting por plano
+    if user_id:
+        uso = await _checar_e_incrementar_uso(user_id, quantidade=len(imagens))
+        if not uso["ok"]:
+            return JSONResponse({
+                "error": uso.get("msg", "Limite de validações atingido."),
+                "limite_atingido": True,
+            }, status_code=429, headers={"Access-Control-Allow-Origin": "*"})
+
+    # Lê todas as imagens antes de iniciar o stream
+    imagens_data = []
+    for img in imagens:
+        raw = await img.read()
+        mime = img.content_type or "image/jpeg"
+        b64 = __import__("base64").b64encode(raw).decode()
+        imagens_data.append({"nome": img.filename or f"rotulo_{len(imagens_data)+1}", "b64": b64, "mime": mime})
+
+    async def gerar_lote():
+        import json as _j, base64 as _b64, asyncio as _aio
+
+        total = len(imagens_data)
+        yield f"data: {_j.dumps({'tipo': 'inicio', 'total': total})}\n\n"
+
+        resultados = []
+
+        for idx, img_data in enumerate(imagens_data):
+            nome = img_data["nome"]
+            yield f"data: {_j.dumps({'tipo': 'progresso', 'idx': idx+1, 'total': total, 'nome': nome, 'status': 'processando'})}\n\n"
+
+            try:
+                # Gera relatório completo para este rótulo
+                relatorio_completo = ""
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    payload = {
+                        "model": "claude-sonnet-4-20250514",
+                        "max_tokens": 2000,
+                        "system": SP_VALIDACAO.replace("{kb_section}", ""),
+                        "messages": [{
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "source": {
+                                    "type": "base64",
+                                    "media_type": img_data["mime"],
+                                    "data": img_data["b64"]
+                                }},
+                                {"type": "text", "text": (
+                                    f"Valide este rótulo.\n"
+                                    f"{('Tipo: ' + seg_tipo) if seg_tipo else ''}\n"
+                                    f"{('Categoria: ' + seg_np_categoria) if seg_np_categoria else ''}\n"
+                                    f"{('Obs: ' + obs_geral) if obs_geral else ''}"
+                                ).strip()}
+                            ]
+                        }],
+                        "stream": True,
+                    }
+                    headers_api = {
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    }
+                    async with client.stream("POST", "https://api.anthropic.com/v1/messages",
+                                             json=payload, headers=headers_api) as resp:
+                        if resp.status_code != 200:
+                            raise Exception(f"API error {resp.status_code}")
+                        async for line in resp.aiter_lines():
+                            if not line.startswith("data: "): continue
+                            raw = line[6:].strip()
+                            if raw == "[DONE]": break
+                            try:
+                                ev = _j.loads(raw)
+                                if ev.get("type") == "content_block_delta":
+                                    delta = ev.get("delta", {})
+                                    if delta.get("type") == "text_delta":
+                                        relatorio_completo += delta.get("text", "")
+                            except Exception:
+                                continue
+
+                # Extrai score e veredicto
+                score = extrair_score(relatorio_completo)
+                veredicto = extrair_veredicto(relatorio_completo)
+
+                # Extrai resumo executivo (correções prioritárias)
+                import re as _re
+                resumo_match = _re.search(
+                    r"CORREÇÕES PRIORITÁRIAS.*?\n(.+?)(?=\n###|\Z)",
+                    relatorio_completo, _re.DOTALL | _re.IGNORECASE
+                )
+                resumo = resumo_match.group(1)[:400].strip() if resumo_match else ""
+
+                # Conta não conformidades
+                nao_conformes = len(_re.findall(r"NÃO CONFORME", relatorio_completo, _re.IGNORECASE))
+                ressalvas = len(_re.findall(r"COM RESSALVAS", relatorio_completo, _re.IGNORECASE))
+
+                resultado = {
+                    "idx": idx + 1,
+                    "nome": nome,
+                    "score": score,
+                    "veredicto": veredicto,
+                    "nao_conformes": nao_conformes,
+                    "ressalvas": ressalvas,
+                    "resumo": resumo,
+                    "relatorio_completo": relatorio_completo,
+                }
+                resultados.append(resultado)
+
+                yield f"data: {_j.dumps({'tipo': 'resultado', **{k: v for k, v in resultado.items() if k != 'relatorio_completo'}})}\n\n"
+
+                # Pausa breve entre rótulos para não sobrecarregar a API
+                if idx < total - 1:
+                    await _aio.sleep(0.5)
+
+            except Exception as e:
+                erro = {"idx": idx + 1, "nome": nome, "score": None, "veredicto": "ERRO",
+                        "nao_conformes": 0, "ressalvas": 0, "resumo": "", "relatorio_completo": ""}
+                resultados.append(erro)
+                yield f"data: {_j.dumps({'tipo': 'erro', 'idx': idx+1, 'nome': nome, 'msg': str(e)[:100]})}\n\n"
+
+        # Resumo geral do lote
+        aprovados = sum(1 for r in resultados if "APROVADO" in (r.get("veredicto") or "") and "RESSALVAS" not in (r.get("veredicto") or ""))
+        ressalvas_c = sum(1 for r in resultados if "RESSALVAS" in (r.get("veredicto") or ""))
+        reprovados = sum(1 for r in resultados if "REPROVADO" in (r.get("veredicto") or ""))
+        scores_validos = [r["score"] for r in resultados if r.get("score") is not None]
+        media_score = round(sum(scores_validos) / len(scores_validos), 1) if scores_validos else None
+
+        yield f"data: {_j.dumps({'tipo': 'concluido', 'total': total, 'aprovados': aprovados, 'ressalvas': ressalvas_c, 'reprovados': reprovados, 'media_score': media_score, 'resultados': [{k: v for k, v in r.items() if k != 'relatorio_completo'} for r in resultados]})}\n\n"
+
+    return StreamingResponse(
+        gerar_lote(),
+        media_type="text/event-stream",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @app.get("/")
