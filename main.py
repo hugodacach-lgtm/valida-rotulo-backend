@@ -263,6 +263,58 @@ MAPA_URLS = {
     "proteina_po":            ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
     "vitaminas_minerais":     ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
 
+    # ════════════════════════════════════════════════════════════════════════
+    # MAPA VEGETAL — BEBIDAS (Cartilhão de Bebidas — normas base acessíveis)
+    # Fonte: planalto.gov.br (HTML estático, sempre acessível)
+    # ════════════════════════════════════════════════════════════════════════
+
+    # Lei base de bebidas
+    "lei_8918_bebidas":       ["https://www.planalto.gov.br/ccivil_03/leis/l8918.htm"],
+    "dec_6871_bebidas_tipos": ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    # Vinho e derivados
+    "lei_7678_vinho":         ["https://www.planalto.gov.br/ccivil_03/leis/l7678.htm"],
+    "dec_8198_vinho":         ["https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/decreto/D8198.htm"],
+    # Suco de fruta — MAPA
+    "in_mapa_49_2018_suco":   ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-49-de-26-de-setembro-de-2018-40018720"],
+    # Bebidas não alcoólicas — nova regra DQI
+    "port_mapa_123_2021":     ["https://www.in.gov.br/en/web/dou/-/portaria-n-123-de-14-de-maio-de-2021-319484390"],
+    # Kombucha
+    "in_mapa_41_2019_kombucha": ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-41-de-17-de-setembro-de-2019-215441545"],
+    # Cachaça e aguardente
+    "dec_6871_cachaca":       ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"],
+    # Polpa e suco artesanal
+    "lei_13648_2018_polpa":   ["https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13648.htm"],
+
+    # ════════════════════════════════════════════════════════════════════════
+    # MAPA VEGETAL — PRODUTOS VEGETAIS (Qualidade Vegetal — planalto)
+    # ════════════════════════════════════════════════════════════════════════
+
+    # Café
+    "in_mapa_cafe_torrado":   ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf"],
+    # Açúcar e derivados
+    "dec_6268_classificacao": ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6268.htm"],
+    "lei_9972_classificacao": ["https://www.planalto.gov.br/ccivil_03/leis/l9972.htm"],
+    # Frutas e hortaliças
+    "rdc_714_frutas_hortalicas": ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-714-de-1-de-julho-de-2022-413249103"],
+    # Orgânicos
+    "lei_10831_organicos":    ["https://www.planalto.gov.br/ccivil_03/leis/2003/l10831.htm"],
+    "dec_6323_organicos":     ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6323.htm"],
+
+    # ════════════════════════════════════════════════════════════════════════
+    # ANVISA BIBLIOTECA ALIMENTOS — RDCs principais (PDF direto antigo.anvisa)
+    # ════════════════════════════════════════════════════════════════════════
+    "rdc_429_rotulagem_nutri": ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-429-de-8-de-outubro-de-2020-283614641"],
+    "in_75_porcoes":          ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-75-de-8-de-outubro-de-2020-283615832"],
+    "rdc_266_sorvetes":       ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+266_2005.pdf"],
+    "rdc_268_proteina_vegetal": ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+268_2005.pdf"],
+    "rdc_243_alimentos_funcionais": ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-243-de-26-de-julho-de-2018-41232201"],
+    "rdc_277_cafe_cha":       ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf"],
+    "rdc_264_chocolate":      ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+264_2005.pdf"],
+    "rdc_270_oleos":          ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf"],
+    "rdc_276_condimentos":    ["https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf"],
+    "rdc_716_oleos_2022":     ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-716-de-1-de-julho-de-2022-413249130"],
+    "rdc_713_acucar_2022":    ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-713-de-1-de-julho-de-2022-413249084"],
+
     # ── ALIMENTOS PARA FINS ESPECIAIS ────────────────────────────────────
     "dieta_diabetico":        ["https://antigo.anvisa.gov.br/documents/33916/392655/resolucao+29-98.pdf"],
     "formula_infantil":       ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-241-de-26-de-julho-de-2018-41232198"],
@@ -1158,7 +1210,23 @@ ALERTAS CRÍTICOS:
 • Suco integral com açúcar na lista → ❌ NÃO CONFORME — não pode ser chamado integral
 • Néctar sem % de suco declarado → ❌ NÃO CONFORME (IN 37/2018 Art. 6°)
 • "Vitamina C" como ingrediente: verificar se está sendo usada como antioxidante ou enriquecimento
-• Sucos 100%: PROIBIDO qualquer aditivo alimentar (inclusive conservantes)"""
+• Sucos 100%: PROIBIDO qualquer aditivo alimentar (inclusive conservantes)
+
+NORMAS BASE (atualizado pós-links RT):
+• MAPA — Decreto 6.871/2009: define categorias de bebidas (suco, néctar, refresco, polpa, bebida composta)
+• MAPA — Lei 8.918/1994: normas gerais de bebidas não alcoólicas
+• MAPA — IN 49/2018: complementa padrões de identidade de suco e polpa de fruta
+• MAPA — Portaria 123/2021: DQI obrigatória no rótulo frontal; categorias refresco, chá, refrigerante, soda
+• ANVISA — RDC 727/2022: rotulagem geral
+• ANVISA — RDC 429/2020 + IN 75/2020: rotulagem nutricional
+• ATENÇÃO: SUCO é regulado pelo MAPA (Decreto 6.871/2009), não apenas pela ANVISA
+
+DQI — DECLARAÇÃO QUANTITATIVA DE INGREDIENTE (Portaria MAPA 123/2021):
+• Obrigatório no painel frontal: informar % de fruta/vegetal no produto
+• Suco integral 100%: "100% fruta" ou "100% [nome da fruta]"
+• Néctar: "X% de fruta" (ex: "50% de laranja")
+• Bebida artificial: "Não contém fruta ou vegetal" ou "0% de fruta"
+• ❌ Ausência da DQI no frontal = NÃO CONFORME (Portaria 123/2021)"""
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NP2 — SUPLEMENTOS ALIMENTARES (WHEY, COLÁGENO, TERMOGÊNICOS)
@@ -1506,6 +1574,138 @@ ALERTAS CRÍTICOS:
 • Aditivos sintéticos comuns (conservantes, corantes) em produto orgânico → ❌ NÃO CONFORME"""
 
 # ───────────────────────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────────────────────
+# LEI BASE — DECRETO-LEI 986/1969 (BASE DO DIREITO ALIMENTAR BRASILEIRO)
+# Institui normas básicas sobre alimentos
+# ───────────────────────────────────────────────────────────────────────────────
+DECRETO_LEI_986_FALLBACK = """DECRETO-LEI 986/1969 — NORMAS BÁSICAS SOBRE ALIMENTOS (BASE LEGAL)
+
+Esta lei é a base do direito alimentar brasileiro. Aplica-se a TODOS os alimentos.
+
+CAMPO 1 — DENOMINAÇÃO (Art. 11 I):
+• Qualidade, natureza e tipo do alimento conforme padrão de identidade e qualidade
+• Alimento de fantasia: nome fantasia + declaração da natureza real (Art. 12)
+• ❌ Denominação que induza a erro ou engano sobre natureza = NÃO CONFORME (Art. 12)
+
+CAMPO 2 — INGREDIENTES (Art. 11 VI):
+• Aditivos devem ser mencionados expressamente ou por código de identificação com classe
+
+CAMPO 4 — FABRICANTE (Art. 11 III, IV):
+• Nome do fabricante/produtor (Art. 11 III)
+• Sede da fábrica ou local de produção (Art. 11 IV)
+
+CAMPO 8 — REGISTRO (Art. 11 V):
+• Número de registro no Ministério da Saúde (ANVISA)/MAPA obrigatório (Art. 3°)
+• Exceções: matérias-primas, alimentos in natura (Art. 6° I)
+
+CAMPO 13 — LOTE E VALIDADE (Art. 11 VII):
+• Número de identificação da partida, lote ou data de fabricação para perecíveis (Art. 11 VII)
+• Data de vencimento para todos os alimentos
+
+ADITIVOS (Arts. 13-16):
+• Corantes artificiais: "Colorido Artificialmente" obrigatório no rótulo (Art. 13)
+• Aromatizante artificial: "Aromatizado Artificialmente" (Art. 14)
+• Aromatizante natural: "Contém Aromatizante" (Art. 15)
+• Essência artificial: "Sabor Imitação ou Artificial de [nome]" (Art. 16)
+
+NORMA: Decreto-Lei 986/1969 (ainda vigente como lei base, complementado por normas ANVISA/MAPA)
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MAPA VEGETAL — BEBIDAS ALCOÓLICAS (CERVEJA, VINHO, CACHAÇA)
+# Decreto 6.871/2009 + Leis específicas + IN MAPA consolidada
+# ───────────────────────────────────────────────────────────────────────────────
+MAPA_BEBIDA_ALCOOLICA_FALLBACK = """BEBIDAS ALCOÓLICAS — MAPA (Decreto 6.871/2009 + Lei 7.678/1988)
+
+ATENÇÃO: Bebidas alcoólicas são reguladas pelo MAPA, não pela ANVISA.
+O INMETRO regula o conteúdo líquido. A ANVISA regula rotulagem nutricional e aditivos.
+
+CERVEJA — Lei 13.009/2014 + Decreto 6.871/2009:
+CAMPO 1 — DENOMINAÇÃO:
+• Cervejas especificadas por ingredientes: "Cerveja de [malte/trigo/mel/etc.]"
+• Classificação obrigatória por cor, teor alcoólico e sabor
+• "Cerveja" (mín. 55% malte de cevada) | "Cerveja de [cereal]" se mín. 30% outro cereal
+• Teor alcoólico em % v/v obrigatório — sem declaração = NÃO CONFORME
+
+CAMPO 2 — INGREDIENTES:
+• Ingredientes obrigatórios: água, malte e lúpulo
+• Adjuntos (arroz, milho, sorgo) devem ser declarados
+• ❌ "Cerveja artesanal" não tem definição legal no Decreto 6.871/2009 — verificar se uso é enganoso
+
+VINHO — Lei 7.678/1988 + Decreto 6.571/2008:
+• "Vinho Fino" = Vitis vinifera | "Vinho de Mesa" = outras castas
+• Denominação de Origem (DO) e Indicação de Procedência (IP) — verificar selos
+• Teor alcoólico: mín. 8,6% e máx. 14% para vinho comum
+
+CACHAÇA — Lei 7.678/1988 + Decreto 6.871/2009:
+• Denominação "Cachaça" protegida — só bebida destilada de cana-de-açúcar brasileira
+• Teor alcoólico: mín. 38% e máx. 48% v/v
+• ❌ Produto importado não pode usar denominação "Cachaça"
+
+NORMAS MAPA: Decreto 6.871/2009 | Lei 7.678/1988 | Lei 13.009/2014
+NORMAS ANVISA: RDC 429/2020 (tabela nutricional) | RDC 727/2022 (rotulagem geral)
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MAPA VEGETAL — CAFÉ E DERIVADOS
+# IN MAPA 16/2010 + IN 12/2021 + Decreto 6.871/2009
+# ───────────────────────────────────────────────────────────────────────────────
+MAPA_CAFE_FALLBACK = """CAFÉ E DERIVADOS — MAPA (IN 16/2010 + IN 12/2021)
+
+CAMPO 1 — DENOMINAÇÃO:
+• "Café Torrado em Grão" | "Café Torrado e Moído" | "Café Solúvel (Instantâneo)"
+• "Café com Adição de Cereais": mín. 70% café — % de café deve ser declarado
+• ❌ "Café" com <70% café = FRAUDE — deve ser denominado "Mistura de Café com [cereal]"
+• "Café Descafeinado": máx. 0,1% cafeína
+• Café especial com certificação (ABIC, SCA, etc.): verificar selos e critérios
+
+CAMPO 2 — INGREDIENTES:
+• Café puro: apenas "Café torrado e moído" — sem outros ingredientes
+• Café com cereais: declarar % de café e % de cada cereal adicionado
+• Café solúvel: apenas café ou com adição de carboidratos (declarar)
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão IN 75/2020: Café (coado/expresso) = 50mL da bebida preparada
+• Café em pó: porção = 10g
+• Café solúvel: porção conforme dose recomendada
+
+CAMPO 10 — LUPA: verificar cafeína — bebida energética com café pode atingir limiar
+
+NORMAS: IN MAPA 16/2010 | IN MAPA 12/2021 | RDC 429/2020 | Decreto-Lei 986/1969
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MAPA VEGETAL — ÓLEOS E GORDURAS VEGETAIS
+# ANVISA RDC 716/2022 + INMETRO Port. 249/2021
+# ───────────────────────────────────────────────────────────────────────────────
+NP_OLEO_VEGETAL_FALLBACK = """ÓLEOS E GORDURAS VEGETAIS — RDC 716/2022 (ANVISA)
+
+CAMPO 1 — DENOMINAÇÃO:
+• Óleo de soja: "Óleo de Soja" | Azeite: "Azeite de Oliva [Extra Virgem/Virgem/Comum]"
+• Azeite Extra Virgem: acidez máx. 0,8% ácido oléico — se >0,8%, não pode ser denominado Extra Virgem
+• Óleo composto: "Óleo Composto de [espécies]" — declarar cada espécie e % (se blend)
+• Gordura vegetal: "Gordura Vegetal [hidrogenada/interesterificada/de palma/etc.]"
+• ❌ "Azeite Extra Virgem" com acidez >0,8% = NÃO CONFORME e fraude
+
+CAMPO 2 — INGREDIENTES:
+• Óleo puro: apenas o nome da matéria-prima
+• Blend de óleos: declarar cada componente com %
+• Antioxidantes autorizados: TBHQ (INS 319), BHT (INS 321), Tocoferois (INS 307) — declarar
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão IN 75/2020: 13mL (aproximadamente 1 colher de sopa)
+• Ácidos graxos trans: verificar limiar — gorduras parcialmente hidrogenadas têm mais trans
+• Gordura saturada: azeite tem baixo | coco e palma têm alto teor — verificar lupa
+
+CAMPO 10 — LUPA:
+• Gordura saturada ≥6g/100g = LUPA obrigatória
+• Óleo de coco: ~85g/100g gordura saturada → SEMPRE lupa obrigatória
+• Azeite extra virgem: ~14g/100g gordura saturada → verificar por porção
+
+NORMAS: RDC 716/2022 | RDC 429/2020 | IN 75/2020 | INMETRO Port. 249/2021
+"""
+
+
 # NP10 — SORVETES E GELADOS COMESTÍVEIS
 # RDC ANVISA 266/2005 + RDC 429/2020 + IN 75/2020
 # ───────────────────────────────────────────────────────────────────────────────
@@ -1745,6 +1945,24 @@ NP_FALLBACK_MAP = {
     "alegacao": NP14_FUNCIONAL_FALLBACK,
     "ômega 3": NP14_FUNCIONAL_FALLBACK,
     "omega 3": NP14_FUNCIONAL_FALLBACK,
+    # MAPA vegetais — bebidas alcoólicas
+    "cerveja": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    "vinho": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    "cachaça": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    "cachaca": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    "bebida alcoólica": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    "destilado": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
+    # MAPA vegetais — café
+    "café": MAPA_CAFE_FALLBACK,
+    "cafe": MAPA_CAFE_FALLBACK,
+    "café solúvel": MAPA_CAFE_FALLBACK,
+    "café torrado": MAPA_CAFE_FALLBACK,
+    # Óleos e gorduras
+    "azeite": NP_OLEO_VEGETAL_FALLBACK,
+    "óleo vegetal": NP_OLEO_VEGETAL_FALLBACK,
+    "oleo vegetal": NP_OLEO_VEGETAL_FALLBACK,
+    "gordura vegetal": NP_OLEO_VEGETAL_FALLBACK,
+    "óleo de coco": NP_OLEO_VEGETAL_FALLBACK,
 }
 
 # Mapeamento categoria detectada pelo agente → chave NP_FALLBACK_MAP
@@ -1807,6 +2025,17 @@ _NP_CATEGORIA_MAP = {
     "funcional":        "funcional",
     "probiótico":       "funcional",
     "ômega 3":          "funcional",
+    # MAPA vegetais
+    "cerveja":          "cerveja",
+    "vinho":            "vinho",
+    "cachaça":          "cachaça",
+    "café":             "café",
+    "café torrado":     "café",
+    "café solúvel":     "café",
+    "azeite":           "azeite",
+    "óleo vegetal":     "óleo vegetal",
+    "óleo de coco":     "óleo vegetal",
+    "gordura vegetal":  "gordura vegetal",
     "sorvete":          "sorvete",
     "gelado":           "sorvete",
 }
@@ -2050,7 +2279,8 @@ CAMPO 3 — CONTEÚDO LÍQUIDO:
   Lei 9.933/1999 Art. 3° (tolerâncias)
 
 CAMPO 4 — FABRICANTE:
-  RDC 727/2022 Art. 8° (identificação obrigatória) | Art. 8° §1° (endereço completo: logradouro, número, bairro, CEP, município, UF)
+  RDC 727/2022 Art. 8° (identificação obrigatória)
+  Decreto-Lei 986/1969 Art. 11 III-IV (nome fabricante + sede — lei base) | Art. 8° §1° (endereço completo: logradouro, número, bairro, CEP, município, UF)
   Art. 8° §2° (importados: importador + país de origem)
 
 CAMPO 5 — GLÚTEN:
@@ -2115,6 +2345,9 @@ Identifique da imagem e declare EXPLICITAMENTE:
   farinha de amêndoa | farinha de coco | farinha de arroz | polvilho | tapioca |
   funcional | probiótico | ômega 3 |
   orgânico | orgânica |
+  cerveja | vinho | cachaça |
+  café | café torrado | café solúvel |
+  azeite | óleo vegetal | gordura vegetal |
   outro não-POA (especificar)
 • Órgão regulador principal: MAPA (POA) / ANVISA (não-POA) / ambos
 
@@ -9466,6 +9699,72 @@ def kb_status():
         "cached": len(_kb_cache),
         "cached_categories": list(_kb_cache.keys()),
         "pending": [k for k in MAPA_URLS if k not in _kb_cache],
+    }
+
+
+@app.get("/kb/refresh-vegetal")
+async def refresh_kb_vegetal():
+    """
+    Baixa e atualiza todas as normas não-POA (MAPA Vegetal + ANVISA Alimentos).
+    Acessa diretamente planalto.gov.br e in.gov.br — sem dependência de JavaScript.
+    Execute este endpoint sempre que suspeitar que a KB está desatualizada.
+    Retorna relatório de quais normas foram carregadas com sucesso.
+    """
+    # URLs prioritárias para não-POA vegetal
+    VEGETAL_KB_KEYS = [
+        # Bebidas MAPA
+        "lei_8918_bebidas", "dec_6871_bebidas_tipos", "lei_7678_vinho",
+        "in_mapa_49_2018_suco", "port_mapa_123_2021", "in_mapa_41_2019_kombucha",
+        "lei_13648_2018_polpa",
+        # Qualidade vegetal
+        "lei_10831_organicos", "dec_6323_organicos", "rdc_714_frutas_hortalicas",
+        "lei_9972_classificacao",
+        # ANVISA Alimentos
+        "rdc_429_rotulagem_nutri", "in_75_porcoes", "rdc_266_sorvetes",
+        "rdc_268_proteina_vegetal", "rdc_243_alimentos_funcionais",
+        "rdc_277_cafe_cha", "rdc_264_chocolate", "rdc_270_oleos",
+        "rdc_276_condimentos", "rdc_716_oleos_2022", "rdc_713_acucar_2022",
+        # Gerais
+        "cereais_rdc711", "cereais_integrais_rdc712", "suplementos_rdc243",
+        "dec_lei_986_1969", "bebidas_dec6871",
+    ]
+
+    from typing import Optional
+    results = {}
+    ok_count = 0
+    fail_count = 0
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for key in VEGETAL_KB_KEYS:
+            urls = KB_URLS.get(key) or MAPA_URLS.get(key, [])
+            if not urls:
+                results[key] = "sem URL mapeada"
+                fail_count += 1
+                continue
+            text = ""
+            for url in urls:
+                try:
+                    raw = await fetch_pdf_text(url, max_chars=3000)
+                    if raw and len(raw) > 100:
+                        text = raw
+                        break
+                except Exception as e:
+                    pass
+            if text:
+                _kb_cache[key] = text
+                results[key] = f"✅ {len(text)} chars"
+                ok_count += 1
+            else:
+                results[key] = "❌ não carregado"
+                fail_count += 1
+
+    return {
+        "status": "ok",
+        "ok": ok_count,
+        "falhou": fail_count,
+        "total": len(VEGETAL_KB_KEYS),
+        "detalhes": results,
+        "nota": "Execute /kb/refresh-vegetal periodicamente para manter KB atualizada."
     }
 
 
