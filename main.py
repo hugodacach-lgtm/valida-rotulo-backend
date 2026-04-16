@@ -4429,6 +4429,24 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             asyncio.ensure_future(_sb_upsert("validacoes", supabase_case))
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
+
+    # Task #17 — Envio automático do relatório por email
+    # Dispara em background sem bloquear o stream
+    try:
+        user_email = request.headers.get("X-User-Email", "")
+        user_nome  = request.headers.get("X-User-Name", "")
+        if user_email and relatorio:
+            asyncio.ensure_future(_enviar_email_relatorio(
+                email=user_email,
+                nome=user_nome,
+                produto=prod_auto or obs[:50] if obs else "",
+                veredicto=veredicto_auto,
+                score=score_auto,
+                relatorio_md=relatorio,
+                case_id=case_id,
+            ))
+    except Exception:
+        pass  # email nunca deve quebrar o relatório
     # ────────────────────────────────────────────────────────────────────────────
 
     # Emite case_id para o frontend usar no feedback
@@ -8268,6 +8286,102 @@ async def _enviar_email_onboarding(email: str, nome: str, etapa: str) -> bool:
         return False
 
 
+# ─── Task #17 — Email de relatório após validação ──────────────────────────
+async def _enviar_email_relatorio(
+    email: str,
+    nome: str,
+    produto: str,
+    veredicto: str,
+    score: float | None,
+    relatorio_md: str,
+    case_id: str = "",
+) -> bool:
+    """
+    Envia o relatório de validação por email após cada validação.
+    Falha silenciosamente se Resend não configurado.
+    """
+    if not _RESEND_KEY or not email:
+        return False
+
+    score_str = f"{score}/14" if score is not None else "—"
+    cor_veredicto = (
+        "#166534" if veredicto and "APROVADO" in veredicto and "RESSALVAS" not in veredicto
+        else "#854f0b" if veredicto and "RESSALVAS" in veredicto
+        else "#a32d2d"
+    )
+    emoji_veredicto = (
+        "✅" if veredicto and "APROVADO" in veredicto and "RESSALVAS" not in veredicto
+        else "⚠️" if veredicto and "RESSALVAS" in veredicto
+        else "❌"
+    )
+
+    # Converte markdown básico para HTML (negrito, listas, cabeçalhos)
+    import re as _re
+    rel_html = relatorio_md[:6000]  # limita tamanho
+    rel_html = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', rel_html)
+    rel_html = _re.sub(r'^### (.+)$', r'<h4 style="margin:12px 0 4px;color:#111">\1</h4>', rel_html, flags=_re.MULTILINE)
+    rel_html = _re.sub(r'^## (.+)$', r'<h3 style="margin:14px 0 6px;color:#111">\1</h3>', rel_html, flags=_re.MULTILINE)
+    rel_html = _re.sub(r'^# (.+)$', r'<h2 style="margin:16px 0 8px;color:#111">\1</h2>', rel_html, flags=_re.MULTILINE)
+    rel_html = _re.sub(r'^• (.+)$', r'<li style="margin:3px 0">\1</li>', rel_html, flags=_re.MULTILINE)
+    rel_html = _re.sub(r'^- (.+)$', r'<li style="margin:3px 0">\1</li>', rel_html, flags=_re.MULTILINE)
+    rel_html = rel_html.replace('\n\n', '</p><p style="margin:8px 0">')
+    rel_html = rel_html.replace('\n', '<br>')
+
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff">
+      <div style="background:#060A0F;padding:16px 20px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;font-weight:700;color:#F2EDD6">Inspect<span style="color:#D4860A">-IA</span></span>
+        <span style="font-size:12px;color:#9ca3af">Validação de Rótulos</span>
+      </div>
+
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;padding:20px 24px;border-radius:0 0 10px 10px">
+        <p style="font-size:14px;color:#374151;margin:0 0 16px">Olá, <strong>{nome or 'RT'}</strong>. Segue o relatório da sua validação:</p>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:12px;color:#6b7280;margin-bottom:4px">Produto</div>
+          <div style="font-size:15px;font-weight:600;color:#111">{produto or '—'}</div>
+          <div style="display:flex;gap:16px;margin-top:10px">
+            <div>
+              <div style="font-size:11px;color:#6b7280">Veredicto</div>
+              <div style="font-size:14px;font-weight:700;color:{cor_veredicto}">{emoji_veredicto} {veredicto or '—'}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#6b7280">Score</div>
+              <div style="font-size:14px;font-weight:700;color:#111">{score_str}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#374151;line-height:1.7">
+          <p style="margin:8px 0">{rel_html}</p>
+        </div>
+
+        <p style="font-size:11px;color:#9ca3af;margin:0;text-align:center">
+          Este relatório foi gerado pelo Inspect-IA e tem caráter auxiliar. Não substitui análise de RT habilitado.<br>
+          <a href="{_FRONTEND_URL}" style="color:#1A7A4A">Acessar plataforma</a>
+        </p>
+      </div>
+    </div>
+    """
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {_RESEND_KEY}",
+                         "Content-Type": "application/json"},
+                json={
+                    "from": _EMAIL_FROM,
+                    "to": [email],
+                    "subject": f"{emoji_veredicto} Relatório ValidaRótulo — {produto or 'Produto'} ({score_str})",
+                    "html": html,
+                }
+            )
+            return r.status_code in (200, 201)
+    except Exception:
+        return False
+
+
 @app.post("/billing/enviar-emails-trial")
 async def enviar_emails_trial(request: Request):
     """
@@ -9736,7 +9850,7 @@ async def refresh_kb_vegetal():
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         for key in VEGETAL_KB_KEYS:
-            urls = KB_URLS.get(key) or MAPA_URLS.get(key, [])
+            urls = MAPA_URLS.get(key, [])
             if not urls:
                 results[key] = "sem URL mapeada"
                 fail_count += 1
