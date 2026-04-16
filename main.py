@@ -1456,8 +1456,65 @@ NP_FALLBACK_MAP = {
     "organico": NP9_ORGANICO_FALLBACK,
 }
 
-def get_np_fallback(obs: str) -> str:
-    """Retorna o fallback NP relevante baseado na observação do usuário."""
+# Mapeamento categoria detectada pelo agente → chave NP_FALLBACK_MAP
+_NP_CATEGORIA_MAP = {
+    "suco":             "suco",
+    "néctar":           "néctar",
+    "refresco":         "refresco",
+    "bebida de fruta":  "suco",
+    "bebida energética":"energético",
+    "energético":       "energético",
+    "cerveja":          "cerveja",
+    "vinho":            "vinho",
+    "suplemento":       "suplemento",
+    "whey":             "whey",
+    "proteína em pó":   "suplemento",
+    "colágeno":         "colágeno",
+    "termogênico":      "suplemento",
+    "pão":              "pão",
+    "biscoito":         "biscoito",
+    "bolacha":          "biscoito",
+    "macarrão":         "macarrão",
+    "massa alimentícia":"macarrão",
+    "torrada":          "pão",
+    "chocolate":        "chocolate",
+    "cacau":            "cacau",
+    "bombom":           "chocolate",
+    "cobertura":        "chocolate",
+    "maionese":         "maionese",
+    "ketchup":          "ketchup",
+    "mostarda":         "ketchup",
+    "shoyu":            "shoyu",
+    "molho":            "molho",
+    "tempero":          "molho",
+    "condimento":       "molho",
+    "palmito":          "palmito",
+    "cogumelo":         "cogumelo",
+    "azeitona":         "azeitona",
+    "conserva vegetal": "palmito",
+    "milho em conserva":"palmito",
+    "ervilha":          "palmito",
+    "orgânico":         "orgânico",
+    "orgânica":         "orgânico",
+    "sorvete":          "sorvete",
+    "gelado":           "sorvete",
+}
+
+def get_np_fallback(obs: str, categoria_detectada: str = "") -> str:
+    """
+    Retorna o fallback NP relevante.
+    Prioridade: categoria_detectada (da imagem) > obs (texto do usuário).
+    """
+    # 1. Tenta pela categoria detectada pelo agente na imagem
+    if categoria_detectada:
+        cat_lower = categoria_detectada.lower()
+        for cat_key, np_key in _NP_CATEGORIA_MAP.items():
+            if cat_key in cat_lower:
+                fallback = NP_FALLBACK_MAP.get(np_key)
+                if fallback:
+                    return f"\n\n## NORMA ESPECÍFICA NÃO-POA — DETECTADA PELA IMAGEM ({categoria_detectada})\n{fallback}"
+
+    # 2. Fallback: tenta pelo texto da observação do usuário
     if not obs:
         return ""
     obs_lower = obs.lower()
@@ -1665,13 +1722,32 @@ REGRAS ABSOLUTAS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 1 — IDENTIFICAÇÃO DO PRODUTO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifique da imagem:
+Identifique da imagem e declare EXPLICITAMENTE:
 • Nome completo do produto conforme aparece no rótulo
-• Espécie animal (bovino/suíno/frango/pescado/ovino/caprino/bubalino/abelha/galinha/misto)
-• Categoria: in natura / embutido cozido / embutido frescal / curado / defumado / laticínio / mel / ovo / conserva
-• Órgão de inspeção detectado pelo carimbo: SIF / SIE / SIM
-• Sigla exata do carimbo (ex: SIF 1234 / SISP 567 / SIM 89)
-• RTIQ aplicável (ex: IN 04/2000 para linguiça)
+• TIPO: POA (produto de origem animal) ou NÃO-POA (vegetal/industrializado/bebida/suplemento)
+• Se POA: espécie animal (bovino/suíno/frango/pescado/ovino/caprino/bubalino/abelha/galinha/misto)
+• Se POA: categoria (in natura / embutido cozido / embutido frescal / curado / defumado / laticínio / mel / ovo / conserva)
+• Se POA: órgão de inspeção detectado pelo carimbo (SIF / SIE / SIM) e sigla exata
+• Se POA: RTIQ aplicável (ex: IN 04/2000 para linguiça)
+• Se NÃO-POA: categoria específica — declare exatamente uma das seguintes:
+  suco integral | néctar | refresco | bebida energética | cerveja | vinho |
+  suplemento | whey | colágeno | termogênico |
+  pão | biscoito | macarrão | torrada |
+  chocolate | cacau |
+  maionese | ketchup | shoyu | molho | tempero |
+  palmito | cogumelo | azeitona | conserva vegetal |
+  sorvete | gelado |
+  orgânico | orgânica |
+  outro não-POA (especificar)
+• Órgão regulador principal: MAPA (POA) / ANVISA (não-POA) / ambos
+
+FORMATO OBRIGATÓRIO do Passo 1 (use sempre esta estrutura):
+PRODUTO: [nome completo]
+TIPO: [POA ou NÃO-POA]
+CATEGORIA NÃO-POA: [categoria específica — só se NÃO-POA, senão omitir]
+ESPÉCIE: [espécie animal — só se POA, senão omitir]
+ÓRGÃO POA: [SIF/SIE/SIM + sigla — só se POA, senão omitir]
+RTIQ: [norma aplicável — só se POA, senão omitir]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 2 — LEGISLAÇÕES APLICÁVEIS
@@ -3411,7 +3487,10 @@ Use como referência primária na validação:
     }
     orgao_context = orgao_map.get(orgao_final.upper(), "")
 
-    # Injetar contexto NP (não-POA) quando detectado
+    # Injetar contexto NP (não-POA) — prioriza categoria detectada pela imagem
+    # O SP_DETECT retorna categoria POA. Para não-POA, usamos a Fase 1 do agente principal
+    # que agora declara "CATEGORIA NÃO-POA: [x]" — capturamos via streaming logo abaixo.
+    # Por ora, injeta baseado no obs do usuário (fallback) — será enriquecido pelo streaming
     np_context = get_np_fallback(obs)
     if np_context:
         system_prompt += np_context
@@ -3543,6 +3622,20 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                             yield f"data: {json.dumps({'text': chunk})}\n\n"
                 except Exception:
                     continue
+
+    # ── Detecção NP pela categoria declarada no Passo 1 do relatório ──────────
+    # O agente agora declara "CATEGORIA NÃO-POA: [x]" no início do relatório.
+    # Capturamos aqui e injetamos retroativamente no contexto para o SP_REVISAO.
+    import re as _re_np
+    np_cat_match = _re_np.search(
+        r"CATEGORIA\s+N[ÃA]O-POA[:\s]+([^\n]{3,60})",
+        relatorio, _re_np.IGNORECASE
+    )
+    if np_cat_match:
+        cat_detectada = np_cat_match.group(1).strip().lower()
+        np_extra = get_np_fallback("", categoria_detectada=cat_detectada)
+        if np_extra and np_extra not in system_prompt:
+            system_prompt += np_extra  # enriquece para SP_REVISAO se rodar
 
     # Segunda leitura crítica — apenas se score baixo, em background (não bloqueia o stream)
     score_pre = extrair_score(relatorio)
