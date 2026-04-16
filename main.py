@@ -4347,9 +4347,48 @@ async def _sb_insert(table: str, data: dict) -> bool:
         return False
 
 async def load_cases_from_supabase() -> list[dict]:
-    """Carrega casos do Supabase para memória no startup."""
-    rows = await _sb_get("validacoes", limit=500)
-    return rows
+    """
+    Carrega casos do Supabase para memória no startup.
+    Prioridade: casos com feedback RT primeiro, depois auto-stored.
+    Deduplica por case_id mantendo o mais recente.
+    """
+    if not _SUPABASE_ON:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            r1 = await client.get(
+                f"{_SUPABASE_URL}/rest/v1/validacoes",
+                headers={"apikey": _SUPABASE_KEY,
+                         "Authorization": f"Bearer {_SUPABASE_KEY}"},
+                params={"select": "*",
+                        "feedback": "not.is.null",
+                        "order": "created_at.desc",
+                        "limit": "300"}
+            )
+            feedback_rows = r1.json() if r1.status_code == 200 and isinstance(r1.json(), list) else []
+            r2 = await client.get(
+                f"{_SUPABASE_URL}/rest/v1/validacoes",
+                headers={"apikey": _SUPABASE_KEY,
+                         "Authorization": f"Bearer {_SUPABASE_KEY}"},
+                params={"select": "*",
+                        "feedback": "is.null",
+                        "order": "created_at.desc",
+                        "limit": "200"}
+            )
+            auto_rows = r2.json() if r2.status_code == 200 and isinstance(r2.json(), list) else []
+        all_rows = feedback_rows + auto_rows
+        seen = set()
+        deduped = []
+        for row in all_rows:
+            cid = row.get("case_id", "")
+            if cid and cid not in seen:
+                seen.add(cid)
+                deduped.append(row)
+            elif not cid:
+                deduped.append(row)
+        return deduped[:500]
+    except Exception:
+        return []
 
 async def load_monitor_from_supabase() -> list[dict]:
     """Carrega histórico de alertas do Supabase."""
@@ -7699,20 +7738,30 @@ async def startup_load():
     asyncio.ensure_future(_startup_background())
 
 async def _startup_background():
-    """Carrega Supabase em background sem bloquear o health check."""
+    """
+    Carrega Supabase em background sem bloquear o health check.
+    Tenta 3 vezes com backoff — Render free tier pode ser lento no cold start.
+    """
     global _cases_db, _monitor_history
     if not _SUPABASE_ON:
         return
+    import asyncio as _aio
+    for attempt in range(3):
+        try:
+            rows = await _aio.wait_for(load_cases_from_supabase(), timeout=15.0)
+            if rows:
+                _cases_db = rows
+                break  # sucesso — para de tentar
+        except Exception:
+            if attempt < 2:
+                await _aio.sleep(3 * (attempt + 1))  # 3s, 6s
+    # Monitor de alertas — uma tentativa
     try:
-        import asyncio as _aio
-        rows = await _aio.wait_for(load_cases_from_supabase(), timeout=8.0)
-        if rows:
-            _cases_db = rows
         alerts = await _aio.wait_for(load_monitor_from_supabase(), timeout=8.0)
         if alerts:
             _monitor_history = alerts
     except Exception:
-        pass  # Supabase lento — continua in-memory
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -8274,6 +8323,61 @@ async def tabela_pdf(request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=500,
                             headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/debug/feedback-status")
+async def feedback_status():
+    """
+    Diagnóstico do ciclo de feedback — quantos casos em memória vs Supabase.
+    Útil para confirmar que o aprendizado está persistindo entre restarts.
+    """
+    supabase_total = 0
+    supabase_com_feedback = 0
+    if _SUPABASE_ON:
+        try:
+            rows_total = await _sb_get("validacoes", limit=1)
+            # Conta total via header (Supabase retorna count no header com Prefer: count=exact)
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                r = await client.get(
+                    f"{_SUPABASE_URL}/rest/v1/validacoes",
+                    headers={"apikey": _SUPABASE_KEY,
+                             "Authorization": f"Bearer {_SUPABASE_KEY}",
+                             "Prefer": "count=exact"},
+                    params={"select": "case_id", "limit": "1"}
+                )
+                ct = r.headers.get("content-range", "0/0")
+                supabase_total = int(ct.split("/")[-1]) if "/" in ct else 0
+                # Com feedback
+                r2 = await client.get(
+                    f"{_SUPABASE_URL}/rest/v1/validacoes",
+                    headers={"apikey": _SUPABASE_KEY,
+                             "Authorization": f"Bearer {_SUPABASE_KEY}",
+                             "Prefer": "count=exact"},
+                    params={"select": "case_id", "feedback": "not.is.null", "limit": "1"}
+                )
+                ct2 = r2.headers.get("content-range", "0/0")
+                supabase_com_feedback = int(ct2.split("/")[-1]) if "/" in ct2 else 0
+        except Exception:
+            pass
+
+    em_memoria = len(_cases_db)
+    com_feedback_mem = sum(1 for c in _cases_db if c.get("feedback"))
+
+    return JSONResponse({
+        "status": "ok",
+        "memoria": {
+            "total_casos": em_memoria,
+            "com_feedback_rt": com_feedback_mem,
+            "sem_feedback": em_memoria - com_feedback_mem,
+        },
+        "supabase": {
+            "conectado": _SUPABASE_ON,
+            "total_casos": supabase_total,
+            "com_feedback_rt": supabase_com_feedback,
+        },
+        "saude": "ok" if supabase_total > 0 or not _SUPABASE_ON else "aviso: Supabase vazio",
+        "nota": "Casos em memória devem ser iguais ou menores que Supabase (máx 500 em RAM)."
+    }, headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/")
