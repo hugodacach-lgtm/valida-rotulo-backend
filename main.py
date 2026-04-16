@@ -1712,7 +1712,10 @@ REGRAS ABSOLUTAS:
        • Texto sobreposto a fundo escuro → "Aumente o brilho da câmera ou fotografe com melhor iluminação para este campo."
      FORMATO OBRIGATÓRIO quando NÃO VERIFICÁVEL: 
      🔍 NÃO VERIFICÁVEL — [causa]. 💡 Sugestão: [ação específica para o RT melhorar a foto] linha de produção. NÃO avalie esses campos.
-4. Cite sempre a norma específica (número e ano) para cada avaliação
+4. Cite SEMPRE a norma com artigo e parágrafo específicos — NUNCA apenas o número da norma.
+   FORMATO OBRIGATÓRIO para citações: "RDC 727/2022 Art. 8° §1°" ou "IN 22/2005 Art. 3° II" ou "RDC 429/2020 Art. 24"
+   ERRADO: "RDC 727/2022" — CORRETO: "RDC 727/2022 Art. 8°"
+   Se não souber o artigo exato, cite o mais próximo conhecido. Nunca omita o artigo.
 5. Nunca pule nenhum dos 14 campos obrigatórios + Campo 15 se houver alegação no rótulo
 6. TEXTO EM CURVA/ARCO: leia ativamente textos curvos, arqueados ou em arco — comum em carimbos e denominações. Gire mentalmente a perspectiva. Não marque como NÃO VERIFICÁVEL apenas por estar em curva.
 7. FONTE ESTILIZADA: se não for possível ler com certeza, descreva o que é visível e indique a incerteza — nunca ignore o campo.
@@ -1721,6 +1724,62 @@ REGRAS ABSOLUTAS:
 6. DETECTE O TIPO DE PRODUTO primeiro (POA / vegetal / industrializado / bebida / suplemento) para aplicar as regras corretas no Campo 8
 
 {kb_section}
+
+## TABELA DE ARTIGOS POR CAMPO — USE ESTES ARTIGOS NAS CITAÇÕES:
+
+CAMPO 1 — DENOMINAÇÃO:
+  RDC 727/2022 Art. 5° (denominação obrigatória) | Art. 6° (nome fantasia) | RTIQ específico Art. 1° (definição)
+
+CAMPO 2 — INGREDIENTES:
+  RDC 727/2022 Art. 10 (lista obrigatória) | Art. 11 (ordem decrescente) | Art. 12 §1° (aditivos com INS e função)
+  Art. 13 (alérgenos na lista) | RDC 725/2012 (aditivos autorizados)
+
+CAMPO 3 — CONTEÚDO LÍQUIDO:
+  INMETRO Port. 249/2021 Art. 6° (declaração obrigatória) | Art. 8° (posição e tamanho mínimo)
+  Lei 9.933/1999 Art. 3° (tolerâncias)
+
+CAMPO 4 — FABRICANTE:
+  RDC 727/2022 Art. 8° (identificação obrigatória) | Art. 8° §1° (endereço completo: logradouro, número, bairro, CEP, município, UF)
+  Art. 8° §2° (importados: importador + país de origem)
+
+CAMPO 5 — GLÚTEN:
+  Lei 10.674/2003 Art. 2° (declaração obrigatória CONTÉM/NÃO CONTÉM GLÚTEN)
+
+CAMPO 6 — LACTOSE:
+  RDC 715/2022 Art. 3° (declaração CONTÉM LACTOSE obrigatória) | Art. 4° (limiar <100mg/100g = isento)
+
+CAMPO 7 — CONSERVAÇÃO:
+  RDC 727/2022 Art. 9° §3° (instruções de uso e conservação quando necessárias)
+  POA: IN 22/2005 Art. 5° (temperatura de conservação obrigatória para POA)
+
+CAMPO 8 — CARIMBO/REGISTRO:
+  POA-SIF: RIISPOA Art. 23 (carimbo oval obrigatório) | Port. SDA 1485/2025 (numeração)
+  NÃO-POA: RDC 204/2017 (registro ANVISA obrigatório para suplementos)
+  RDC 243/2018 Art. 3° (notificação obrigatória para suplementos)
+
+CAMPO 9 — TABELA NUTRICIONAL:
+  RDC 429/2020 Art. 2° (obrigatoriedade) | Art. 4° (leiaute obrigatório) | Art. 24 (cálculo Atwater)
+  IN 75/2020 Art. 3° (valores de referência %VD) | Art. 5° (arredondamento)
+  RDC 429/2020 Art. 17 (gorduras trans: declarar 0 se <0,2g/porção)
+
+CAMPO 10 — LUPA FRONTAL:
+  RDC 429/2020 Art. 38 (obrigatoriedade lupa) | Art. 39 (critérios: sódio ≥600mg/100g, gord.sat ≥6g/100g, açúcar add. ≥15g/100g)
+  Art. 40 (posição: 1/3 superior frontal) | Art. 42 (tamanho mínimo lupa)
+
+CAMPO 11 — ALÉRGENOS:
+  RDC 727/2022 Art. 14 (declaração obrigatória — 14 grupos) | Art. 15 (CONTÉM/PODE CONTER)
+  Art. 16 (formatação: caixa alta + negrito + fonte mínima 2mm) | Art. 17 (cruzamento na lista de ingredientes)
+
+CAMPO 12 — TRANSGÊNICOS:
+  Decreto 4.680/2003 Art. 2° (limiar 1% por ingrediente) | Art. 3° (símbolo T obrigatório se >1%)
+  Port. 2658/2003 (especificação do símbolo: triângulo amarelo, mín. 4mm)
+
+CAMPO 13 — LOTE E VALIDADE:
+  RDC 727/2022 Art. 9° I (lote obrigatório) | Art. 9° II (prazo de validade obrigatório)
+  Art. 9° §1° (pode ser impresso separadamente — indicar local na arte)
+
+CAMPO 14 — PORÇÃO PADRÃO:
+  IN 75/2020 Anexo I (tabela de porções por categoria) | RDC 429/2020 Art. 6° (declaração de porção obrigatória)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PASSO 1 — IDENTIFICAÇÃO DO PRODUTO
@@ -3330,7 +3389,7 @@ CHECKLIST UNIVERSAL (aplica a TODOS os produtos — POA e não-POA):
 5. TABELA NUTRICIONAL: %VD conferido? Porção padrão IN 75/2020 correta para a categoria? Trans com limiar verificado?
 6. ALÉRGENOS: 14 grupos RDC 727/2022? Formatação (caixa alta + negrito + 2mm mínimo)?
 7. TEXTO DE CORREÇÃO: para cada NÃO CONFORME, o relatório sugere o texto exato de como corrigir?
-8. NORMAS CITADAS: cada não conformidade cita a norma com número, ano e artigo?
+8. NORMAS CITADAS: cada não conformidade cita OBRIGATORIAMENTE número + ano + artigo + parágrafo? (ex: RDC 727/2022 Art. 8° §1° — não apenas 'RDC 727/2022'). Citar só o número da norma sem artigo é insuficiente.
 9. AGRUPAMENTO: correções separadas por prioridade (1ª impede comercialização / 2ª técnica / 3ª recomendação)?
 
 CHECKLIST POA (só se produto for de origem animal):
@@ -8784,6 +8843,135 @@ async def validar_lote(
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HISTÓRICO DE VALIDAÇÕES — Task #11
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/historico")
+async def get_historico(
+    user_id: str = "",
+    busca: str = "",
+    veredicto: str = "",
+    categoria: str = "",
+    score_min: str = "",
+    score_max: str = "",
+    limite: int = 50,
+    offset: int = 0,
+):
+    """
+    Retorna histórico de validações com busca e filtros.
+    Parâmetros:
+      user_id   — filtra pelo usuário (opcional)
+      busca     — texto livre sobre produto
+      veredicto — APROVADO | APROVADO COM RESSALVAS | REPROVADO
+      categoria — categoria do produto
+      score_min / score_max — faixa de score
+      limite    — paginação (max 100)
+      offset    — paginação
+    """
+    try:
+        limite = min(int(limite), 100)
+
+        # Busca na memória local primeiro (inclui casos recentes ainda não persistidos)
+        resultados = list(_cases_db)
+
+        # Aplica filtros na memória
+        if busca:
+            b = busca.lower()
+            resultados = [c for c in resultados
+                         if b in (c.get("produto") or "").lower()
+                         or b in (c.get("categoria") or "").lower()]
+        if veredicto:
+            resultados = [c for c in resultados
+                         if veredicto.upper() in (c.get("veredicto") or "").upper()]
+        if categoria:
+            resultados = [c for c in resultados
+                         if categoria.lower() in (c.get("categoria") or "").lower()
+                         or categoria.lower() in (c.get("caminho_np") or "").lower()]
+        if score_min:
+            try:
+                sm = float(score_min)
+                resultados = [c for c in resultados if (c.get("score_agente") or 0) >= sm]
+            except ValueError:
+                pass
+        if score_max:
+            try:
+                sx = float(score_max)
+                resultados = [c for c in resultados if (c.get("score_agente") or 14) <= sx]
+            except ValueError:
+                pass
+
+        # Ordena por timestamp desc
+        resultados.sort(key=lambda c: c.get("timestamp") or "", reverse=True)
+        total = len(resultados)
+        pagina = resultados[offset:offset + limite]
+
+        # Se Supabase disponível e poucos resultados em memória, busca lá também
+        supabase_extra = []
+        if _SUPABASE_ON and total < limite:
+            try:
+                params = {
+                    "select": "case_id,produto,categoria,caminho_np,feedback,score_agente,score_real,erros_encontrados,ressalvas_auto,timestamp,created_at",
+                    "order": "created_at.desc",
+                    "limit": str(limite),
+                    "offset": str(offset),
+                }
+                if busca:
+                    params["produto"] = f"ilike.%{busca}%"
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    r = await client.get(
+                        f"{_SUPABASE_URL}/rest/v1/validacoes",
+                        headers={"apikey": _SUPABASE_KEY,
+                                 "Authorization": f"Bearer {_SUPABASE_KEY}"},
+                        params=params
+                    )
+                    if r.status_code == 200:
+                        sb_rows = r.json() if isinstance(r.json(), list) else []
+                        # Mescla sem duplicatas (case_id)
+                        mem_ids = {c.get("case_id") for c in pagina if c.get("case_id")}
+                        supabase_extra = [row for row in sb_rows
+                                         if row.get("case_id") not in mem_ids]
+            except Exception:
+                pass
+
+        merged = pagina + supabase_extra
+        merged.sort(key=lambda c: c.get("created_at") or c.get("timestamp") or "", reverse=True)
+
+        # Formata para o frontend
+        items = []
+        for c in merged[:limite]:
+            score = c.get("score_agente") or c.get("score_real")
+            veredicto_c = c.get("veredicto") or (
+                "APROVADO" if score and score >= 13 else
+                "APROVADO COM RESSALVAS" if score and score >= 8 else
+                "REPROVADO" if score is not None else None
+            )
+            items.append({
+                "case_id":    c.get("case_id", ""),
+                "produto":    c.get("produto", "Produto não identificado"),
+                "categoria":  c.get("categoria") or c.get("caminho_np") or "",
+                "score":      score,
+                "veredicto":  veredicto_c,
+                "feedback_rt": c.get("feedback"),
+                "erros":      c.get("erros_encontrados") or c.get("erros_auto") or "",
+                "ressalvas":  c.get("ressalvas_auto") or "",
+                "timestamp":  c.get("created_at") or c.get("timestamp") or "",
+                "com_feedback": bool(c.get("feedback")),
+            })
+
+        return JSONResponse({
+            "ok": True,
+            "total": total,
+            "offset": offset,
+            "limite": limite,
+            "items": items,
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/")
