@@ -334,6 +334,9 @@ CATEGORIA_KEYWORDS = {
     "soro_leite":       ["soro de leite", "soro lácteo", "whey"],
     # Mel adicionais
     "mel_qualidade":    ["mel", "mel puro", "mel orgânico", "mel silvestre", "mel florada"],
+    "poa_organico":     ["frango orgânico", "carne orgânica", "suíno orgânico", "bovino orgânico",
+                         "ovos orgânicos", "leite orgânico", "queijo orgânico", "iogurte orgânico",
+                         "sisorg", "certificado orgânico", "produto orgânico poa"],
     "apicola_derivados":["própolis", "propolis", "geleia real", "pólen apícola", "pollen", "cera de abelha", "apitoxina", "extrato de própolis"],
     # Ovos adicionais
     "ovos_pasteurizados":["ovo pasteurizado", "ovo desidratado", "ovo em pó", "ovo integral"],
@@ -1034,6 +1037,85 @@ SIE_ESTADO_MAP = {
     "TO": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPEC": SIE_OUTROS_ESTADOS_FALLBACK,
 }
 
+# ───────────────────────────────────────────────────────────────────────────────
+# SISBI-POA — SISTEMA BRASILEIRO DE INSPEÇÃO DE PRODUTOS DE ORIGEM ANIMAL
+# Equivalência entre SIE/SIM estaduais/municipais para comércio nacional
+# ───────────────────────────────────────────────────────────────────────────────
+SISBI_POA_FALLBACK = """SISBI-POA — EQUIVALÊNCIA PARA COMÉRCIO NACIONAL (Decreto 9.013/2017 Art. 25)
+
+REGRA PRINCIPAL:
+• Produto com APENAS carimbo SIE ou SIM pode circular SOMENTE no estado/município de origem
+• Produto com carimbo SIE/SIM + adesão ao SISBI-POA pode circular em TODO o território nacional
+• Produto com carimbo SIF pode sempre circular nacionalmente (não precisa de SISBI)
+
+COMO IDENTIFICAR SISBI-POA NO RÓTULO:
+• Presença do logo/selo SISBI-POA ao lado do carimbo SIE/SIM
+• Indicação textual: "Produto habilitado ao SISBI-POA" ou "SISBI-POA"
+• Número de habilitação SISBI no estabelecimento
+
+VERIFICAÇÕES PARA CAMPO 8 (CARIMBO/REGISTRO):
+✅ CONFORME se: SIF sozinho | SIE + SISBI-POA + venda nacional | SIM + SISBI-POA + venda nacional
+❌ NÃO CONFORME se: SIE sozinho com declaração de venda nacional no rótulo
+❌ NÃO CONFORME se: SIM sozinho com declaração de venda para outros estados
+⚠️ COM RESSALVAS se: SIE/SIM sem SISBI mas sem declaração explícita de alcance nacional
+
+NORMA: Decreto 9.013/2017 Art. 25 §1° | Port. SDA 46/2019 (habilitação SISBI-POA)
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# SIM MUNICIPAL — SERVIÇO DE INSPEÇÃO MUNICIPAL
+# ───────────────────────────────────────────────────────────────────────────────
+SIM_MUNICIPAL_FALLBACK = """SIM — SERVIÇO DE INSPEÇÃO MUNICIPAL (Lei 7.889/1989 + Decreto 9.013/2017 Art. 4°)
+
+DIFERENÇAS DO SIF/SIE:
+1. CARIMBO: deve conter "SIM" + número municipal (oval ou quadrado conforme legislação municipal)
+   Formato aceito: "SIM Nº XXX" | "SIM [NOME DO MUNICÍPIO] XXX"
+   ❌ NÃO confundir com SIF (federal) ou SIE (estadual)
+
+2. ABRANGÊNCIA: produto pode ser comercializado SOMENTE no município de origem
+   Exceção: município aderido ao SISBI-POA → comércio nacional permitido
+
+3. LEGISLAÇÃO MUNICIPAL: cada município pode ter exigências adicionais
+   Verificar se o carimbo está correto conforme regulamento municipal vigente
+   Muitos municípios exigem registro no sistema municipal além do número
+
+4. RTIQ: mesmos RTIQs federais se aplicam (IN 4/2000, IN 20/2000, etc.)
+   O SIM não dispensa cumprimento dos RTIQs do MAPA
+
+5. RESPONSABILIDADE TÉCNICA: RT habilitado obrigatório mesmo para SIM
+
+NORMA BASE: Lei 7.889/1989 | Decreto 9.013/2017 Art. 4° II | Regulamento municipal específico
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# POA ORGÂNICO — PRODUTOS DE ORIGEM ANIMAL COM CERTIFICAÇÃO ORGÂNICA
+# ───────────────────────────────────────────────────────────────────────────────
+POA_ORGANICO_FALLBACK = """POA ORGÂNICO — PRODUTOS DE ORIGEM ANIMAL ORGÂNICOS
+Lei 10.831/2003 + Decreto 6.323/2007 + IN MAPA 17/2014 (produção orgânica animal) + IN MAPA 19/2009 (certificação)
+
+DENOMINAÇÃO (Campo 1):
+✅ "Frango Inteiro Orgânico" | "Mel Orgânico" | "Ovos Orgânicos"
+❌ "Frango Natural" sem certificação — proibido usar "orgânico" sem certificação
+❌ "Produto Ecológico" sem certificação — "ecológico" = sinônimo de orgânico para fins legais
+
+CERTIFICAÇÃO OBRIGATÓRIA (Campo 8):
+• Logo/Selo SisOrg obrigatório no rótulo — emblema oficial do sistema orgânico brasileiro
+• Número do certificado ou código do organismo certificador
+• Organismos credenciados pelo MAPA: IBD, IMO, Ecocert, Imo Control, OIA, etc.
+  ✅ "Certificado por [OAC] — MAPA nº XX" ou Selo SisOrg + número
+  ❌ Ausência do Selo SisOrg = NÃO CONFORME (fraude se usar "orgânico")
+
+INGREDIENTES (Campo 2):
+• 100% orgânico: todos os ingredientes agrícolas devem ser orgânicos
+• Mín. 95% orgânicos para usar denominação e símbolo
+• 70-94% orgânicos: pode listar ingredientes orgânicos mas não usar o símbolo
+• Aditivos: apenas os autorizados pelo Decreto 6.323/2007 Anexo I
+
+TABELA NUTRICIONAL (Campo 9): mesmas regras RDC 429/2020
+
+NORMAS: Lei 10.831/2003 | Decreto 6.323/2007 | IN MAPA 17/2014 | IN MAPA 19/2009
+"""
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # NP1 — SUCOS, NÉCTARES E BEBIDAS DE FRUTAS
 # RDC 173/2006 + IN MAPA 37/2018 + Decreto 6.871/2009
@@ -1423,6 +1505,176 @@ ALERTAS CRÍTICOS:
 • "Natural" sendo vendido como sinônimo de "orgânico" → ❌ Alerta ao cliente
 • Aditivos sintéticos comuns (conservantes, corantes) em produto orgânico → ❌ NÃO CONFORME"""
 
+# ───────────────────────────────────────────────────────────────────────────────
+# NP10 — SORVETES E GELADOS COMESTÍVEIS
+# RDC ANVISA 266/2005 + RDC 429/2020 + IN 75/2020
+# ───────────────────────────────────────────────────────────────────────────────
+NP10_SORVETE_FALLBACK = """SORVETES E GELADOS COMESTÍVEIS — RDC 266/2005 (ANVISA)
+
+CAMPO 1 — DENOMINAÇÃO:
+• "Sorvete de creme" (≥2,5% gordura láctea + ≥6% extrato seco lácteo)
+• "Sorvete de fruta" (mín. 15% polpa de fruta para frutas ácidas, mín. 20% para demais)
+• "Sherbet" (sorvete de fruta com baixo teor lácteo)
+• "Gelado de fruta" (base de suco/polpa, sem laticínios)
+• "Picolé" deve especificar: "picolé de [sabor]" ou "picolé cremoso de [sabor]"
+• Aromatizante artificial: denominação deve conter "sabor [nome]" — ex: "sorvete sabor morango"
+• ❌ "Sorvete de morango" com apenas aromatizante artificial (sem polpa) = NÃO CONFORME
+
+CAMPO 2 — INGREDIENTES:
+• Emulsificantes e estabilizantes comuns autorizados: lecitina de soja (INS 322), mono e diglicerídeos (INS 471), goma guar (INS 412), carragena (INS 407)
+• Corantes autorizados: curcumina (INS 100), cochonilha (INS 120), caramelo (INS 150)
+• Adoçantes em sorvetes diet/light: aspartame (INS 951), sucralose (INS 955) — declarar fenilalanina se aspartame
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão IN 75/2020: 60g (sorvete a granel) ou 1 unidade declarada para picolés
+• Cálculo por porção E por 100g obrigatório
+• Açúcares adicionados: declarar separadamente na tabela
+
+CAMPO 10 — LUPA:
+• Verificar limiar de açúcar adicionado: ≥15g/100g = lupa obrigatória
+• Muitos sorvetes industriais atingem esse limiar
+
+NORMAS: RDC 266/2005 | RDC 429/2020 | IN 75/2020 | RDC 727/2022
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# NP11 — PROTEÍNA VEGETAL E SUBSTITUTOS DE CARNE
+# RDC ANVISA 268/2005 + RDC 429/2020
+# ───────────────────────────────────────────────────────────────────────────────
+NP11_PROTEINA_VEGETAL_FALLBACK = """PROTEÍNA VEGETAL E SUBSTITUTOS DE CARNE — RDC 268/2005 (ANVISA)
+
+CAMPO 1 — DENOMINAÇÃO:
+• Proteína Vegetal Texturizada (PVT): "Proteína de soja texturizada" ou "PVT de soja"
+• Tofu: "Tofu" ou "queijo de soja" — deve declarar origem (soja)
+• Tempeh: "Tempeh de soja" — produto fermentado, declarar fermentação
+• Seitan: "Seitan" ou "glúten de trigo" — deve mencionar glúten
+• ❌ "Carne vegetal" sem complemento explicativo pode confundir consumidor
+• ✅ "Burger vegetal de soja" ou "alternativa vegetal de proteína" são denominações aceitas
+
+CAMPO 2 — INGREDIENTES:
+• PVT: proteína de soja como ingrediente principal, umidade máxima: 14%
+• Tofu: soja, água e coagulante (nigari/sulfato de cálcio/cloreto de magnésio) — declarar o coagulante
+• ❌ Omissão do coagulante no tofu = NÃO CONFORME (ingrediente funcional obrigatório)
+• Alérgenos: SOJA presente = declaração obrigatória "CONTÉM SOJA"
+• Seitan: GLÚTEN = declaração "CONTÉM GLÚTEN" obrigatória
+
+CAMPO 5 — GLÚTEN: Seitan e produtos com farinha de trigo = CONTÉM GLÚTEN
+CAMPO 9 — TABELA NUTRICIONAL: porção conforme IN 75/2020 para a categoria mais próxima
+• PVT seca: 25g (hidratada equivale a ~100g)
+• Tofu/Tempeh: 100g
+
+NORMAS: RDC 268/2005 | RDC 727/2022 | IN 75/2020 | RDC 429/2020
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# NP12 — BEBIDAS FERMENTADAS NÃO ALCOÓLICAS (KOMBUCHA, KEFIR DE ÁGUA)
+# RDC ANVISA + Decreto 6.871/2009 + regulamentação específica em desenvolvimento
+# ───────────────────────────────────────────────────────────────────────────────
+NP12_FERMENTADO_FALLBACK = """BEBIDAS FERMENTADAS NÃO ALCOÓLICAS — Kombucha, Kefir de Água
+
+ATENÇÃO: Kombucha ainda não tem regulamento técnico específico publicado pela ANVISA (2024).
+Aplica-se a legislação de bebidas não alcoólicas em geral + princípios gerais ANVISA.
+
+CAMPO 1 — DENOMINAÇÃO:
+• "Kombucha" é denominação aceita — não há impedimento legal
+• Declarar: "Bebida fermentada de chá" ou "Kombucha" são aceitos
+• Se tiver adição de suco: "Kombucha com [fruta]" ou "Kombucha sabor [fruta]"
+• Kefir de água: "Bebida fermentada de kefir" ou "Kefir de água com [sabor]"
+• ❌ Não declarar processo de fermentação quando relevante = omissão de informação relevante
+
+CAMPO 2 — INGREDIENTES:
+• Kombucha: água, chá, açúcar (fonte do carboidrato para fermentação), SCOBY
+• O açúcar residual (pós-fermentação) deve ser mensurado e declarado na tabela nutricional
+• Kefir de água: água, açúcar mascavo/melado, grãos de kefir
+• Flavorizantes, sucos e polpas adicionados devem estar declarados
+
+CAMPO 8 — REGISTRO:
+• Kombucha: atualmente notificado como "bebida" na ANVISA (categoria bebidas não alcoólicas)
+• Verificar se há número de notificação ANVISA no rótulo
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção: 200mL (bebida)
+• Atenção ao teor alcoólico residual: >0,5% ABV = bebida alcoólica (outra categoria)
+• Açúcares residuais devem refletir o produto final (pós-fermentação), não os ingredientes iniciais
+
+CAMPO 10 — LUPA: verificar teor de açúcar residual — kombucha industrial pode ter adição de açúcar pós-fermentação
+
+NORMAS: RDC 727/2022 | RDC 429/2020 | IN 75/2020 | Decreto 6.871/2009 (bebidas) | RIISPOA Art. (não aplicável)
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# NP13 — FARINHAS ESPECIAIS (AMÊNDOA, COCO, GRÃO-DE-BICO, ARROZ, TAPIOCA)
+# RDC ANVISA 711/2022 + RDC 429/2020 + IN 75/2020
+# ───────────────────────────────────────────────────────────────────────────────
+NP13_FARINHA_ESPECIAL_FALLBACK = """FARINHAS ESPECIAIS E AMIDOS — RDC 711/2022 (ANVISA)
+
+CAMPO 1 — DENOMINAÇÃO:
+• Farinha de amêndoa: "Farinha de amêndoa" — declarar se integral ou desengordurada
+• Farinha de coco: "Farinha de coco" — alta fibra, deve declarar teor de fibra
+• Farinha de arroz: "Farinha de arroz" (integral ou branca)
+• Farinha de grão-de-bico: "Farinha de grão-de-bico" ou "farinha de chickpea"
+• Fécula/amido de mandioca: "Fécula de mandioca" ≠ "Farinha de mandioca" ≠ "Polvilho"
+  ✅ "Polvilho azedo" (fermentado) | "Polvilho doce" (não fermentado) | "Fécula de mandioca"
+• Tapioca: "Granulado de tapioca" ou "Beiju de tapioca" — não é farinha, é produto da fécula
+• ❌ "Farinha sem glúten" para farinha de trigo convencional = falsidade
+
+CAMPO 2 — INGREDIENTES:
+• Farinha de amêndoa: 100% amêndoa (inteira ou laminada moída)
+• Verificar: aditivos como agentes antiumectantes (dióxido de silício INS 551) são comuns
+• Farinhas compostas: lista todos os ingredientes de cada componente
+
+CAMPO 5 — GLÚTEN:
+• Farinha de arroz, amêndoa, coco, grão-de-bico: naturalmente sem glúten
+• Verificar contaminação cruzada — se processado em linha que processa trigo: "PODE CONTER GLÚTEN"
+• ❌ Declarar "SEM GLÚTEN" sem verificar contaminação cruzada = risco legal
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão IN 75/2020 para farinhas: 30g (colher de sopa = ~30g)
+• Farinha de amêndoa tem alto teor lipídico — verificar se valor energético está correto
+• Farinha de coco tem alto teor de fibra — verificar se fibra alimentar está declarada
+
+NORMAS: RDC 711/2022 | RDC 727/2022 | RDC 429/2020 | IN 75/2020 | Lei 10.674/2003 (glúten)
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# NP14 — ALIMENTOS FUNCIONAIS COM ALEGAÇÃO DE SAÚDE
+# RDC ANVISA 243/2018 + Resolução 19/1999 (alegações) + RDC 429/2020
+# ───────────────────────────────────────────────────────────────────────────────
+NP14_FUNCIONAL_FALLBACK = """ALIMENTOS FUNCIONAIS E ALEGAÇÕES DE SAÚDE — RDC 243/2018 + Res. 19/1999
+
+CAMPO 1 — DENOMINAÇÃO:
+• Produto com alegação funcional não pode mudar a denominação técnica
+  ✅ "Leite UHT Integral — Fonte de Cálcio" (claim separado)
+  ❌ "Leite Cálcio Forte" (modifica denominação técnica)
+
+CAMPO 2 — INGREDIENTES (SUPLEMENTOS NUTRICIONAIS):
+• Vitaminas, minerais, probióticos adicionados: declarar a forma química
+  ✅ "Vitamina D3 (colecalciferol)" | "Vitamina C (ácido ascórbico)"
+• Probióticos: declarar gênero, espécie e cepa (ex: "Lactobacillus acidophilus LA5")
+  + dose mínima eficaz (UFC/porção) deve estar declarada
+  ❌ "Contém probióticos" sem especificar cepa = NÃO CONFORME
+
+CAMPO 8 — REGISTRO/NOTIFICAÇÃO ANVISA:
+• Alimento com alegação funcional ou de saúde APROVADA (lista ANVISA): dispensado registro
+  mas alegação deve constar da lista aprovada pela RDC 19/1999 + atualizações
+• Alimento com alegação NÃO prevista na lista: exige comprovação científica + registro ANVISA
+• ❌ Alegação funcional não aprovada sem registro = infração grave
+
+ALEGAÇÕES FUNCIONAIS APROVADAS PELA ANVISA (exemplos):
+• Ômega 3: "O [nutriente] auxilia na manutenção de níveis saudáveis de colesterol"
+• Fibras: "As fibras alimentares auxiliam no funcionamento do intestino"
+• Cálcio: "O cálcio é necessário para manter a saúde dos ossos e dentes"
+• Ferro: "O ferro contribui para a formação normal dos glóbulos vermelhos"
+• Probióticos aprovados: L. acidophilus, B. longum — verificar lista atualizada ANVISA
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Nutrientes adicionados devem aparecer na tabela nutricional
+• Probióticos: declarar UFC/porção (não é nutriente, pode ir em nota de rodapé)
+• Porção da alegação: a porção declarada no rótulo deve ser a porção que atinge o benefício
+
+NORMAS: RDC 243/2018 | Res. 19/1999 + atualizações | RDC 429/2020 | RDC 727/2022
+"""
+
 # Mapeamento NP fallbacks por URL para injeção automática
 NP_FALLBACK_MAP = {
     "suco": NP1_SUCOS_FALLBACK,
@@ -1454,6 +1706,45 @@ NP_FALLBACK_MAP = {
     "energetico": NP8_ENERGETICO_FALLBACK,
     "orgânico": NP9_ORGANICO_FALLBACK,
     "organico": NP9_ORGANICO_FALLBACK,
+    # NP10 — Sorvetes
+    "sorvete": NP10_SORVETE_FALLBACK,
+    "gelado": NP10_SORVETE_FALLBACK,
+    "picolé": NP10_SORVETE_FALLBACK,
+    "picole": NP10_SORVETE_FALLBACK,
+    "sherbet": NP10_SORVETE_FALLBACK,
+    # NP11 — Proteína vegetal
+    "tofu": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "tempeh": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "seitan": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "proteína vegetal": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "pvt": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "burger vegetal": NP11_PROTEINA_VEGETAL_FALLBACK,
+    "carne vegetal": NP11_PROTEINA_VEGETAL_FALLBACK,
+    # NP12 — Fermentados
+    "kombucha": NP12_FERMENTADO_FALLBACK,
+    "kefir de água": NP12_FERMENTADO_FALLBACK,
+    "kefir de agua": NP12_FERMENTADO_FALLBACK,
+    "bebida fermentada": NP12_FERMENTADO_FALLBACK,
+    # NP13 — Farinhas especiais
+    "farinha de amêndoa": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha de amendoa": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha de coco": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha de arroz": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha de grão-de-bico": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha de grao-de-bico": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "farinha sem glúten": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "polvilho": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "fécula": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "fecula": NP13_FARINHA_ESPECIAL_FALLBACK,
+    "tapioca": NP13_FARINHA_ESPECIAL_FALLBACK,
+    # NP14 — Alimentos funcionais
+    "funcional": NP14_FUNCIONAL_FALLBACK,
+    "probiótico": NP14_FUNCIONAL_FALLBACK,
+    "probiotico": NP14_FUNCIONAL_FALLBACK,
+    "alegação": NP14_FUNCIONAL_FALLBACK,
+    "alegacao": NP14_FUNCIONAL_FALLBACK,
+    "ômega 3": NP14_FUNCIONAL_FALLBACK,
+    "omega 3": NP14_FUNCIONAL_FALLBACK,
 }
 
 # Mapeamento categoria detectada pelo agente → chave NP_FALLBACK_MAP
@@ -1496,6 +1787,26 @@ _NP_CATEGORIA_MAP = {
     "ervilha":          "palmito",
     "orgânico":         "orgânico",
     "orgânica":         "orgânico",
+    # NP10-14 (novas categorias task #15)
+    "sorvete":          "sorvete",
+    "gelado comestível":"sorvete",
+    "picolé":           "sorvete",
+    "tofu":             "tofu",
+    "tempeh":           "tempeh",
+    "seitan":           "seitan",
+    "proteína vegetal": "proteína vegetal",
+    "burger vegetal":   "burger vegetal",
+    "kombucha":         "kombucha",
+    "kefir de água":    "kefir de água",
+    "bebida fermentada":"kombucha",
+    "farinha de amêndoa":"farinha de amêndoa",
+    "farinha de coco":  "farinha de coco",
+    "farinha de arroz": "farinha de arroz",
+    "polvilho":         "polvilho",
+    "tapioca":          "tapioca",
+    "funcional":        "funcional",
+    "probiótico":       "funcional",
+    "ômega 3":          "funcional",
     "sorvete":          "sorvete",
     "gelado":           "sorvete",
 }
@@ -1798,7 +2109,11 @@ Identifique da imagem e declare EXPLICITAMENTE:
   chocolate | cacau |
   maionese | ketchup | shoyu | molho | tempero |
   palmito | cogumelo | azeitona | conserva vegetal |
-  sorvete | gelado |
+  sorvete | gelado | picolé |
+  tofu | tempeh | seitan | proteína vegetal | burger vegetal |
+  kombucha | kefir de água | bebida fermentada |
+  farinha de amêndoa | farinha de coco | farinha de arroz | polvilho | tapioca |
+  funcional | probiótico | ômega 3 |
   orgânico | orgânica |
   outro não-POA (especificar)
 • Órgão regulador principal: MAPA (POA) / ANVISA (não-POA) / ambos
@@ -3459,18 +3774,24 @@ def extrair_veredicto(texto: str) -> str:
     return m.group(1).upper() if m else "NÃO IDENTIFICADO"
 
 def detectar_status_campo(texto: str, campo: int) -> str:
+    """Detecta status de um campo no relatório — suporta 3 níveis."""
     nome = CAMPOS_NOME.get(campo, "")
     linhas = texto.split("\n")
     for i, linha in enumerate(linhas):
         if f"CAMPO {campo}" in linha.upper() or (nome and nome.upper() in linha.upper()):
             trecho = " ".join(linhas[i:i+5]).upper()
-            if "NÃO CONFORME" in trecho or "NAO CONFORME" in trecho:
+            if "NÃO CONFORME" in trecho or "NAO CONFORME" in trecho or "AUSENTE" in trecho:
                 return "NAO_CONFORME"
-            elif "AUSENTE" in trecho:
-                return "AUSENTE"
+            elif "COM RESSALVAS" in trecho:
+                return "COM_RESSALVAS"
             elif "CONFORME" in trecho:
                 return "CONFORME"
     return "NAO_DETECTADO"
+
+
+def extrair_campos_status(texto: str) -> dict:
+    """Extrai status de todos os 14 campos de um relatório."""
+    return {c: detectar_status_campo(texto, c) for c in range(1, 15)}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3648,7 +3969,7 @@ Use como referência primária na validação:
 
     # Contexto do órgão — usa detecção automática + input do usuário
     orgao_map = {
-        "SIM": "ATENÇÃO: Produto registrado no SIM (Serviço de Inspeção Municipal). Verificar carimbo oval com sigla 'SIM' e número do município. Exigências municipais somam-se às federais.",
+        "SIM": "ATENÇÃO: Produto registrado no SIM (Serviço de Inspeção Municipal). " + SIM_MUNICIPAL_FALLBACK,
         "SIE": f"ATENÇÃO: Produto registrado no SIE (Serviço de Inspeção Estadual{' — ' + sigla_sie if sigla_sie else ''}). Verificar carimbo com sigla estadual{' ' + sigla_sie if sigla_sie else ''}. Exigências estaduais somam-se às federais.",
         "SIF": "ATENÇÃO: Produto registrado no SIF (Serviço de Inspeção Federal — DIPOA/MAPA). Máximo rigor. Verificar carimbo oval com 'SIF' e número do estabelecimento. Produto pode ser comercializado em todo território nacional.",
     }
@@ -3694,6 +4015,18 @@ Use como referência primária na validação:
                 sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {estado_key}\n{fallback_text}"
                 break
 
+    # SISBI-POA — injeta quando mencionado no obs ou detectado como SIE/SIM
+    sisbi_context = ""
+    if any(kw in (obs or "").upper() for kw in ["SISBI", "EQUIVALÊNCIA", "EQUIVALENCIA"]):
+        sisbi_context = f"\n\n## SISBI-POA — EQUIVALÊNCIA NACIONAL\n{SISBI_POA_FALLBACK}"
+    elif orgao_final.upper() in ("SIE", "SIM") and not sie_context:
+        sisbi_context = f"\n\n## SISBI-POA — NOTA\n{SISBI_POA_FALLBACK}"
+
+    # POA Orgânico — injeta quando orgânico detectado no obs
+    organico_context = ""
+    if any(kw in (obs or "").lower() for kw in ["orgânico", "organico", "ecológico", "ecologico", "sisorg", "oac "]):
+        organico_context = f"\n\n## POA ORGÂNICO\n{POA_ORGANICO_FALLBACK}"
+
     # Contexto da detecção automática
     detection_context = ""
     if detected:
@@ -3718,6 +4051,10 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += f"\n\n{orgao_context}"
     if sie_context:
         system_prompt += sie_context
+    if sisbi_context:
+        system_prompt += sisbi_context
+    if organico_context:
+        system_prompt += organico_context
     if funcional_context:
         system_prompt += funcional_context
     if prato_pronto_context:
@@ -3847,6 +4184,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             "score_agente": score_auto,
             "timestamp":    __import__("datetime").datetime.now().isoformat(),
             "auto_stored":  True,
+            "relatorio_completo": relatorio[:8000],  # salva para comparativo
         }
         existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
         if not existing:
@@ -8843,6 +9181,129 @@ async def validar_lote(
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPARATIVO DE VERSÕES — Task #12
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/comparativo/{case_id}")
+async def get_comparativo(case_id: str):
+    """
+    Retorna comparativo entre a validação atual (case_id) e a validação anterior
+    do mesmo produto. Usado para mostrar o que melhorou após correções.
+    """
+    # Encontra a validação atual
+    atual = next((c for c in _cases_db if c.get("case_id") == case_id), None)
+    if not atual:
+        # Tenta Supabase
+        if _SUPABASE_ON:
+            try:
+                rows = await _sb_get("validacoes", limit=1)
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    r = await client.get(
+                        f"{_SUPABASE_URL}/rest/v1/validacoes",
+                        headers={"apikey": _SUPABASE_KEY,
+                                 "Authorization": f"Bearer {_SUPABASE_KEY}"},
+                        params={"select": "*", "case_id": f"eq.{case_id}", "limit": "1"}
+                    )
+                    rows = r.json() if r.status_code == 200 and isinstance(r.json(), list) else []
+                    atual = rows[0] if rows else None
+            except Exception:
+                pass
+        if not atual:
+            return JSONResponse({"error": "Validação não encontrada."},
+                                status_code=404, headers={"Access-Control-Allow-Origin": "*"})
+
+    produto_atual = (atual.get("produto") or "").lower().strip()
+
+    # Busca validações anteriores do mesmo produto (exclui a atual)
+    candidatos = [
+        c for c in _cases_db
+        if c.get("case_id") != case_id
+        and c.get("produto")
+        and _similaridade_produto(c.get("produto", ""), produto_atual) >= 0.6
+    ]
+
+    if not candidatos:
+        return JSONResponse({
+            "tem_comparativo": False,
+            "mensagem": "Primeira validação deste produto — sem versão anterior para comparar."
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    # Pega a mais recente
+    candidatos.sort(key=lambda c: c.get("timestamp") or "", reverse=True)
+    anterior = candidatos[0]
+
+    # Extrai status dos campos das duas versões
+    rel_atual    = atual.get("relatorio_completo", "")
+    rel_anterior = anterior.get("relatorio_completo", "")
+
+    campos_atual    = extrair_campos_status(rel_atual)    if rel_atual    else {}
+    campos_anterior = extrair_campos_status(rel_anterior) if rel_anterior else {}
+
+    # Gera o diff
+    diff = []
+    for c in range(1, 15):
+        status_ant = campos_anterior.get(c, "NAO_DETECTADO")
+        status_now = campos_atual.get(c, "NAO_DETECTADO")
+        nome = CAMPOS_NOME.get(c, f"Campo {c}")
+
+        if status_ant == "NAO_DETECTADO" and status_now == "NAO_DETECTADO":
+            continue  # campo não detectado em nenhuma versão
+
+        tendencia = "igual"
+        if status_ant != status_now:
+            # Hierarquia: CONFORME > COM_RESSALVAS > NAO_CONFORME
+            ordem = {"CONFORME": 3, "COM_RESSALVAS": 2, "NAO_CONFORME": 1, "AUSENTE": 1, "NAO_DETECTADO": 0}
+            if ordem.get(status_now, 0) > ordem.get(status_ant, 0):
+                tendencia = "melhora"
+            else:
+                tendencia = "piora"
+
+        diff.append({
+            "campo":      c,
+            "nome":       nome,
+            "anterior":   status_ant,
+            "atual":      status_now,
+            "tendencia":  tendencia,
+        })
+
+    melhorias = [d for d in diff if d["tendencia"] == "melhora"]
+    piorou    = [d for d in diff if d["tendencia"] == "piora"]
+    iguais    = [d for d in diff if d["tendencia"] == "igual"
+                 and d["atual"] not in ("NAO_DETECTADO",)]
+
+    score_anterior = anterior.get("score_agente")
+    score_atual    = atual.get("score_agente")
+    delta_score    = round(score_atual - score_anterior, 1) if score_atual and score_anterior else None
+
+    return JSONResponse({
+        "tem_comparativo": True,
+        "produto":         atual.get("produto"),
+        "score_anterior":  score_anterior,
+        "score_atual":     score_atual,
+        "delta_score":     delta_score,
+        "veredicto_anterior": anterior.get("veredicto"),
+        "veredicto_atual":    atual.get("veredicto"),
+        "timestamp_anterior": anterior.get("timestamp") or anterior.get("created_at"),
+        "melhorias":    melhorias,
+        "piorou":       piorou,
+        "iguais_conformes": [d for d in iguais if d["atual"] == "CONFORME"],
+        "iguais_erros":     [d for d in iguais if d["atual"] in ("NAO_CONFORME","AUSENTE")],
+        "diff_completo": diff,
+    }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+def _similaridade_produto(a: str, b: str) -> float:
+    """Similaridade simples entre nomes de produto (Jaccard de palavras)."""
+    a_words = set((a or "").lower().split())
+    b_words = set((b or "").lower().split())
+    if not a_words or not b_words:
+        return 0.0
+    inter = a_words & b_words
+    union = a_words | b_words
+    return len(inter) / len(union)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
