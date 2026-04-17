@@ -6130,16 +6130,16 @@ Citar RTIQ aplicável em legislacoes[]. CMS declarar espécie e %. Proteína de 
 SP_CRIAR_SUPLEMENTO = SP_CRIAR_ROTULO + """
 CAMINHO: SUPLEMENTOS ALIMENTARES — RDC 243/2018 + RDC 786/2023 + IN 28/2018
 carimbo: null (suplementos não têm SIF/SIE/SIM).
-Adicione ao JSON: "notificacao_anvisa": "FICTÍCIO — O RT DEVE OBTER O NÚMERO REAL NO PORTAL ANVISA ANTES DE USAR" (NUNCA invente um número real — use exatamente esse texto de aviso),
+Adicione ao JSON: "notificacao_anvisa": "⚠️ NÚMERO FICTÍCIO — SUBSTITUIR PELO NÚMERO REAL ANTES DE USAR. Obter em: consultas.anvisa.gov.br" (NUNCA invente um número real — use EXATAMENTE esse texto),
 "frase_nao_medicamento": "Este produto não é um medicamento" (obrigatório),
 "cafeina_mg_porcao": mg de cafeína por porção se houver (RDC 786/2023).
 Whey: mín. 10g proteína/porção. Cafeína: máx. 210mg/porção. Colágeno de peixe = alérgeno PEIXE.
 
-⚠️ AVISO CRÍTICO SOBRE NOTIFICAÇÃO ANVISA:
-NUNCA gere um número de notificação ANVISA real ou verossímil (ex: "123456789", "XXXXXXXX").
-O número de notificação é obtido exclusivamente pelo fabricante no Portal ANVISA (consultas.anvisa.gov.br).
-Usar um número fictício em produto real configura FRAUDE e pode resultar em embargo e multa.
-O campo "notificacao_anvisa" DEVE conter o aviso de texto acima, não um número inventado.
+⚠️ AVISO CRÍTICO — OBRIGATÓRIO SEGUIR:
+NUNCA gere número de notificação ANVISA real ou verossímil (ex: "6.4832.0012.001-9", "123456789").
+O número real é obtido EXCLUSIVAMENTE pelo fabricante no Portal ANVISA (consultas.anvisa.gov.br).
+Usar número fictício em produto comercializado = INFRAÇÃO SANITÁRIA (Lei 6.437/1977) = embargo + multa.
+O campo "notificacao_anvisa" DEVE conter exatamente o texto de aviso acima — nunca um número.
 """
 
 SP_CRIAR_BEBIDA = SP_CRIAR_ROTULO + """
