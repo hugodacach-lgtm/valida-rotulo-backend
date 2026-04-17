@@ -8968,6 +8968,29 @@ async def _startup_background():
             pass
         await _aio.sleep(0.3)  # throttle para não sobrecarregar no cold start
 
+    # ── 4. Carrega kb_documents do Supabase (crawlados pelo GitHub Actions) ──
+    # Esses documentos são indexados pelo crawler semanal e têm prioridade
+    # sobre os fallbacks textuais para categorias cobertas pelo crawler.
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                f"{_SUPABASE_URL}/rest/v1/kb_documents",
+                headers={"apikey": _SUPABASE_KEY,
+                         "Authorization": f"Bearer {_SUPABASE_KEY}"},
+                params={"select": "chave,conteudo,categoria,orgao",
+                        "order": "atualizado_em.desc",
+                        "limit": "500"}
+            )
+            if r.status_code == 200 and isinstance(r.json(), list):
+                docs = r.json()
+                for doc in docs:
+                    chave = doc.get("chave")
+                    conteudo = doc.get("conteudo", "")
+                    if chave and conteudo and chave not in _kb_cache:
+                        _kb_cache[chave] = conteudo
+    except Exception:
+        pass  # kb_documents é complemento — falha silenciosa
+
     _startup_ready = True
     _startup_ts = _dt_startup.datetime.now().isoformat()
 
