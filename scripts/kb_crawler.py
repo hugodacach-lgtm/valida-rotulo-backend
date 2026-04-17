@@ -315,3 +315,36 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ── Sites SIE estaduais — adicionados à lista do crawler ─────────────────────
+SIE_ESTADUAIS_URLS = [
+    # BA
+    {"url": "http://www.adab.ba.gov.br/servicos/inspecao/", "orgao": "ADAB", "categoria": "sie_ba", "descricao": "SIE Bahia — ADAB legislação"},
+    # CE
+    {"url": "https://www.adagri.ce.gov.br/legislacao-sie/", "orgao": "ADAGRI", "categoria": "sie_ce", "descricao": "SIE Ceará — ADAGRI legislação"},
+    # GO
+    {"url": "https://goias.gov.br/agricultura/legislacoes-do-sim-servico-de-inspecao-municipal/", "orgao": "AGRODEFESA", "categoria": "sie_go", "descricao": "SIE Goiás — AGRODEFESA"},
+    # AM
+    {"url": "https://www.adaf.am.gov.br/gerencia-de-inspecao-de-produtos-de-origem-animal/", "orgao": "ADAF", "categoria": "sie_am", "descricao": "SIE Amazonas — ADAF"},
+    # PA
+    {"url": "https://www.adepara.pa.gov.br/inspecao-animal", "orgao": "ADEPARA", "categoria": "sie_pa", "descricao": "SIE Pará — ADEPARA"},
+    # PE
+    {"url": "https://www.adagro.pe.gov.br/web/adagro/inspecao-animal", "orgao": "ADAGRO", "categoria": "sie_pe", "descricao": "SIE Pernambuco — ADAGRO"},
+    # ES
+    {"url": "https://idaf.es.gov.br/inspecao-animal", "orgao": "IDAF-ES", "categoria": "sie_es", "descricao": "SIE Espírito Santo — IDAF"},
+    # MG (já coberto mas adiciona para completar)
+    {"url": "https://ima.mg.gov.br/agroindustria/produtos-de-origem-animal", "orgao": "IMA", "categoria": "sie_mg", "descricao": "SIE Minas Gerais — IMA"},
+    # GO extra
+    {"url": "https://www.agrodefesa.go.gov.br/inspecao", "orgao": "AGRODEFESA", "categoria": "sie_go", "descricao": "AGRODEFESA Goiás — inspeção"},
+    # MS
+    {"url": "https://www.iagro.ms.gov.br/inspecao-animal/", "orgao": "IAGRO", "categoria": "sie_ms", "descricao": "SIE Mato Grosso do Sul — IAGRO"},
+    # MT
+    {"url": "https://www.indea.mt.gov.br/inspecao", "orgao": "INDEA", "categoria": "sie_mt", "descricao": "SIE Mato Grosso — INDEA"},
+    # RN
+    {"url": "https://www.idiarn.rn.gov.br/", "orgao": "IDIARN", "categoria": "sie_rn", "descricao": "SIE Rio Grande do Norte — IDIARN"},
+    # RO
+    {"url": "https://www.idaron.ro.gov.br/inspecao-animal", "orgao": "IDARON", "categoria": "sie_ro", "descricao": "SIE Rondônia — IDARON"},
+]
+
+# Adiciona sites estaduais à lista do crawler para indexação dinâmica
+MAPA_JS_PAGES.extend(SIE_ESTADUAIS_URLS)
