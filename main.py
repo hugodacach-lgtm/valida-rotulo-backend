@@ -9,6 +9,28 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SENTRY — Monitoramento de erros em produção
+# Env: SENTRY_DSN (obter em sentry.io → Project → DSN)
+# Falha silenciosamente se não configurado
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.httpx import HttpxIntegration
+    _SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+    if _SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=_SENTRY_DSN,
+            integrations=[FastApiIntegration(), HttpxIntegration()],
+            traces_sample_rate=0.1,   # 10% das requests — não sobrecarrega
+            profiles_sample_rate=0.1,
+            environment=os.environ.get("ENVIRONMENT", "production"),
+            release=os.environ.get("RENDER_GIT_COMMIT", "unknown"),
+        )
+except ImportError:
+    pass  # sentry-sdk não instalado — sem monitoramento, sem crash
+
 app = FastAPI(title="ValidaRótulo IA v7 — Cobertura Universal: POA + Vegetais + Bebidas + Suplementos")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -10061,6 +10083,20 @@ async def discover_anvisa_kb():
         "nota": "AnvisaLegis tem falha de banco Oracle (ORA-28001) — usando URLs diretas do antigo.anvisa.gov.br",
         "detalhes": results,
     }, headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/sentry/test")
+def sentry_test():
+    """
+    Endpoint de teste do Sentry — gera um erro intencional para confirmar que
+    o monitoramento está funcionando. Usar apenas para validação inicial.
+    """
+    try:
+        import sentry_sdk
+        sentry_sdk.capture_message("Sentry test — ValidaRótulo IA funcionando", level="info")
+        return JSONResponse({"ok": True, "msg": "Evento enviado ao Sentry. Verifique o dashboard."})
+    except Exception:
+        return JSONResponse({"ok": False, "msg": "Sentry não configurado — adicione SENTRY_DSN no Render."})
 
 
 @app.get("/health/readiness")
