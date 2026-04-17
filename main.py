@@ -9644,6 +9644,7 @@ Retorne SOMENTE o JSON conforme especificado."""
 async def tabela_checkout(request: Request):
     """
     NP11 — Cria sessão Stripe Checkout para pagamento da tabela nutricional avulsa.
+    NP11 fix: persiste tabela_json no Supabase ANTES do checkout.
     Body: { tabela_json, produto, email }
     """
     if not _STRIPE_KEY:
@@ -9661,16 +9662,33 @@ async def tabela_checkout(request: Request):
                                 status_code=503, headers={"Access-Control-Allow-Origin": "*"})
 
         import urllib.parse
-        tabela_encoded = urllib.parse.quote(tabela_json[:2000])
+
+        # NP11 fix — Persiste tabela no Supabase ANTES de criar a sessão Stripe
+        # Assim o usuário pode baixar mesmo após fechar a aba
+        tabela_key = f"tabela_{__import__('hashlib').md5((tabela_json + produto).encode()).hexdigest()[:16]}"
+        if _SUPABASE_ON:
+            try:
+                await _sb_upsert("tabelas_checkout", {
+                    "chave": tabela_key,
+                    "tabela_json": tabela_json[:8000],
+                    "produto": produto[:80],
+                    "email": email[:120],
+                    "status": "pendente",
+                    "created_at": __import__("datetime").datetime.now().isoformat(),
+                })
+            except Exception:
+                pass  # falha silenciosa — checkout prossegue
 
         payload = {
             "mode": "payment",
             "line_items[0][price]": price_id,
             "line_items[0][quantity]": "1",
-            "success_url": f"{_FRONTEND_URL}/tabela-nutricional.html?status=sucesso&tabela={tabela_encoded}",
+            # NP11 fix: success_url usa tabela_key (curto e estável) em vez de JSON encodado
+            "success_url": f"{_FRONTEND_URL}/tabela-nutricional.html?status=sucesso&tabela_key={tabela_key}",
             "cancel_url":  f"{_FRONTEND_URL}/tabela-nutricional.html?status=cancelado",
             "metadata[produto]": produto[:80],
             "metadata[tipo]": "tabela_avulsa",
+            "metadata[tabela_key]": tabela_key,
         }
         if email:
             payload["customer_email"] = email
@@ -9688,9 +9706,35 @@ async def tabela_checkout(request: Request):
             return JSONResponse({"error": data.get("error", {}).get("message", "Erro Stripe")},
                                 status_code=400, headers={"Access-Control-Allow-Origin": "*"})
 
-        return JSONResponse({"url": data["url"], "session_id": data["id"]},
+        return JSONResponse({"url": data["url"], "session_id": data["id"], "tabela_key": tabela_key},
                             headers={"Access-Control-Allow-Origin": "*"})
 
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500,
+                            headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.get("/tabela-redownload/{tabela_key}")
+async def tabela_redownload(tabela_key: str):
+    """
+    NP11 fix — Permite redownload da tabela mesmo após fechar a aba.
+    Busca tabela_json no Supabase pela chave e retorna os dados para o frontend gerar o PDF.
+    """
+    if not _SUPABASE_ON:
+        return JSONResponse({"error": "Supabase não configurado."},
+                            status_code=503, headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        rows = await _sb_get("tabelas_checkout", {"chave": tabela_key}, limit=1)
+        if not rows:
+            return JSONResponse({"error": "Tabela não encontrada. Link pode ter expirado."},
+                                status_code=404, headers={"Access-Control-Allow-Origin": "*"})
+        row = rows[0]
+        return JSONResponse({
+            "ok": True,
+            "tabela_json": row.get("tabela_json", "{}"),
+            "produto": row.get("produto", ""),
+            "email": row.get("email", ""),
+        }, headers={"Access-Control-Allow-Origin": "*"})
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=500,
                             headers={"Access-Control-Allow-Origin": "*"})
