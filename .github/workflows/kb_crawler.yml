@@ -1,0 +1,42 @@
+name: KB Crawler — MAPA & ANVISA
+
+on:
+  schedule:
+    # Todo domingo às 05:00 horário de Brasília (08:00 UTC)
+    - cron: "0 8 * * 0"
+  workflow_dispatch:
+    # Permite execução manual pelo GitHub UI (botão "Run workflow")
+
+jobs:
+  crawl:
+    name: Crawl MAPA & ANVISA
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
+        run: |
+          pip install httpx pypdf playwright
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Executar KB Crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/kb_crawler.py
+
+      - name: Resumo do resultado
+        if: always()
+        run: |
+          echo "KB Crawler finalizado em $(date)"
+          echo "Verifique o Supabase → tabela kb_documents para os resultados"
