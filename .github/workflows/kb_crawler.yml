@@ -7,37 +7,25 @@ on:
 
 jobs:
   crawl:
-    name: Crawl MAPA & ANVISA
+    name: Dispara crawl no backend
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Instalar Poppler (necessário para pdf2image/OCR)
+      - name: Acionar /kb/crawl-full no Render
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-por
+          echo "Disparando crawl no backend Render..."
+          RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST https://valida-rotulo-backend.onrender.com/kb/crawl-full \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+          echo "HTTP status: $RESPONSE"
+          cat response.json
 
-      - name: Instalar dependências Python
+      - name: Aguardar processamento (4 minutos)
+        run: sleep 240
+
+      - name: Verificar resultado em /kb/crawl-status
         run: |
-          pip install httpx pypdf playwright pytesseract pdf2image Pillow
-          playwright install chromium
-          playwright install-deps chromium
-
-      - name: Executar KB Crawler v2
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          python scripts/kb_crawler.py
-
-      - name: Resumo
-        if: always()
-        run: echo "Crawler v2 finalizado em $(date) — verifique Supabase tabela kb_documents"
+          echo "Verificando resultado..."
+          curl -s https://valida-rotulo-backend.onrender.com/kb/crawl-status | python3 -m json.tool
