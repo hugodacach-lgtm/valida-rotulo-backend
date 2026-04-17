@@ -1003,6 +1003,316 @@ CAMPO 8 — CARIMBO SIE:
   Ex válidos: "SIE RJ 1234", "IAGRO MS 456", "ADAB BA 789"
 • Produtos fabricados nesses estados que circulam APENAS no estado de origem"""
 
+# ── Fallbacks individuais por estado — cobertura específica ──────────────────
+
+SIE_BA_FALLBACK = """SIE BAHIA — ADAB (Agência Estadual de Defesa Agropecuária da Bahia)
+adab.ba.gov.br | SIE BA Nº XXXX
+
+CAMPO 8 — CARIMBO SIE BA:
+• Formato: oval com "SIE BA" + número do estabelecimento
+• ADAB exige registro prévio do produto (IT nº 03 — procedimentos de registro de POA)
+• Para comércio interestadual: adesão ao SISBI-POA via IT nº 01 da ADAB
+
+NORMAS ADICIONAIS ADAB:
+• IS DIPA nº 03/2019 — programas de autocontrole obrigatórios (BPF, PPHO, APPCC)
+• Portaria ADAB nº 106/2023 — relatórios estatísticos mensais obrigatórios
+  (matérias-primas recebidas com nomenclatura IGUAL à do rótulo)
+• Portaria ADAB nº 672/2024 — cadastro no e-Sisbi para SISBI-POA
+• Decreto Estadual 17.983/2017 — processos tramitados via SEI Bahia
+
+FOCO BAHIA:
+• Pescado artesanal: colônias de pesca registradas devem declarar "pescado artesanal"
+• Mel: ADAB ativa — verificar se mel local exige declaração de apiário registrado
+• Queijos artesanais: lei estadual permite queijo artesanal com leite cru (mín. 60 dias)
+
+NORMAS: Portaria ADAB 106/2023 | IS DIPA 03/2019 | IT 01-04 ADAB | RIISPOA federal"""
+
+SIE_CE_FALLBACK = """SIE CEARÁ — ADAGRI (Agência de Defesa Agropecuária do Estado do Ceará)
+adagri.ce.gov.br | SIE CE Nº XXXX
+
+CAMPO 8 — CARIMBO SIE CE:
+• Formato: oval com "SIE CE" + número do estabelecimento ADAGRI
+• ADAGRI tem sistema próprio (SIDA — Sistema Integrado de Defesa Agropecuária) para registro
+
+NORMAS ESPECÍFICAS ADAGRI:
+• Regulamento Técnico ADAGRI — rotulagem de POA embalado (portaria específica vigente)
+  Exige: denominação, ingredientes, fabricante, CNPJ, endereço, lote, validade, conservação,
+  conteúdo líquido, carimbo SIE CE — alinhado ao MAPA mas com formato estadual
+• Portaria autocontrole — programas BPF/PPHO/APPCC para estabelecimentos SIE CE
+• LACEN-CE credenciado para análises laboratoriais do SIE (Portaria ADAGRI)
+• Adesão ao SISBI-POA: procedimentos via e-Sisbi (Portaria MAPA 672/2024)
+
+FOCO CEARÁ:
+• Pescado artesanal: forte produção costeira — verificar se "pescado artesanal" ou
+  "camarão artesanal" exige declaração de colônia registrada no rótulo
+• Carnes de caprinos/ovinos: CE é grande produtor — verificar espécie declarada
+• Queijo coalho CE: produto típico — exige denominação "Queijo Coalho" com registro SIE CE
+
+NORMAS: Regulamento Técnico ADAGRI rotulagem | Portaria autocontrole ADAGRI | RIISPOA federal"""
+
+SIE_GO_FALLBACK = """SIE GOIÁS — AGRODEFESA (Agência Goiana de Defesa Agropecuária)
+agrodefesa.go.gov.br | SIE GO Nº XXXX
+
+CAMPO 8 — CARIMBO SIE GO:
+• Formato: oval com "SIE GO" + número do estabelecimento AGRODEFESA
+• Lei Estadual 11.904/1993 — regulamento base de inspeção POA em Goiás
+
+NORMAS ESPECÍFICAS GOIÁS:
+• Decreto Estadual 4.019/1993 — Regulamento da Inspeção Sanitária e Industrial de POA em GO
+• Decreto 10.404/2024 — ATUALIZAÇÃO das regras de inspeção e rotulagem SIE GO (recente)
+• IN 9/2023 AGRODEFESA — Selo Arte e Queijo Artesanal para produtos SIE GO
+• Decreto 12.126/2024 (federal) — programas de autocontrole com fiscalização baseada em risco
+
+FOCO GOIÁS:
+• Bovinos: maior produtor do Centro-Oeste — sem adições ao federal para conteúdo de rótulo
+• Suínos: verificar SE produto tem carimbo SIE GO ou SIF (frigoríficos grandes são SIF)
+• Frango: idem — grandes integradoras são SIF; pequenos produtores podem ser SIE GO
+• Queijo artesanal: IN 9/2023 AGRODEFESA permite Selo Arte para queijos SIE GO
+
+NORMAS: Lei 11.904/1993-GO | Dec. 4.019/1993-GO | Dec. 10.404/2024-GO | IN 9/2023-AGRODEFESA"""
+
+SIE_AM_FALLBACK = """SIE AMAZONAS — ADAF (Agência de Defesa Agropecuária e Florestal do Amazonas)
+adaf.am.gov.br | SIE AM Nº XXXX
+
+CAMPO 8 — CARIMBO SIE AM:
+• Carimbo HEXAGONAL — particularidade do Amazonas (diferente do oval federal)
+• Portaria ADAF-AM (jul/2023) — novo carimbo hexagonal com proporções específicas por
+  tamanho de embalagem e natureza do produto
+• Empresas tiveram 12 meses para adequação — carimbo hexagonal vigente desde 2024
+• ❌ Carimbo oval SIE genérico = NÃO CONFORME para produtos AM após prazo
+
+NORMAS ESPECÍFICAS ADAF:
+• Portaria rotulagem ADAF-AM — além das informações federais obrigatórias, exige
+  o carimbo hexagonal específico emitido pela ADAF
+• Mudança de nomenclatura dos estabelecimentos: categorias próprias AM (fabricante,
+  beneficiador, distribuidor — verificar denominação correta para o tipo de estabelecimento)
+• Novo layout de rótulo deve ser protocolado e aprovado pela ADAF antes de usar
+
+FOCO AMAZONAS:
+• Pescado de rio: pirarucu, tambaqui, jaraqui — produtos típicos com alta demanda
+  Verificar se exige "pescado de pesca artesanal" ou "pescado de aquicultura" declarado
+• Proteínas silvestres: caça autorizada — exige registro específico IBAMA + ADAF
+
+⚠️ ATENÇÃO ESPECIAL: carimbo hexagonal é exclusividade do AM — validar se está correto.
+
+NORMAS: Portaria ADAF-AM rotulagem/2023 | RIISPOA federal | MAPA normas POA"""
+
+SIE_PA_FALLBACK = """SIE PARÁ — ADEPARA (Agência de Defesa Agropecuária do Pará)
+adepara.pa.gov.br | SIE PA Nº XXXX
+
+CAMPO 8 — CARIMBO SIE PA:
+• Formato: oval com "SIE PA" + número do estabelecimento ADEPARA
+
+NORMAS ESPECÍFICAS ADEPARA:
+• Pescado artesanal: Pará é o maior produtor de pescado do Brasil — verificar
+  se exige declaração "pescado artesanal" ou "pescado de aquicultura" no rótulo
+• Açaí: produto não-POA mas com normas PA específicas para processamento e rotulagem
+• Queijo Marajó: produto típico paraense — manteiga de garrafa e queijo de búfala
+  Exige denominação específica "Queijo Marajó" e registro SIE PA
+
+FOCO PARÁ:
+• Búfalo: Pará é maior produtor de búfalo do Brasil — denominar "carne bubalina"
+  ou "produto de origem bubalina" (não bovina) — espécie obrigatória no rótulo
+• Pescado Amazônico: pirarucu, tucunaré, jaraqui — verificar se há norma ADEPARA
+  específica para denominação de espécies amazônicas
+
+NORMAS: ADEPARA normativas vigentes | RIISPOA federal | MAPA normas POA"""
+
+SIE_PE_FALLBACK = """SIE PERNAMBUCO — ADAGRO (Agência de Defesa e Fiscalização Agropecuária de PE)
+adagro.pe.gov.br | SIE PE Nº XXXX
+
+CAMPO 8 — CARIMBO SIE PE:
+• Formato: oval com "SIE PE" + número do estabelecimento ADAGRO-PE
+
+NORMAS ESPECÍFICAS ADAGRO:
+• Pernambuco adota normas federais integralmente para conteúdo de rótulo
+• Registro de estabelecimentos via ADAGRO com formulários próprios
+• Carne de caprinos/ovinos: PE é grande produtor Nordeste — espécie obrigatória no rótulo
+
+FOCO PERNAMBUCO:
+• Carne-de-sol: produto típico nordestino — denominação "carne-de-sol" aceita se
+  processo específico (salga e secagem ao sol) — verificar IN específica
+• Queijo coalho PE: produto típico — verificar se ADAGRO tem norma específica
+  de rotulagem diferente do coalho federal
+• Buchada de bode: produto típico — deve declarar espécie (caprino) e ingredientes
+
+NORMAS: ADAGRO-PE normativas vigentes | RIISPOA federal | MAPA normas POA"""
+
+SIE_MA_FALLBACK = """SIE MARANHÃO — AGED (Agência Estadual de Defesa Agropecuária do Maranhão)
+aged.ma.gov.br | SIE MA Nº XXXX
+
+CAMPO 8 — CARIMBO SIE MA:
+• Formato: oval com "SIE MA" + número do estabelecimento AGED
+
+FOCO MARANHÃO:
+• Carne bovina: MA é produtor relevante — sem adições ao federal para rótulo
+• Babaçu: óleo de babaçu é produto típico MA — verificar normas AGED específicas
+  para óleos vegetais e subprodutos de babaçu (não-POA mas com relevância estadual)
+• Pescado: acesso ao mar e rios — verificar declaração de origem artesanal vs industrial
+
+NORMAS: AGED-MA normativas vigentes | RIISPOA federal"""
+
+SIE_MS_FALLBACK = """SIE MATO GROSSO DO SUL — IAGRO (Agência Estadual de Defesa Sanitária Animal e Vegetal)
+iagro.ms.gov.br | SIE MS Nº XXXX
+
+CAMPO 8 — CARIMBO SIE MS:
+• Formato: oval com "SIE MS" + número do estabelecimento IAGRO
+
+FOCO MATO GROSSO DO SUL:
+• Bovinos: MS é o estado com maior rebanho por hectare — sem adições ao federal
+• Pantanal: produtos do Pantanal podem ter denominações geográficas específicas
+• Peixe pantaneiro: pacu, pintado, dourado — verificar espécie declarada no rótulo
+• Queijo artesanal: legislação MS permite queijo artesanal com leite cru (mín. 60 dias)
+
+NORMAS: IAGRO-MS normativas vigentes | RIISPOA federal"""
+
+SIE_MT_FALLBACK = """SIE MATO GROSSO — INDEA (Instituto de Defesa Agropecuária do Mato Grosso)
+indea.mt.gov.br | SIE MT Nº XXXX
+
+CAMPO 8 — CARIMBO SIE MT:
+• Formato: oval com "SIE MT" + número do estabelecimento INDEA
+
+FOCO MATO GROSSO:
+• Bovinos: MT é o maior rebanho bovino do Brasil — sem adições ao federal para rótulo
+• Frango: MT é grande produtor de aves — verificar se SIE MT ou SIF (grandes unidades são SIF)
+• Soja: não-POA mas MT é maior produtor — oleaginosas e derivados via MAPA
+
+NORMAS: INDEA-MT normativas vigentes | RIISPOA federal"""
+
+SIE_ES_FALLBACK = """SIE ESPÍRITO SANTO — IDAF (Instituto de Defesa Agropecuária e Florestal do ES)
+idaf.es.gov.br | SIE ES Nº XXXX
+
+CAMPO 8 — CARIMBO SIE ES:
+• Formato: oval com "SIE ES" + número do estabelecimento IDAF-ES
+
+FOCO ESPÍRITO SANTO:
+• Pescado: ES tem importante produção pesqueira artesanal — verificar declaração
+• Chouriço capixaba: produto típico ES — denominação específica, ingredientes obrigatórios
+• Laticínios: queijos artesanais capixabas — legislação ES permite artesanal com leite cru
+
+NORMAS: IDAF-ES normativas vigentes | RIISPOA federal"""
+
+SIE_DF_FALLBACK = """SIE DISTRITO FEDERAL — SEAGRI-DF (Secretaria de Agricultura, Abastecimento e DR)
+seagri.df.gov.br | SIE DF Nº XXXX
+
+CAMPO 8 — CARIMBO SIE DF:
+• Formato: oval com "SIE DF" + número do estabelecimento SEAGRI-DF
+• Produtos SIE DF circulam apenas no DF (não interestadual sem SISBI-POA)
+
+FOCO DISTRITO FEDERAL:
+• Mercado consumidor urbano predominante — poucos produtores SIE DF
+• Grande parte dos produtos consumidos no DF vêm de SIF de GO, MG, SP
+• Produtos SIE DF: pequenos produtores rurais do DF, feiras, pequenas indústrias
+
+NORMAS: SEAGRI-DF normativas vigentes | RIISPOA federal"""
+
+SIE_PI_FALLBACK = """SIE PIAUÍ — ADAPI (Agência de Defesa Agropecuária do Piauí)
+adapi.pi.gov.br | SIE PI Nº XXXX
+
+FOCO PIAUÍ:
+• Carne de caprinos/ovinos: PI é produtor relevante no Nordeste — espécie obrigatória
+• Mel de abelha nativa (meliponicultura): PI tem produção relevante de mel de abelha
+  sem ferrão (uruçu, jandaíra) — verificar denominação específica: "Mel de abelha nativa"
+  não pode ser chamado apenas de "mel" (abelha Apis) — denominação correta obrigatória
+• Carne-de-sol: produto típico — verificar denominação aceita pela ADAPI
+
+NORMAS: ADAPI-PI normativas vigentes | RIISPOA federal"""
+
+SIE_RN_FALLBACK = """SIE RIO GRANDE DO NORTE — IDIARN (Instituto de Desenvolvimento e Inspeção Agropecuária do RN)
+idiarn.rn.gov.br | SIE RN Nº XXXX
+
+FOCO RIO GRANDE DO NORTE:
+• Camarão: RN é maior produtor de camarão cultivado do Brasil
+  "Camarão branco cultivado" ou "Litopenaeus vannamei" — espécie obrigatória no rótulo
+  Verificar se IDIARN tem norma específica de rotulagem para camarão de aquicultura
+• Carne de caprinos/ovinos: RN é produtor relevante — espécie obrigatória
+• Mel: verificar mel de carnaúba e mel de abelha nativa — denominação específica
+
+NORMAS: IDIARN-RN normativas vigentes | RIISPOA federal"""
+
+SIE_AL_FALLBACK = """SIE ALAGOAS — ADEAL (Agência de Defesa e Vigilância Agropecuária de AL)
+adeal.al.gov.br | SIE AL Nº XXXX
+
+FOCO ALAGOAS:
+• Pescado: litoral extenso — verificar declaração "pescado artesanal" vs industrial
+• Carne: sem adições relevantes ao federal para conteúdo de rótulo
+• Queijo coalho AL: produto típico nordestino — verificar denominação específica
+
+NORMAS: ADEAL-AL normativas vigentes | RIISPOA federal"""
+
+SIE_SE_FALLBACK = """SIE SERGIPE — EMDAGRO (Empresa de Desenvolvimento Agropecuário de Sergipe)
+emdagro.se.gov.br | SIE SE Nº XXXX
+
+FOCO SERGIPE:
+• Queijo coalho SE: menor estado do Brasil mas produtor de queijo coalho
+• Pescado artesanal: litoral e rio São Francisco — verificar declaração de origem
+• Carne de caprinos/ovinos: produção relevante — espécie obrigatória
+
+NORMAS: EMDAGRO-SE normativas vigentes | RIISPOA federal"""
+
+SIE_PB_FALLBACK = """SIE PARAÍBA — DIPOVA-PB / Secretaria de Agricultura
+pb.gov.br/agropecuaria | SIE PB Nº XXXX
+
+FOCO PARAÍBA:
+• Queijo coalho PB: produto típico — denominação "queijo coalho" com registro SIE PB
+• Carne de caprinos/ovinos: PB é relevante produtor Nordeste — espécie obrigatória
+• Carne-de-sol: produto típico — verificar denominação aceita pelo SIE PB
+• Mel: verificar mel de abelha nativa (sem ferrão) — denominação específica obrigatória
+
+NORMAS: DIPOVA-PB normativas vigentes | RIISPOA federal"""
+
+SIE_AC_FALLBACK = """SIE ACRE — IDAF (Instituto de Defesa Agropecuária e Florestal do Acre)
+idaf.ac.gov.br | SIE AC Nº XXXX
+
+FOCO ACRE:
+• Bovinos: AC tem pecuária relevante na Amazônia Ocidental — sem adições ao federal
+• Pescado Amazônico: peixes de rio — verificar espécie declarada (pirarucu, tambaqui)
+• Produtos florestais: castanha-do-Pará (não-POA) — MAPA normas específicas
+
+NORMAS: IDAF-AC normativas vigentes | RIISPOA federal"""
+
+SIE_AP_FALLBACK = """SIE AMAPÁ — RURAP (Agência Rural do Amapá)
+rurap.ap.gov.br | SIE AP Nº XXXX
+
+FOCO AMAPÁ:
+• Pescado Amazônico: AP tem acesso ao estuário amazônico — espécie obrigatória
+• Búfalo: AP tem criação relevante de búfalos — denominar "bubalino" não "bovino"
+• Açaí: maior produtor per capita — produto não-POA, verificar normas RURAP específicas
+
+NORMAS: RURAP-AP normativas vigentes | RIISPOA federal"""
+
+SIE_RO_FALLBACK = """SIE RONDÔNIA — IDARON (Agência de Defesa Sanitária Agrosilvopastoril de RO)
+idaron.ro.gov.br | SIE RO Nº XXXX
+
+FOCO RONDÔNIA:
+• Bovinos e leite: RO tem forte pecuária leiteira amazônica — sem adições ao federal
+• Leite: verificar se há normas IDARON específicas para transporte e temperatura de leite cru
+• Pescado Amazônico: peixes de rio — verificar espécie declarada
+
+NORMAS: IDARON-RO normativas vigentes | RIISPOA federal"""
+
+SIE_RR_FALLBACK = """SIE RORAIMA — ADERR (Agência de Defesa Agropecuária de Roraima)
+aderr.rr.gov.br | SIE RR Nº XXXX
+
+FOCO RORAIMA:
+• Bovinos: pecuária relevante no extremo Norte — sem adições ao federal para rótulo
+• Pescado Amazônico: peixes de rio — espécie obrigatória declarada
+• Pequeno mercado consumidor — maioria dos produtos SIF vêm de outros estados
+
+NORMAS: ADERR-RR normativas vigentes | RIISPOA federal"""
+
+SIE_TO_FALLBACK = """SIE TOCANTINS — ADAPEC (Agência de Defesa Agropecuária do Estado do Tocantins)
+adapec.to.gov.br | SIE TO Nº XXXX
+
+FOCO TOCANTINS:
+• Bovinos: TO tem pecuária relevante no Centro-Norte — sem adições ao federal
+• Pescado: rios Tocantins e Araguaia — espécie obrigatória (pirarucu, tucunaré)
+• Mel: verificar normas ADAPEC para mel do Cerrado tocantinense
+
+NORMAS: ADAPEC-TO normativas vigentes | RIISPOA federal"""
+
+
+
 
 RIISPOA_RJ_FALLBACK = """
 ━━━ RIISPOA-RJ — Decreto Estadual 49.643/2025 (SIE/RJ) ━━━━━━━━━━━━━━━━━━━━━
@@ -1084,37 +1394,37 @@ Fonte: Decreto Estadual RJ 49.643/2025 | DOERJ 26/05/2025 | COOIPOA/SEAPPA-RJ
 """
 
 SIE_ESTADO_MAP = {
-    # Estados com normas específicas relevantes
-    "RS": CISPOA_RS_FALLBACK, "CISPOA": CISPOA_RS_FALLBACK,
-    "SP": SISP_SP_FALLBACK,   "SISP": SISP_SP_FALLBACK,
-    "MG": IMA_MG_FALLBACK,    "IMA": IMA_MG_FALLBACK,
-    "SC": CIDASC_SC_FALLBACK, "CIDASC": CIDASC_SC_FALLBACK,
-    "PR": ADAPAR_PR_FALLBACK, "ADAPAR": ADAPAR_PR_FALLBACK,
-    "RJ": RIISPOA_RJ_FALLBACK, "COOIPOA": RIISPOA_RJ_FALLBACK, "SEAPPA": RIISPOA_RJ_FALLBACK,
-    # 21 estados restantes — normas gerais SIE
-    "AC": SIE_OUTROS_ESTADOS_FALLBACK, "IDAF": SIE_OUTROS_ESTADOS_FALLBACK,
-    "AL": SIE_OUTROS_ESTADOS_FALLBACK, "ADEAL": SIE_OUTROS_ESTADOS_FALLBACK,
-    "AM": SIE_OUTROS_ESTADOS_FALLBACK, "ADAF": SIE_OUTROS_ESTADOS_FALLBACK,
-    "AP": SIE_OUTROS_ESTADOS_FALLBACK, "RURAP": SIE_OUTROS_ESTADOS_FALLBACK,
-    "BA": SIE_OUTROS_ESTADOS_FALLBACK, "ADAB": SIE_OUTROS_ESTADOS_FALLBACK,
-    "CE": SIE_OUTROS_ESTADOS_FALLBACK, "ADAGRI": SIE_OUTROS_ESTADOS_FALLBACK,
-    "DF": SIE_OUTROS_ESTADOS_FALLBACK, "SEAGRI": SIE_OUTROS_ESTADOS_FALLBACK,
-    "ES": SIE_OUTROS_ESTADOS_FALLBACK,
-    "GO": SIE_OUTROS_ESTADOS_FALLBACK, "AGRODEFESA": SIE_OUTROS_ESTADOS_FALLBACK,
-    "MA": SIE_OUTROS_ESTADOS_FALLBACK, "AGED": SIE_OUTROS_ESTADOS_FALLBACK,
-    "MS": SIE_OUTROS_ESTADOS_FALLBACK, "IAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
-    "MT": SIE_OUTROS_ESTADOS_FALLBACK, "INDEA": SIE_OUTROS_ESTADOS_FALLBACK,
-    "PA": SIE_OUTROS_ESTADOS_FALLBACK, "ADEPAR": SIE_OUTROS_ESTADOS_FALLBACK,
-    "PB": SIE_OUTROS_ESTADOS_FALLBACK,
-    "PE": SIE_OUTROS_ESTADOS_FALLBACK, "ADAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
-    "PI": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPI": SIE_OUTROS_ESTADOS_FALLBACK,
-    "PESAGRO": SIE_OUTROS_ESTADOS_FALLBACK,  # RJ agora tem RIISPOA_RJ_FALLBACK específico (ver acima)
-    "RN": SIE_OUTROS_ESTADOS_FALLBACK,
-    "RO": SIE_OUTROS_ESTADOS_FALLBACK, "IDARON": SIE_OUTROS_ESTADOS_FALLBACK,
-    "RR": SIE_OUTROS_ESTADOS_FALLBACK, "ADERR": SIE_OUTROS_ESTADOS_FALLBACK,
-    "SE": SIE_OUTROS_ESTADOS_FALLBACK, "EMDAGRO": SIE_OUTROS_ESTADOS_FALLBACK,
-    "TO": SIE_OUTROS_ESTADOS_FALLBACK, "ADAPEC": SIE_OUTROS_ESTADOS_FALLBACK,
+    # ── Estados com normas específicas detalhadas ────────────────────────────
+    "RS": CISPOA_RS_FALLBACK,   "CISPOA": CISPOA_RS_FALLBACK,
+    "SP": SISP_SP_FALLBACK,     "SISP": SISP_SP_FALLBACK,   "CDA": SISP_SP_FALLBACK,
+    "MG": IMA_MG_FALLBACK,      "IMA": IMA_MG_FALLBACK,
+    "SC": CIDASC_SC_FALLBACK,   "CIDASC": CIDASC_SC_FALLBACK,
+    "PR": ADAPAR_PR_FALLBACK,   "ADAPAR": ADAPAR_PR_FALLBACK,
+    "RJ": RIISPOA_RJ_FALLBACK,  "COOIPOA": RIISPOA_RJ_FALLBACK, "SEAPPA": RIISPOA_RJ_FALLBACK,
+    # ── 21 estados com fallbacks individuais detalhados ──────────────────────
+    "BA": SIE_BA_FALLBACK,     "ADAB": SIE_BA_FALLBACK,
+    "CE": SIE_CE_FALLBACK,     "ADAGRI": SIE_CE_FALLBACK,
+    "GO": SIE_GO_FALLBACK,     "AGRODEFESA": SIE_GO_FALLBACK,
+    "AM": SIE_AM_FALLBACK,     "ADAF": SIE_AM_FALLBACK,
+    "PA": SIE_PA_FALLBACK,     "ADEPARA": SIE_PA_FALLBACK,  "ADEPAR": SIE_PA_FALLBACK,
+    "PE": SIE_PE_FALLBACK,     "ADAGRO": SIE_PE_FALLBACK,
+    "MA": SIE_MA_FALLBACK,     "AGED": SIE_MA_FALLBACK,
+    "MS": SIE_MS_FALLBACK,     "IAGRO": SIE_MS_FALLBACK,
+    "MT": SIE_MT_FALLBACK,     "INDEA": SIE_MT_FALLBACK,
+    "ES": SIE_ES_FALLBACK,     "IDAFES": SIE_ES_FALLBACK,
+    "DF": SIE_DF_FALLBACK,     "SEAGRI": SIE_DF_FALLBACK,
+    "PI": SIE_PI_FALLBACK,     "ADAPI": SIE_PI_FALLBACK,
+    "RN": SIE_RN_FALLBACK,     "IDIARN": SIE_RN_FALLBACK,
+    "AL": SIE_AL_FALLBACK,     "ADEAL": SIE_AL_FALLBACK,
+    "SE": SIE_SE_FALLBACK,     "EMDAGRO": SIE_SE_FALLBACK,
+    "PB": SIE_PB_FALLBACK,
+    "AC": SIE_AC_FALLBACK,     "IDAFAC": SIE_AC_FALLBACK,
+    "AP": SIE_AP_FALLBACK,     "RURAP": SIE_AP_FALLBACK,
+    "RO": SIE_RO_FALLBACK,     "IDARON": SIE_RO_FALLBACK,
+    "RR": SIE_RR_FALLBACK,     "ADERR": SIE_RR_FALLBACK,
+    "TO": SIE_TO_FALLBACK,     "ADAPEC": SIE_TO_FALLBACK,
 }
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # SISBI-POA — SISTEMA BRASILEIRO DE INSPEÇÃO DE PRODUTOS DE ORIGEM ANIMAL
