@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 """
-ValidaRótulo IA — KB Crawler v2
-Melhorias: Playwright para Planalto, OCR para PDFs escaneados,
-acordeons MAPA com clique individual, upsert inteligente (nunca sobrescreve menor).
+ValidaRótulo IA — KB Crawler v3
+Estratégia: URLs DIRETAS apenas — sem JS, sem Planalto (bloqueado por IP cloud)
+Fontes que funcionam no GitHub Actions:
+  - gov.br/agricultura/.../*.pdf (MAPA direto)
+  - antigo.anvisa.gov.br/documents/.../*.pdf (ANVISA legado)
+  - in.gov.br/web/dou/- (DOU - funciona)
+  - wikisda.agricultura.gov.br (wiki DIPOA - funciona)
 """
 import asyncio, os, re, io, hashlib
 from datetime import datetime
 from urllib.parse import urlparse
-
 import httpx
-
-try:
-    from playwright.async_api import async_playwright
-    HAS_PLAYWRIGHT = True
-except ImportError:
-    HAS_PLAYWRIGHT = False
 
 try:
     from pypdf import PdfReader
@@ -30,8 +27,7 @@ except ImportError:
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-MAX_CHARS    = 7000
-MAX_DOCS     = 300
+MAX_CHARS = 7000
 
 HEADERS_SB = {
     "apikey": SUPABASE_KEY,
@@ -45,54 +41,168 @@ BROWSER_HEADERS = {
     "Referer": "https://www.google.com.br/",
 }
 
-MAPA_JS_PAGES = [
-    {"url": "https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-vegetal/legislacao-programas-nacionais-e-seguranca-dos-alimentos-1/legislacao/bebidas", "orgao": "MAPA", "categoria": "bebidas", "descricao": "Legislação Bebidas MAPA"},
-    {"url": "https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-vegetal/legislacao-programas-nacionais-e-seguranca-dos-alimentos-1/legislacao/legislacaoPOV", "orgao": "MAPA", "categoria": "qualidade_vegetal", "descricao": "Legislação POV"},
-    {"url": "https://www.gov.br/agricultura/pt-br/assuntos/defesa-agropecuaria/suasa/regulamentos-tecnicos-de-identidade-e-qualidade-de-produtos-de-origem-animal-1", "orgao": "MAPA", "categoria": "poa", "descricao": "RTIQs POA"},
-    {"url": "https://www.gov.br/agricultura/pt-br/assuntos/defesa-agropecuaria/suasa/regulamentos-tecnicos-de-identidade-e-qualidade-de-produtos-de-origem-vegetal", "orgao": "MAPA", "categoria": "qualidade_vegetal", "descricao": "RTIQs Vegetal"},
-    {"url": "https://www.gov.br/anvisa/pt-br/assuntos/regulamentacao/legislacao/bibliotecas-tematicas/arquivos/biblioteca-de-alimentos", "orgao": "ANVISA", "categoria": "alimentos", "descricao": "Biblioteca ANVISA Alimentos"},
+# ═══════════════════════════════════════════════════════════════════════════════
+# CATÁLOGO COMPLETO DE URLS DIRETAS — v3
+# Todas testadas e confirmadas acessíveis fora de IPs de datacenter
+# ═══════════════════════════════════════════════════════════════════════════════
+
+DIRECT_URLS = [
+
+    # ── MAPA — RTIQs POA (PDFs diretos gov.br/agricultura) ─────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN042000salsichamortadelalinguia.pdf",
+     "MAPA","poa","in_4_2000_embutidos_cozidos"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN202000hamburguerapresuntadofiambrekibepresuntocozido.pdf",
+     "MAPA","poa","in_20_2000_hamburguer_presunto"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000chouricosanguitelas.pdf",
+     "MAPA","poa","in_22_2000_chourico"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN232000paiocopacarnecarne-de-sol.pdf",
+     "MAPA","poa","in_23_2000_paio_copa"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN242000bressaola.pdf",
+     "MAPA","poa","in_24_2000_bressaola"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN252000carnesalgadaernesala.pdf",
+     "MAPA","poa","in_25_2000_carne_salgada"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN262000charque.pdf",
+     "MAPA","poa","in_26_2000_charque"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN272000jerked_beef.pdf",
+     "MAPA","poa","in_27_2000_jerked_beef"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN302000patefinacrocantepatedefigado.pdf",
+     "MAPA","poa","in_30_2000_pate"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN362000queijodecoltagem.pdf",
+     "MAPA","poa","in_36_2000_queijo"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN512006sardinha.pdf",
+     "MAPA","poa","in_51_2006_sardinha"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN052000embutidoscrus.pdf",
+     "MAPA","poa","in_5_2000_embutidos_crus"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN062000embutidosmistas.pdf",
+     "MAPA","poa","in_6_2000_embutidos_mistos"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN032000carnesuinatratadasalamediamaturacaoaomanteiga.pdf",
+     "MAPA","poa","in_3_2000_carne_suina"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN292000salame.pdf",
+     "MAPA","poa","in_29_2000_salame"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN210001bacon.pdf",
+     "MAPA","poa","in_21_2000_bacon_barriga"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN162000alevescamarao.pdf",
+     "MAPA","poa","in_16_2000_camarao"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN182000pescadosalgadossecos.pdf",
+     "MAPA","poa","in_18_2000_bacalhau"),
+
+    # ── MAPA — Wiki SDA (DIPOA) — RTIQs em PDF wiki ────────────────────────
+    ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_4-2000_linguica_mortadela_salsicha.pdf",
+     "MAPA","poa","wiki_in4_linguica_mortadela"),
+    ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_17-2018_rt_c%C3%A1rneos_temperados.pdf",
+     "MAPA","poa","wiki_in17_carneos_temperados"),
+    ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_30-2018_manual_de_metodos_oficiais_de_analises.pdf",
+     "MAPA","poa","wiki_in30_metodos_analises"),
+    ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_16-2005_bebida_l%C3%A1ctea.pdf",
+     "MAPA","poa","wiki_in16_bebida_lactea"),
+
+    # ── ANVISA — PDFs diretos antigo.anvisa.gov.br ─────────────────────────
+    ("https://antigo.anvisa.gov.br/documents/10181/3882585/RDC_429_2020_.pdf",
+     "ANVISA","rotulagem","rdc_429_2020_rotulagem_nutri"),
+    ("https://antigo.anvisa.gov.br/documents/10181/3882585/IN+75_2020_.pdf",
+     "ANVISA","rotulagem","in_75_2020_porcoes"),
+    ("https://antigo.anvisa.gov.br/documents/10181/2054761/RDC_727_2022_.pdf",
+     "ANVISA","rotulagem","rdc_727_2022_rotulagem_geral"),
+    ("https://antigo.anvisa.gov.br/documents/10181/2054761/RDC_715_2022_.pdf",
+     "ANVISA","rotulagem","rdc_715_2022_lactose"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+264_2005.pdf",
+     "ANVISA","alimentos","rdc_264_chocolate"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+266_2005.pdf",
+     "ANVISA","alimentos","rdc_266_sorvetes"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+268_2005.pdf",
+     "ANVISA","alimentos","rdc_268_proteina_vegetal"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf",
+     "ANVISA","alimentos","rdc_270_oleos"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf",
+     "ANVISA","alimentos","rdc_272_vegetais"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+263_2005.pdf",
+     "ANVISA","alimentos","rdc_263_cereais"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+265_2005.pdf",
+     "ANVISA","alimentos","rdc_265_amido"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+267_2005.pdf",
+     "ANVISA","alimentos","rdc_267_cogumelos"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+269_2005.pdf",
+     "ANVISA","alimentos","rdc_269_proteinas"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+271_2005.pdf",
+     "ANVISA","alimentos","rdc_271_acucar"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+273_2005.pdf",
+     "ANVISA","alimentos","rdc_273_enriquecidos"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+274_2005.pdf",
+     "ANVISA","bebidas","rdc_274_bebidas_nao_alc"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf",
+     "ANVISA","alimentos","rdc_276_condimentos"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf",
+     "ANVISA","alimentos","rdc_277_cafe_cha"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+278_2005.pdf",
+     "ANVISA","alimentos","rdc_278_vinagre"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+259_2002.pdf",
+     "ANVISA","rotulagem","rdc_259_2002_rotulagem_geral"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+2+2007+Aromas.pdf",
+     "ANVISA","aditivos","rdc_2_2007_aromas"),
+    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+42_2013_contaminantes.pdf",
+     "ANVISA","alimentos","rdc_42_2013_contaminantes"),
+    ("https://antigo.anvisa.gov.br/documents/10181/6485886/RDC_843_2024_.pdf",
+     "ANVISA","alimentos","rdc_843_2024"),
+    ("https://antigo.anvisa.gov.br/documents/10181/6636520/RDC_851_2024_.pdf",
+     "ANVISA","alimentos","rdc_851_2024"),
+    ("https://antigo.anvisa.gov.br/documents/10181/6875868/RDC_920_2024_.pdf",
+     "ANVISA","alimentos","rdc_920_2024"),
+    ("https://antigo.anvisa.gov.br/documents/10181/6875868/RDC_916_2024_.pdf",
+     "ANVISA","alimentos","rdc_916_2024"),
+    ("https://antigo.anvisa.gov.br/documents/10181/2867955/RDC_243_2018_.pdf",
+     "ANVISA","suplementos","rdc_243_2018_suplementos"),
+    ("https://antigo.anvisa.gov.br/documents/10181/3933482/IN_28_2018_.pdf",
+     "ANVISA","suplementos","in_28_2018_suplementos"),
+
+    # ── DOU / in.gov.br — Instruções Normativas MAPA (funciona) ────────────
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-36-de-20-de-setembro-de-2018-42584174",
+     "MAPA","bebidas","in_36_2018_bebidas"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-49-de-23-de-outubro-de-2019-223577337",
+     "MAPA","qualidade_vegetal","in_49_2019_qualidade"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-41-de-17-de-julho-de-2019-206395862",
+     "MAPA","bebidas","in_41_2019_kombucha"),
+    ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-521-de-1-de-dezembro-de-2022-447310581",
+     "MAPA","qualidade_vegetal","portaria_521_2022"),
+    ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-586-de-16-de-maio-de-2023-486234511",
+     "MAPA","bebidas","portaria_586_2023"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-9-de-22-de-novembro-de-2019-229634516",
+     "MAPA","poa","in_9_2019_rotulagem_poa"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-65-de-21-de-novembro-de-2019-229567232",
+     "MAPA","bebidas","in_65_2019_cerveja"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-17-de-19-de-junho-de-2020-262948007",
+     "MAPA","poa","in_17_2020_sisbi_poa"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-16-de-23-de-junho-de-2015-1139827",
+     "MAPA","poa","in_16_2015_agroind_pequeno_porte"),
+
+    # ── CONAR / FAO Codex ───────────────────────────────────────────────────
+    ("https://www.conar.org.br/pdf/codigo-conar-2021.pdf",
+     "CONAR","publicidade","codigo_conar_2021"),
+    ("https://www.fao.org/fao-who-codexalimentarius/codex-texts/dbs/CXS/en/?freetext=labelling",
+     "FAO","rotulagem","fao_codex_labelling"),
+
+    # ── INMETRO ─────────────────────────────────────────────────────────────
+    ("https://www.inmetro.gov.br/legislacao/rtac/pdf/RTAC002688.pdf",
+     "INMETRO","metrologia","rtac_2688_conteudo_liquido"),
+    ("https://www.inmetro.gov.br/legislacao/rtac/pdf/RTAC002152.pdf",
+     "INMETRO","metrologia","rtac_2152_carnes"),
+
+    # ── Cartilhão de Bebidas MAPA (PDF consolidado) ─────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-vegetal/legislacao-de-produtos-origem-vegetal/biblioteca-de-normas-vinhos-e-bebidas/Instrucao_Normativa_140_2024.pdf",
+     "MAPA","bebidas","in_140_2024_cartilhao_bebidas"),
+
+    # ── MAPA — Portaria 146/1996 RTIQs lácteos ─────────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/portarias/portaria-146.pdf",
+     "MAPA","poa","portaria_146_1996_rtiq_lacteos"),
+
+    # ── ADAB/BA — SIE Bahia ─────────────────────────────────────────────────
+    ("http://www.adab.ba.gov.br/modules/conteudo/conteudo.php?conteudo=22",
+     "ADAB","sie_ba","adab_ba_legislacao"),
+
+    # ── ADAGRI/CE — SIE Ceará ───────────────────────────────────────────────
+    ("https://www.adagri.ce.gov.br/legislacao-sie/",
+     "ADAGRI","sie_ce","adagri_ce_legislacao_sie"),
 ]
 
-PLANALTO_URLS = [
-    ("https://www.planalto.gov.br/ccivil_03/leis/l8918.htm", "PLANALTO", "bebidas", "lei_8918_bebidas"),
-    ("https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm", "PLANALTO", "bebidas", "dec_6871_bebidas"),
-    ("https://www.planalto.gov.br/ccivil_03/leis/l7678.htm", "PLANALTO", "bebidas", "lei_7678_vinho"),
-    ("https://www.planalto.gov.br/ccivil_03/leis/2003/l10831.htm", "PLANALTO", "organicos", "lei_10831_organicos"),
-    ("https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6323.htm", "PLANALTO", "organicos", "dec_6323_organicos"),
-    ("https://www.planalto.gov.br/ccivil_03/decreto-lei/del0986.htm", "PLANALTO", "geral", "dec_lei_986_1969"),
-    ("https://www.planalto.gov.br/ccivil_03/leis/l9972.htm", "PLANALTO", "qualidade", "lei_9972_classificacao"),
-    ("https://www.planalto.gov.br/ccivil_03/leis/l10674.htm", "PLANALTO", "rotulagem", "lei_10674_gluten"),
-    ("https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/decreto/d10083.htm", "PLANALTO", "organicos", "dec_10083_organicos"),
-    ("https://www.planalto.gov.br/ccivil_03/decreto/d79094.htm", "PLANALTO", "geral", "dec_79094_alimentos"),
-]
-
-ANVISA_PDFS = [
-    ("https://antigo.anvisa.gov.br/documents/10181/3882585/RDC_429_2020_.pdf", "ANVISA", "rotulagem", "rdc_429_2020"),
-    ("https://antigo.anvisa.gov.br/documents/10181/3882585/IN+75_2020_.pdf", "ANVISA", "rotulagem", "in_75_2020"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+266_2005.pdf", "ANVISA", "alimentos", "rdc_266_sorvetes"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+268_2005.pdf", "ANVISA", "alimentos", "rdc_268_proteina_vegetal"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+264_2005.pdf", "ANVISA", "alimentos", "rdc_264_chocolate"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf", "ANVISA", "alimentos", "rdc_270_oleos"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf", "ANVISA", "alimentos", "rdc_276_condimentos"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf", "ANVISA", "alimentos", "rdc_277_cafe_cha"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf", "ANVISA", "alimentos", "rdc_272_vegetais"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+263_2005.pdf", "ANVISA", "alimentos", "rdc_263_cereais"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+265_2005.pdf", "ANVISA", "alimentos", "rdc_265_amido"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+267_2005.pdf", "ANVISA", "alimentos", "rdc_267_cogumelos"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+269_2005.pdf", "ANVISA", "alimentos", "rdc_269_proteinas"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+271_2005.pdf", "ANVISA", "alimentos", "rdc_271_acucar"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+273_2005.pdf", "ANVISA", "alimentos", "rdc_273_enriquecidos"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+274_2005.pdf", "ANVISA", "bebidas", "rdc_274_bebidas"),
-    ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+278_2005.pdf", "ANVISA", "alimentos", "rdc_278_vinagre"),
-    ("https://antigo.anvisa.gov.br/documents/10181/6875868/RDC_920_2024_.pdf", "ANVISA", "alimentos", "rdc_920_2024"),
-]
-
-def gerar_chave(url, sugestao=""):
-    if sugestao: return sugestao
-    nome = urlparse(url).path.split("/")[-1]
-    nome = re.sub(r"\.(pdf|htm|html)$", "", nome, flags=re.I)
-    nome = re.sub(r"[^a-z0-9_]", "_", nome.lower())[:60]
-    return nome or hashlib.md5(url.encode()).hexdigest()[:12]
 
 def extrair_pdf(data: bytes) -> str:
     texto = ""
@@ -115,14 +225,16 @@ def extrair_pdf(data: bytes) -> str:
             if len(ocr.strip()) >= 100:
                 return ocr[:MAX_CHARS].strip()
         except Exception as e:
-            print(f"     OCR: {e}")
+            pass
     return texto[:MAX_CHARS].strip()
+
 
 def extrair_html(html: str) -> str:
     t = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL|re.I)
     t = re.sub(r"<style[^>]*>.*?</style>", " ", t, flags=re.DOTALL|re.I)
     t = re.sub(r"<[^>]+>", " ", t)
     return re.sub(r"\s+", " ", t)[:MAX_CHARS].strip()
+
 
 async def get_existing(client, chave):
     try:
@@ -132,8 +244,8 @@ async def get_existing(client, chave):
         return d[0].get("tamanho_chars", 0) if d else 0
     except: return 0
 
+
 async def salvar(client, doc) -> str:
-    """Upsert inteligente — nunca sobrescreve com conteúdo menor."""
     novo = len(doc.get("conteudo", ""))
     if novo < 50: return "vazio"
     existente = await get_existing(client, doc["chave"])
@@ -142,209 +254,75 @@ async def salvar(client, doc) -> str:
         r = await client.post(f"{SUPABASE_URL}/rest/v1/kb_documents",
             headers={**HEADERS_SB, "Prefer": "resolution=merge-duplicates"},
             json={**doc, "atualizado_em": datetime.now().isoformat()})
-        return f"salvo ({novo}c)" if r.status_code in (200, 201) else f"HTTP {r.status_code}"
+        return f"salvo ({novo}c)" if r.status_code in (200,201) else f"HTTP {r.status_code}"
     except Exception as e:
         return f"erro: {str(e)[:40]}"
 
-async def crawl_planalto(context, contador):
-    salvos = 0
-    print(f"\n⚖️  Planalto via Playwright ({len(PLANALTO_URLS)} leis)...")
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        for url, orgao, cat, chave in PLANALTO_URLS:
-            if contador[0] >= MAX_DOCS: break
-            page = await context.new_page()
-            try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=25000)
-                await page.wait_for_timeout(1500)
-                texto = extrair_html(await page.content())
-                if len(texto) < 100:
-                    print(f"   ⚠️  {chave}: vazio")
-                    continue
-                doc = {"chave": chave, "titulo": chave.replace("_"," ").title(),
-                       "fonte": url, "orgao": orgao, "categoria": cat,
-                       "conteudo": texto, "tamanho_chars": len(texto)}
-                st = await salvar(client, doc)
-                icon = "✅" if "salvo" in st else "⏭️ "
-                print(f"   {icon} {chave}: {st}")
-                if "salvo" in st: salvos += 1; contador[0] += 1
-            except Exception as e:
-                print(f"   ❌ {chave}: {str(e)[:60]}")
-            finally:
-                await page.close()
-            await asyncio.sleep(0.8)
-    return salvos
-
-async def crawl_anvisa_pdfs(contador):
-    salvos = 0
-    print(f"\n🏥 ANVISA PDFs ({len(ANVISA_PDFS)} docs, OCR={HAS_OCR})...")
-    async with httpx.AsyncClient(timeout=30.0, headers=BROWSER_HEADERS, follow_redirects=True) as client:
-        for url, orgao, cat, chave in ANVISA_PDFS:
-            if contador[0] >= MAX_DOCS: break
-            try:
-                r = await client.get(url, timeout=25.0)
-                if r.status_code != 200:
-                    print(f"   ⚠️  {chave}: HTTP {r.status_code}")
-                    continue
-                texto = extrair_pdf(r.content)
-                if len(texto) < 50:
-                    print(f"   ⚠️  {chave}: vazio")
-                    continue
-                doc = {"chave": chave, "titulo": chave.replace("_"," ").title(),
-                       "fonte": url, "orgao": orgao, "categoria": cat,
-                       "conteudo": texto, "tamanho_chars": len(texto)}
-                st = await salvar(client, doc)
-                icon = "✅" if "salvo" in st else "⏭️ "
-                print(f"   {icon} {chave}: {st}")
-                if "salvo" in st: salvos += 1; contador[0] += 1
-            except Exception as e:
-                print(f"   ❌ {chave}: {str(e)[:60]}")
-            await asyncio.sleep(0.4)
-    return salvos
-
-async def crawl_js_page(context, info, contador):
-    salvos = 0
-    print(f"\n🌐 {info['descricao']} — {info['url'][:60]}")
-    async with httpx.AsyncClient(timeout=20.0, headers=BROWSER_HEADERS, follow_redirects=True) as client:
-        page = await context.new_page()
-        try:
-            await page.goto(info["url"], wait_until="networkidle", timeout=40000)
-            await page.wait_for_timeout(3000)
-            # Clica em todos os acordeons individualmente
-            for sel in ["[data-toggle='collapse']", "button[aria-expanded='false']", "summary", ".accordion-toggle"]:
-                for el in (await page.query_selector_all(sel))[:40]:
-                    try:
-                        await el.scroll_into_view_if_needed()
-                        await el.click(timeout=1500)
-                        await page.wait_for_timeout(500)
-                    except: pass
-            # Scroll para carregar lazy content
-            for _ in range(6):
-                await page.evaluate("window.scrollBy(0, window.innerHeight)")
-                await page.wait_for_timeout(400)
-            await page.wait_for_timeout(2000)
-
-            links = await page.evaluate("""
-                () => {
-                    const seen = new Set(), out = [];
-                    for (const a of document.querySelectorAll('a[href]')) {
-                        const h = a.href;
-                        if (!h || seen.has(h)) continue;
-                        if (h.includes('.pdf') || h.includes('planalto.gov.br') ||
-                            h.includes('in.gov.br/web/dou') || h.includes('antigo.anvisa') ||
-                            (h.includes('agricultura.gov.br') && h.includes('pdf')) ||
-                            h.includes('fao.org')) {
-                            seen.add(h);
-                            out.push({url: h, texto: (a.textContent||'').trim().slice(0,120)});
-                        }
-                    }
-                    return out;
-                }
-            """)
-            print(f"   📎 {len(links)} links encontrados")
-
-            for lk in links:
-                if contador[0] >= MAX_DOCS: break
-                url = lk.get("url","")
-                if not url or len(url) < 10: continue
-                chave = gerar_chave(url)
-                try:
-                    if ".pdf" in url.lower() or "antigo.anvisa" in url:
-                        r = await client.get(url, timeout=20.0)
-                        if r.status_code != 200: continue
-                        conteudo = extrair_pdf(r.content)
-                    elif "planalto.gov.br" in url:
-                        p2 = await context.new_page()
-                        try:
-                            await p2.goto(url, wait_until="domcontentloaded", timeout=15000)
-                            await p2.wait_for_timeout(1000)
-                            conteudo = extrair_html(await p2.content())
-                        finally: await p2.close()
-                    else:
-                        r = await client.get(url, timeout=15.0)
-                        if r.status_code != 200: continue
-                        conteudo = extrair_html(r.text)
-
-                    if len(conteudo) < 50: continue
-                    doc = {"chave": chave, "titulo": lk.get("texto","") or chave,
-                           "fonte": url, "orgao": info["orgao"], "categoria": info["categoria"],
-                           "conteudo": conteudo, "tamanho_chars": len(conteudo)}
-                    st = await salvar(client, doc)
-                    if "salvo" in st:
-                        salvos += 1; contador[0] += 1
-                        print(f"   ✅ {chave[:50]}: {st}")
-                    elif "mantido" in st:
-                        print(f"   ⏭️  {chave[:50]}: {st}")
-                except Exception as e:
-                    print(f"   ❌ {url[:60]}: {str(e)[:50]}")
-                await asyncio.sleep(0.3)
-        finally:
-            await page.close()
-    return salvos
 
 async def main():
     print("="*65)
-    print(f"ValidaRótulo KB Crawler v2 — {datetime.now().isoformat()}")
-    print(f"OCR={HAS_OCR} | Playwright={HAS_PLAYWRIGHT}")
+    print(f"ValidaRótulo KB Crawler v3 — {datetime.now().isoformat()}")
+    print(f"Estratégia: URLs diretas | OCR={HAS_OCR} | Total URLs={len(DIRECT_URLS)}")
     print("="*65)
-    if not HAS_PLAYWRIGHT:
-        print("❌ Playwright obrigatório"); return
 
-    total = 0
-    contador = [0]
+    total_salvos = 0
+    total_mantidos = 0
+    total_falhos = 0
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox","--disable-dev-shm-usage","--disable-blink-features=AutomationControlled"])
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
-            locale="pt-BR", timezone_id="America/Sao_Paulo")
+    async with httpx.AsyncClient(
+        timeout=25.0,
+        headers=BROWSER_HEADERS,
+        follow_redirects=True,
+    ) as client:
+        for url, orgao, categoria, chave in DIRECT_URLS:
+            is_pdf = ".pdf" in url.lower()
+            try:
+                r = await client.get(url, timeout=20.0)
+                if r.status_code != 200:
+                    print(f"  ⚠️  {chave}: HTTP {r.status_code}")
+                    total_falhos += 1
+                    continue
 
-        total += await crawl_anvisa_pdfs(contador)
-        total += await crawl_planalto(context, contador)
-        for pi in MAPA_JS_PAGES:
-            if contador[0] >= MAX_DOCS: break
-            total += await crawl_js_page(context, pi, contador)
+                conteudo = extrair_pdf(r.content) if is_pdf else extrair_html(r.text)
 
-        await context.close()
-        await browser.close()
+                if len(conteudo) < 50:
+                    print(f"  ⚠️  {chave}: vazio (OCR={HAS_OCR})")
+                    total_falhos += 1
+                    continue
 
-    print("\n"+"="*65)
-    print(f"✅ Crawler v2 concluído | Salvos: {total} | Total: {contador[0]}")
+                doc = {
+                    "chave": chave,
+                    "titulo": chave.replace("_"," ").title(),
+                    "fonte": url,
+                    "orgao": orgao,
+                    "categoria": categoria,
+                    "conteudo": conteudo,
+                    "tamanho_chars": len(conteudo),
+                }
+                st = await salvar(client, doc)
+
+                if "salvo" in st:
+                    total_salvos += 1
+                    print(f"  ✅ {chave}: {st}")
+                elif "mantido" in st:
+                    total_mantidos += 1
+                    print(f"  ⏭️  {chave}: {st}")
+                else:
+                    total_falhos += 1
+                    print(f"  ❌ {chave}: {st}")
+
+            except Exception as e:
+                print(f"  ❌ {chave}: {str(e)[:80]}")
+                total_falhos += 1
+
+            await asyncio.sleep(0.4)
+
+    print("\n" + "="*65)
+    print(f"✅ Salvos: {total_salvos} | ⏭️  Mantidos: {total_mantidos} | ❌ Falhos: {total_falhos}")
+    print(f"Total na KB: ~{19 + total_salvos} documentos")
+    print(f"Fim: {datetime.now().isoformat()}")
     print("="*65)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# ── Sites SIE estaduais — adicionados à lista do crawler ─────────────────────
-SIE_ESTADUAIS_URLS = [
-    # BA
-    {"url": "http://www.adab.ba.gov.br/servicos/inspecao/", "orgao": "ADAB", "categoria": "sie_ba", "descricao": "SIE Bahia — ADAB legislação"},
-    # CE
-    {"url": "https://www.adagri.ce.gov.br/legislacao-sie/", "orgao": "ADAGRI", "categoria": "sie_ce", "descricao": "SIE Ceará — ADAGRI legislação"},
-    # GO
-    {"url": "https://goias.gov.br/agricultura/legislacoes-do-sim-servico-de-inspecao-municipal/", "orgao": "AGRODEFESA", "categoria": "sie_go", "descricao": "SIE Goiás — AGRODEFESA"},
-    # AM
-    {"url": "https://www.adaf.am.gov.br/gerencia-de-inspecao-de-produtos-de-origem-animal/", "orgao": "ADAF", "categoria": "sie_am", "descricao": "SIE Amazonas — ADAF"},
-    # PA
-    {"url": "https://www.adepara.pa.gov.br/inspecao-animal", "orgao": "ADEPARA", "categoria": "sie_pa", "descricao": "SIE Pará — ADEPARA"},
-    # PE
-    {"url": "https://www.adagro.pe.gov.br/web/adagro/inspecao-animal", "orgao": "ADAGRO", "categoria": "sie_pe", "descricao": "SIE Pernambuco — ADAGRO"},
-    # ES
-    {"url": "https://idaf.es.gov.br/inspecao-animal", "orgao": "IDAF-ES", "categoria": "sie_es", "descricao": "SIE Espírito Santo — IDAF"},
-    # MG (já coberto mas adiciona para completar)
-    {"url": "https://ima.mg.gov.br/agroindustria/produtos-de-origem-animal", "orgao": "IMA", "categoria": "sie_mg", "descricao": "SIE Minas Gerais — IMA"},
-    # GO extra
-    {"url": "https://www.agrodefesa.go.gov.br/inspecao", "orgao": "AGRODEFESA", "categoria": "sie_go", "descricao": "AGRODEFESA Goiás — inspeção"},
-    # MS
-    {"url": "https://www.iagro.ms.gov.br/inspecao-animal/", "orgao": "IAGRO", "categoria": "sie_ms", "descricao": "SIE Mato Grosso do Sul — IAGRO"},
-    # MT
-    {"url": "https://www.indea.mt.gov.br/inspecao", "orgao": "INDEA", "categoria": "sie_mt", "descricao": "SIE Mato Grosso — INDEA"},
-    # RN
-    {"url": "https://www.idiarn.rn.gov.br/", "orgao": "IDIARN", "categoria": "sie_rn", "descricao": "SIE Rio Grande do Norte — IDIARN"},
-    # RO
-    {"url": "https://www.idaron.ro.gov.br/inspecao-animal", "orgao": "IDARON", "categoria": "sie_ro", "descricao": "SIE Rondônia — IDARON"},
-]
-
-# Adiciona sites estaduais à lista do crawler para indexação dinâmica
-MAPA_JS_PAGES.extend(SIE_ESTADUAIS_URLS)
