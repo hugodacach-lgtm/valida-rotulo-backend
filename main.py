@@ -388,6 +388,9 @@ CATEGORIA_KEYWORDS = {
     "soro_leite":       ["soro de leite", "soro lácteo", "whey"],
     # Mel adicionais
     "mel_qualidade":    ["mel", "mel puro", "mel orgânico", "mel silvestre", "mel florada"],
+    "poa_caprino_ovino": ["leite de cabra", "queijo de cabra", "iogurte caprino",
+                         "carne ovina", "cordeiro", "carneiro", "ovino", "caprino",
+                         "chèvre", "chevre", "queijo caprino"],
     "poa_organico":     ["frango orgânico", "carne orgânica", "suíno orgânico", "bovino orgânico",
                          "ovos orgânicos", "leite orgânico", "queijo orgânico", "iogurte orgânico",
                          "sisorg", "certificado orgânico", "produto orgânico poa"],
@@ -1877,6 +1880,106 @@ CAMPO 9 — TABELA NUTRICIONAL:
 NORMAS: RDC 243/2018 | Res. 19/1999 + atualizações | RDC 429/2020 | RDC 727/2022
 """
 
+# ───────────────────────────────────────────────────────────────────────────────
+# NP15 — MASSAS FRESCAS E MASSAS COM RECHEIO
+# RDC ANVISA 93/2000 + IN MAPA 4/2002 + RDC 711/2022 + RDC 429/2020
+# ───────────────────────────────────────────────────────────────────────────────
+NP15_MASSA_FRESCA_FALLBACK = """MASSAS FRESCAS E MASSAS COM RECHEIO — RDC 93/2000 (ANVISA) + IN 4/2002 (MAPA)
+
+DIFERENÇA CRÍTICA: Massas frescas ≠ massas secas (RDC 711/2022)
+Massas frescas têm umidade >12,5% — exigências distintas de conservação, validade e embalagem.
+
+CAMPO 1 — DENOMINAÇÃO:
+• "Massa fresca" | "Massa fresca com ovos" | "Massa fresca recheada de [recheio]"
+• "Massa fresca integral" — se ≥50% farinha integral (declarar % de integral)
+• Massas com ovos: mín. 1 ovo inteiro ou 20g gema para cada 100g farinha
+• Massas com recheio: denominar recheio na denominação — "com recheio de [X]"
+• ❌ "Massa caseira" sem especificar tipo = denominação insuficiente
+• ❌ "Fresca" sem atender aos requisitos de umidade = NÃO CONFORME
+
+CAMPO 2 — INGREDIENTES:
+• Farinha de trigo enriquecida: declarar Fe e ácido fólico (Resolução RDC 150/2017)
+• Ovos: declarar espécie (galinha, pata, codorna) se diferente de galinha
+• Recheio: todos os ingredientes do recheio declarados após os da massa
+• Aditivos comuns autorizados: ácido láctico (INS 270), ácido acético (INS 260), goma guar (INS 412)
+• Conservantes: apenas propionato de cálcio (INS 282) e sorbato de potássio (INS 202) — somente para massas recheadas
+• ❌ Conservantes em massa fresca simples (sem recheio) = NÃO CONFORME
+• GLÚTEN: trigo = CONTÉM GLÚTEN obrigatório (Lei 10.674/2003)
+
+CAMPO 7 — CONSERVAÇÃO:
+• Massa fresca OBRIGA declaração de temperatura de conservação
+• Refrigerada: "Conservar entre 2°C e 8°C" — obrigatório
+• Congelada: "Conservar a -18°C" — obrigatório
+• ❌ Ausência de instrução de conservação em massa fresca = NÃO CONFORME (RDC 727/2022 Art. 8°)
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Porção padrão IN 75/2020: massa fresca crua = 80g | massa fresca cozida = 180g
+• Atenção: valores nutricionais devem ser para o produto cru (antes do cozimento) SE não vier pré-cozida
+• Se recheada: tabela deve incluir a contribuição do recheio
+• Massa com queijo/carne no recheio: verificar sódio — frequentemente ≥600mg/porção (lupa)
+
+CAMPO 10 — LUPA:
+• Sódio ≥600mg/porção = lupa obrigatória — massas recheadas industriais frequentemente atingem
+• Gordura saturada ≥6g/100g = lupa — recheios com queijo ou carne geralmente atingem
+
+CAMPO 13 — LOTE E VALIDADE:
+• Massa fresca é perecível — validade curta (7-30 dias refrigerada, 6 meses congelada)
+• Obrigatório: "Consumir até [data]" ou "Validade: [data]" + lote de produção
+• ❌ Massa fresca sem data de validade visível = NÃO CONFORME (RDC 727/2022 Art. 9°)
+
+NORMAS: RDC 93/2000 | IN MAPA 4/2002 | RDC 711/2022 | RDC 429/2020 | IN 75/2020 | RDC 727/2022
+"""
+
+# ───────────────────────────────────────────────────────────────────────────────
+# POA CAPRINOS E OVINOS — LEITE DE CABRA, QUEIJO DE CABRA, CARNE OVINA
+# IN MAPA 37/2000 (leite caprino) + IN MAPA 30/2001 (queijo de coalho/cabra)
+# + Portaria MAPA 146/1996 (RTIQs lácteos) + Decreto 9.013/2017
+# ───────────────────────────────────────────────────────────────────────────────
+POA_CAPRINO_OVINO_FALLBACK = """POA CAPRINOS E OVINOS — IN MAPA 37/2000 + IN MAPA 30/2001 + Port. MAPA 146/1996
+
+CAMPO 1 — DENOMINAÇÃO (espécies):
+• Leite de cabra: "Leite de Cabra [pasteurizado/UHT/cru]" — espécie obrigatória na denominação
+• Queijo de cabra: "Queijo de Cabra [tipo]" — variedades: Chèvre, Frescal, Maturado
+• Queijo de coalho de cabra: "Queijo de Coalho Caprino" (IN MAPA 30/2001)
+• Iogurte caprino: "Iogurte de Leite de Cabra"
+• Carne ovina: "Carne Ovina [corte]" — ex: "Paleta Ovina Resfriada"
+• Cordeiro: "Carne de Cordeiro" (animal com até 12 meses) — denominação específica permitida
+• ❌ "Queijo" sem especificar espécie animal quando não for bovino = NÃO CONFORME
+• ❌ "Leite" sem espécie quando não for bovino = NÃO CONFORME (RIISPOA Art. 71)
+
+CAMPO 2 — INGREDIENTES:
+• Leite caprino: "Leite de cabra pasteurizado" ou "Leite de cabra integral"
+• Queijo: "Leite de cabra", coalho (animal, microbiano ou vegetal — declarar tipo), sal
+• Cultura lática: declarar "fermento lático" ou "culturas láticas"
+• Carne ovina: sem lista de ingredientes se in natura, mas temperos e marinadas devem ser declarados
+
+CAMPO 8 — CARIMBO/REGISTRO:
+• Caprinos e ovinos seguem o mesmo sistema SIF/SIE/SIM dos bovinos
+• SIF: comércio nacional | SIE: comércio estadual | SIM: comércio municipal
+• SISBI-POA se SIE/SIM quiser venda nacional
+• Leite de cabra: obrigatório número do estabelecimento beneficiador
+• Queijo artesanal caprino: pode ter registro no SIM se produção artesanal local
+  Mas se DOP (Denominação de Origem Protegida): verificar certificação específica
+
+CAMPO 9 — TABELA NUTRICIONAL:
+• Leite de cabra: composição DIFERENTE do bovino — mais gordura (3,8%), mais cálcio, menos lactose
+• Não usar tabela TACO de leite bovino para leite caprino — verificar TACO caprinos ou análise própria
+• Queijo de cabra fresco: alto teor de gordura (>20% b.s.) — verificar lupa gordura saturada
+
+NORMAS ESPECÍFICAS CAPRINOS/OVINOS:
+• IN MAPA 37/2000: Regulamento Técnico de Identidade e Qualidade de Leite de Cabra
+• IN MAPA 30/2001: RTIQ de Queijo de Coalho (aplicável a caprino)
+• Portaria MAPA 146/1996 Anexo IX: RTIQ de Queijo (categorias gerais — inclui caprino)
+• Decreto 9.013/2017 (RIISPOA): Art. 71 — denominação de leite de outras espécies
+• RDC 429/2020 + IN 75/2020: rotulagem nutricional (idêntico ao bovino)
+
+ALERTAS ESPECÍFICOS:
+• Leite de cabra cru para consumo direto: proibido sem pasteurização (RIISPOA Art. 76)
+• Queijo artesanal caprino com leite cru: permitido apenas se maturado por mín. 60 dias
+• Carne ovina: verificar se há declaração de raça/origem (ex: "Cordeiro da raça Santa Inês")
+  — denominações de raça são permitidas mas não obrigatórias
+"""
+
 # Mapeamento NP fallbacks por URL para injeção automática
 NP_FALLBACK_MAP = {
     "suco": NP1_SUCOS_FALLBACK,
@@ -1947,6 +2050,16 @@ NP_FALLBACK_MAP = {
     "alegacao": NP14_FUNCIONAL_FALLBACK,
     "ômega 3": NP14_FUNCIONAL_FALLBACK,
     "omega 3": NP14_FUNCIONAL_FALLBACK,
+    # NP15 — Massas frescas
+    "massa fresca": NP15_MASSA_FRESCA_FALLBACK,
+    "massa com recheio": NP15_MASSA_FRESCA_FALLBACK,
+    "nhoque": NP15_MASSA_FRESCA_FALLBACK,
+    "ravióli": NP15_MASSA_FRESCA_FALLBACK,
+    "ravioli": NP15_MASSA_FRESCA_FALLBACK,
+    "cappelletti": NP15_MASSA_FRESCA_FALLBACK,
+    "tortellini": NP15_MASSA_FRESCA_FALLBACK,
+    "lasanha fresca": NP15_MASSA_FRESCA_FALLBACK,
+    "talharim fresco": NP15_MASSA_FRESCA_FALLBACK,
     # MAPA vegetais — bebidas alcoólicas
     "cerveja": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
     "vinho": MAPA_BEBIDA_ALCOOLICA_FALLBACK,
@@ -2027,6 +2140,14 @@ _NP_CATEGORIA_MAP = {
     "funcional":        "funcional",
     "probiótico":       "funcional",
     "ômega 3":          "funcional",
+    # NP15
+    "massa fresca":     "massa fresca",
+    "nhoque":           "massa fresca",
+    "ravióli":          "massa fresca",
+    "ravioli":          "massa fresca",
+    "cappelletti":      "massa fresca",
+    "tortellini":       "massa fresca",
+    "massa recheada":   "massa fresca",
     # MAPA vegetais
     "cerveja":          "cerveja",
     "vinho":            "vinho",
@@ -2344,6 +2465,7 @@ Identifique da imagem e declare EXPLICITAMENTE:
   sorvete | gelado | picolé |
   tofu | tempeh | seitan | proteína vegetal | burger vegetal |
   kombucha | kefir de água | bebida fermentada |
+  massa fresca | nhoque | ravióli | cappelletti | tortellini |
   farinha de amêndoa | farinha de coco | farinha de arroz | polvilho | tapioca |
   funcional | probiótico | ômega 3 |
   orgânico | orgânica |
@@ -4259,6 +4381,13 @@ Use como referência primária na validação:
         sisbi_context = f"\n\n## SISBI-POA — NOTA\n{SISBI_POA_FALLBACK}"
 
     # POA Orgânico — injeta quando orgânico detectado no obs
+    # POA caprinos/ovinos — injeta quando detectado no obs ou categoria
+    caprino_context = ""
+    if any(kw in (obs or "").lower() for kw in ["cabra", "caprino", "ovino", "cordeiro", "carneiro", "chèvre", "chevre", "queijo de cabra"]):
+        caprino_context = f"\n\n## POA CAPRINOS E OVINOS\n{POA_CAPRINO_OVINO_FALLBACK}"
+    elif seg_categoria and any(kw in seg_categoria.lower() for kw in ["cabra", "caprino", "ovino", "cordeiro"]):
+        caprino_context = f"\n\n## POA CAPRINOS E OVINOS\n{POA_CAPRINO_OVINO_FALLBACK}"
+
     organico_context = ""
     if any(kw in (obs or "").lower() for kw in ["orgânico", "organico", "ecológico", "ecologico", "sisorg", "oac "]):
         organico_context = f"\n\n## POA ORGÂNICO\n{POA_ORGANICO_FALLBACK}"
@@ -4287,6 +4416,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += f"\n\n{orgao_context}"
     if sie_context:
         system_prompt += sie_context
+    if caprino_context:
+        system_prompt += caprino_context
     if sisbi_context:
         system_prompt += sisbi_context
     if organico_context:
