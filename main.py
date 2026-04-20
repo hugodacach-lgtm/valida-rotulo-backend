@@ -10393,251 +10393,180 @@ async def get_historico(
 
 @app.post("/kb/crawl-full")
 async def kb_crawl_full(request: Request):
-    """
-    KB Crawler v4 — Roda de dentro do Render (não do GitHub Actions).
-    O Render consegue acessar gov.br e antigo.anvisa.gov.br sem bloqueio de IP.
-    Salva todos os documentos na tabela kb_documents do Supabase.
-    GitHub Actions apenas chama este endpoint — sem instalar OCR, sem Playwright.
-    """
+    """KB Crawler v5 — fontes corretas rodando no Render."""
     if not _SUPABASE_ON:
         return JSONResponse({"ok": False, "msg": "Supabase não configurado"},
                             headers={"Access-Control-Allow-Origin": "*"})
-
-    # Dispara em background para não bloquear o request
-    asyncio.ensure_future(_kb_crawl_full_background())
-    return JSONResponse({
-        "ok": True,
-        "msg": "Crawl iniciado em background. Verifique /kb/crawl-status em 3-5 minutos.",
-        "supabase_table": "kb_documents",
-    }, headers={"Access-Control-Allow-Origin": "*"})
+    asyncio.ensure_future(_crawl_v5_background())
+    return JSONResponse({"ok": True, "msg": "Crawl v5 iniciado. Verifique /kb/crawl-status em 5 minutos."},
+                        headers={"Access-Control-Allow-Origin": "*"})
 
 
-# Estado do crawl em background
 _kb_crawl_status = {"rodando": False, "ultimo_resultado": None}
 
 
 @app.get("/kb/crawl-status")
 async def kb_crawl_status():
-    """Retorna status do último crawl completo."""
-    return JSONResponse(_kb_crawl_status,
-                        headers={"Access-Control-Allow-Origin": "*"})
+    return JSONResponse(_kb_crawl_status, headers={"Access-Control-Allow-Origin": "*"})
 
 
-async def _kb_crawl_full_background():
-    """
-    Crawl completo rodando no Render — acessa URLs que o GitHub Actions não consegue.
-    Salva cada documento na tabela kb_documents com upsert inteligente.
-    """
+_CRAWL_V5_URLS = [
+    # ── ANVISA HTML via anvisalegis.datalegis.net ─────────────────────────────
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTematica&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","anvisalegis_rotulagem_index"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=20102&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","rdc_429_2020_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=19964&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","in_75_2020_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=20916&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","rdc_727_2022_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=20909&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","rdc_715_2022_lactose_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15393&cod_modulo=135&cod_menu=1686",
+     "ANVISA","rotulagem","rdc_259_2002_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=20037&cod_modulo=135&cod_menu=1686",
+     "ANVISA","suplementos","rdc_243_2018_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15527&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_264_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15525&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_266_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15528&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_268_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15533&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_272_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15524&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_263_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15534&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_273_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15535&cod_modulo=135&cod_menu=1686",
+     "ANVISA","bebidas","rdc_274_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15537&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_276_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15538&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_277_2005_html"),
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&cod_ato=15539&cod_modulo=135&cod_menu=1686",
+     "ANVISA","alimentos","rdc_278_2005_html"),
+    # ── MAPA POA — página de legislação HTML ─────────────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao",
+     "MAPA","poa","mapa_poa_legislacao_index"),
+    # ── MAPA Vegetal — RTIQs HTML ─────────────────────────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/defesa-agropecuaria/suasa/regulamentos-tecnicos-de-identidade-e-qualidade-de-produtos-de-origem-vegetal",
+     "MAPA","qualidade_vegetal","mapa_rtiq_vegetal_index"),
+    # ── MAPA SISBI ────────────────────────────────────────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/defesa-agropecuaria/suasa/sisbi-1",
+     "MAPA","poa","mapa_sisbi_poa"),
+    # ── MAPA bebidas e vegetal ────────────────────────────────────────────────
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-vegetal/legislacao-programas-nacionais-e-seguranca-dos-alimentos-1/legislacao/bebidas",
+     "MAPA","bebidas","mapa_bebidas_legislacao"),
+    ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-vegetal/legislacao-programas-nacionais-e-seguranca-dos-alimentos-1/legislacao/legislacaoPOV",
+     "MAPA","qualidade_vegetal","mapa_pov_legislacao"),
+    # ── DOU/in.gov.br (funciona no Render) ────────────────────────────────────
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-36-de-20-de-setembro-de-2018-42584174",
+     "MAPA","bebidas","in_36_2018"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-49-de-23-de-outubro-de-2019-223577337",
+     "MAPA","qualidade_vegetal","in_49_2019"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-41-de-17-de-julho-de-2019-206395862",
+     "MAPA","bebidas","in_41_2019_kombucha"),
+    ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-521-de-1-de-dezembro-de-2022-447310581",
+     "MAPA","qualidade_vegetal","portaria_521_2022"),
+    ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-586-de-16-de-maio-de-2023-486234511",
+     "MAPA","bebidas","portaria_586_2023"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-65-de-21-de-novembro-de-2019-229567232",
+     "MAPA","bebidas","in_65_2019_cerveja"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-17-de-19-de-junho-de-2020-262948007",
+     "MAPA","poa","in_17_2020_sisbi"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-9-de-22-de-novembro-de-2019-229634516",
+     "MAPA","poa","in_9_2019_rotulagem_poa"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-16-de-23-de-junho-de-2015-1139827",
+     "MAPA","poa","in_16_2015_agroind_pequeno"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-31-de-27-de-outubro-de-2020-286136290",
+     "MAPA","poa","in_31_2020_sisbi_poa"),
+    ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-60-de-23-de-dezembro-de-2019-238601141",
+     "MAPA","bebidas","in_60_2019_bebidas"),
+    # ── CONAR PDF (funciona) ──────────────────────────────────────────────────
+    ("https://www.conar.org.br/pdf/codigo-conar-2021.pdf",
+     "CONAR","publicidade","codigo_conar_2021"),
+    # ── SIE estaduais HTML ────────────────────────────────────────────────────
+    ("https://www.adagri.ce.gov.br/legislacao-sie/",
+     "ADAGRI","sie_ce","adagri_ce_sie"),
+    ("https://goias.gov.br/agricultura/legislacoes-do-sim-servico-de-inspecao-municipal/",
+     "AGRODEFESA","sie_go","agrodefesa_go"),
+    ("https://ima.mg.gov.br/agroindustria/produtos-de-origem-animal",
+     "IMA","sie_mg","ima_mg_poa"),
+]
+
+
+async def _crawl_v5_background():
+    """Crawl v5: HTML-first, sem PDFs escaneados, delay respeitoso."""
     global _kb_crawl_status
     _kb_crawl_status["rodando"] = True
+    import re as _re
 
-    # Catálogo completo de URLs diretas — todas testadas e funcionando no Render
-    ALL_URLS = [
-        # ── ANVISA — PDFs diretos (funcionam no Render) ──────────────────────
-        ("https://antigo.anvisa.gov.br/documents/10181/3882585/RDC_429_2020_.pdf",
-         "ANVISA","rotulagem","rdc_429_2020"),
-        ("https://antigo.anvisa.gov.br/documents/10181/3882585/IN+75_2020_.pdf",
-         "ANVISA","rotulagem","in_75_2020_porcoes"),
-        ("https://antigo.anvisa.gov.br/documents/10181/2054761/RDC_727_2022_.pdf",
-         "ANVISA","rotulagem","rdc_727_2022"),
-        ("https://antigo.anvisa.gov.br/documents/10181/2054761/RDC_715_2022_.pdf",
-         "ANVISA","rotulagem","rdc_715_2022_lactose"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+259+2002.pdf",
-         "ANVISA","rotulagem","rdc_259_2002"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+264_2005.pdf",
-         "ANVISA","alimentos","rdc_264_chocolate"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+266_2005.pdf",
-         "ANVISA","alimentos","rdc_266_sorvetes"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+268_2005.pdf",
-         "ANVISA","alimentos","rdc_268_proteina_vegetal"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+270+de+22+de+setembro+de+2005.pdf",
-         "ANVISA","alimentos","rdc_270_oleos"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+272_2005.pdf",
-         "ANVISA","alimentos","rdc_272_vegetais"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+263_2005.pdf",
-         "ANVISA","alimentos","rdc_263_cereais"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+265_2005.pdf",
-         "ANVISA","alimentos","rdc_265_amido"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+267_2005.pdf",
-         "ANVISA","alimentos","rdc_267_cogumelos"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+269_2005.pdf",
-         "ANVISA","alimentos","rdc_269_proteinas"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+271_2005.pdf",
-         "ANVISA","alimentos","rdc_271_acucar"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+273_2005.pdf",
-         "ANVISA","alimentos","rdc_273_enriquecidos"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+274_2005.pdf",
-         "ANVISA","bebidas","rdc_274_bebidas"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+276_2005.pdf",
-         "ANVISA","alimentos","rdc_276_condimentos"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+277_2005.pdf",
-         "ANVISA","alimentos","rdc_277_cafe_cha"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+278_2005.pdf",
-         "ANVISA","alimentos","rdc_278_vinagre"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC+02+2007+Aromas.pdf",
-         "ANVISA","aditivos","rdc_2_2007_aromas"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC42_2013_contaminantes.pdf",
-         "ANVISA","alimentos","rdc_42_contaminantes"),
-        ("https://antigo.anvisa.gov.br/documents/33916/392655/RDC_722_2022.pdf",
-         "ANVISA","alimentos","rdc_722_moldes"),
-        ("https://antigo.anvisa.gov.br/documents/10181/6485886/RDC_843_2024_.pdf",
-         "ANVISA","alimentos","rdc_843_2024"),
-        ("https://antigo.anvisa.gov.br/documents/10181/6636520/RDC_851_2024_.pdf",
-         "ANVISA","alimentos","rdc_851_2024"),
-        ("https://antigo.anvisa.gov.br/documents/10181/6875868/RDC_920_2024_.pdf",
-         "ANVISA","alimentos","rdc_920_2024"),
-        ("https://antigo.anvisa.gov.br/documents/10181/2867955/RDC_243_2018_.pdf",
-         "ANVISA","suplementos","rdc_243_2018_suplementos"),
-        ("https://antigo.anvisa.gov.br/documents/10181/3933482/IN_28_2018_.pdf",
-         "ANVISA","suplementos","in_28_2018_suplementos"),
-        # ── MAPA — RTIQs POA diretos ─────────────────────────────────────────
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN042000salsichamortadelalinguia.pdf",
-         "MAPA","poa","in_4_2000_embutidos"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN202000hamburguerapresuntadofiambrekibepresuntocozido.pdf",
-         "MAPA","poa","in_20_2000_hamburguer"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN292000salame.pdf",
-         "MAPA","poa","in_29_2000_salame"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN222000chouricosanguitelas.pdf",
-         "MAPA","poa","in_22_2000_chourico"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN232000paiocopacarnecarne-de-sol.pdf",
-         "MAPA","poa","in_23_2000_paio_copa"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN252000carnesalgadaernesala.pdf",
-         "MAPA","poa","in_25_2000_carne_salgada"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN262000charque.pdf",
-         "MAPA","poa","in_26_2000_charque"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN272000jerked_beef.pdf",
-         "MAPA","poa","in_27_2000_jerked_beef"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN302000patefinacrocantepatedefigado.pdf",
-         "MAPA","poa","in_30_2000_pate"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN362000queijodecoltagem.pdf",
-         "MAPA","poa","in_36_2000_queijo_coalho"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN512006sardinha.pdf",
-         "MAPA","poa","in_51_2006_sardinha"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN052000embutidoscrus.pdf",
-         "MAPA","poa","in_5_2000_embutidos_crus"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN162000alevescamarao.pdf",
-         "MAPA","poa","in_16_2000_camarao"),
-        ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/IN182000pescadosalgadossecos.pdf",
-         "MAPA","poa","in_18_2000_bacalhau"),
-        # ── Wiki SDA — RTIQs em PDF (funciona no Render) ─────────────────────
-        ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_4-2000_linguica_mortadela_salsicha.pdf",
-         "MAPA","poa","wiki_in4_linguica"),
-        ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_17-2018_rt_c%C3%A1rneos_temperados.pdf",
-         "MAPA","poa","wiki_in17_carneos"),
-        ("https://wikisda.agricultura.gov.br/dipoa_baselegal/in_16-2005_bebida_l%C3%A1ctea.pdf",
-         "MAPA","poa","wiki_in16_bebida_lactea"),
-        # ── DOU/in.gov.br — INs (funciona no Render) ─────────────────────────
-        ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-36-de-20-de-setembro-de-2018-42584174",
-         "MAPA","bebidas","in_36_2018_bebidas"),
-        ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-49-de-23-de-outubro-de-2019-223577337",
-         "MAPA","qualidade_vegetal","in_49_2019"),
-        ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-41-de-17-de-julho-de-2019-206395862",
-         "MAPA","bebidas","in_41_2019_kombucha"),
-        ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-521-de-1-de-dezembro-de-2022-447310581",
-         "MAPA","qualidade_vegetal","portaria_521_2022"),
-        ("https://www.in.gov.br/en/web/dou/-/portaria-mapa-n-586-de-16-de-maio-de-2023-486234511",
-         "MAPA","bebidas","portaria_586_2023"),
-        ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-65-de-21-de-novembro-de-2019-229567232",
-         "MAPA","bebidas","in_65_2019_cerveja"),
-        ("https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-17-de-19-de-junho-de-2020-262948007",
-         "MAPA","poa","in_17_2020_sisbi"),
-    ]
+    salvos = 0; mantidos = 0; falhos = 0; detalhes = {}
 
-    salvos = 0
-    mantidos = 0
-    falhos = 0
-    resultados = {}
-
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        for url, orgao, categoria, chave in ALL_URLS:
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Accept-Language": "pt-BR,pt;q=0.9",
+    }) as client:
+        for url, orgao, categoria, chave in _CRAWL_V5_URLS:
             try:
-                r = await asyncio.wait_for(
-                    client.get(url, headers={"User-Agent": "ValidaRotulo-KB/4.0 (compatible)"}),
-                    timeout=15.0
-                )
+                r = await asyncio.wait_for(client.get(url), timeout=18.0)
                 if r.status_code != 200:
-                    falhos += 1
-                    resultados[chave] = f"HTTP {r.status_code}"
-                    continue
+                    falhos += 1; detalhes[chave] = f"HTTP {r.status_code}"
+                    await asyncio.sleep(0.5); continue
 
-                is_pdf = ".pdf" in url.lower()
-                if is_pdf:
-                    texto = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda b=r.content: _extract_pdf_text(b, 6000)
-                    )
+                ctype = r.headers.get("content-type", "")
+                if "pdf" in ctype or url.lower().endswith(".pdf"):
+                    try:
+                        from pypdf import PdfReader
+                        reader = PdfReader(__import__("io").BytesIO(r.content))
+                        texto = "".join(pg.extract_text() or "" for pg in reader.pages)[:7000].strip()
+                    except Exception:
+                        texto = ""
                 else:
-                    import re as _re
                     raw = r.text
-                    raw = _re.sub(r"<script[^>]*>.*?</script>", " ", raw, flags=_re.DOTALL | _re.I)
+                    raw = _re.sub(r"<script[^>]*>.*?</script>", " ", raw, flags=_re.DOTALL|_re.I)
+                    raw = _re.sub(r"<style[^>]*>.*?</style>", " ", raw, flags=_re.DOTALL|_re.I)
                     raw = _re.sub(r"<[^>]+>", " ", raw)
-                    texto = _re.sub(r"\s+", " ", raw)[:6000].strip()
+                    texto = _re.sub(r"\s{2,}", " ", raw).strip()[:7000]
 
                 if len(texto) < 80:
-                    falhos += 1
-                    resultados[chave] = "vazio"
-                    continue
+                    falhos += 1; detalhes[chave] = "vazio"
+                    await asyncio.sleep(0.5); continue
 
-                # Upsert inteligente — só atualiza se novo conteúdo for maior
                 rows = await _sb_get("kb_documents", {"chave": chave}, limit=1)
                 existente = rows[0].get("tamanho_chars", 0) if rows else 0
                 if existente >= len(texto):
-                    mantidos += 1
-                    resultados[chave] = f"mantido ({existente}c)"
-                    continue
+                    mantidos += 1; detalhes[chave] = f"mantido ({existente}c)"
+                    await asyncio.sleep(0.3); continue
 
                 ok = await _sb_upsert("kb_documents", {
-                    "chave": chave,
-                    "titulo": chave.replace("_", " ").title(),
-                    "fonte": url,
-                    "orgao": orgao,
-                    "categoria": categoria,
-                    "conteudo": texto,
-                    "tamanho_chars": len(texto),
+                    "chave": chave, "titulo": chave.replace("_"," ").title(),
+                    "fonte": url, "orgao": orgao, "categoria": categoria,
+                    "conteudo": texto, "tamanho_chars": len(texto),
                     "atualizado_em": __import__("datetime").datetime.now().isoformat(),
                 })
                 if ok:
-                    salvos += 1
-                    resultados[chave] = f"salvo ({len(texto)}c)"
-                    # Também adiciona ao _kb_cache em memória
-                    _kb_cache[chave] = texto
+                    salvos += 1; detalhes[chave] = f"salvo ({len(texto)}c)"; _kb_cache[chave] = texto
                 else:
-                    falhos += 1
-                    resultados[chave] = "erro_supabase"
+                    falhos += 1; detalhes[chave] = "erro_supabase"
 
+            except asyncio.TimeoutError:
+                falhos += 1; detalhes[chave] = "timeout"
             except Exception as e:
-                falhos += 1
-                resultados[chave] = f"erro: {str(e)[:50]}"
-
-            await asyncio.sleep(0.3)
+                falhos += 1; detalhes[chave] = f"erro:{str(e)[:40]}"
+            await asyncio.sleep(0.6)
 
     _kb_crawl_status = {
         "rodando": False,
         "ultimo_resultado": {
-            "salvos": salvos,
-            "mantidos": mantidos,
-            "falhos": falhos,
-            "total_urls": len(ALL_URLS),
+            "salvos": salvos, "mantidos": mantidos, "falhos": falhos,
+            "total_urls": len(_CRAWL_V5_URLS),
             "timestamp": __import__("datetime").datetime.now().isoformat(),
-            "detalhes": resultados,
+            "detalhes": detalhes,
         }
     }
-
-
-def _extract_pdf_text(data: bytes, max_chars: int = 6000) -> str:
-    """Extrai texto de PDF — usado em executor para não bloquear o event loop."""
-    try:
-        from pypdf import PdfReader
-        import io
-        reader = PdfReader(io.BytesIO(data))
-        texto = ""
-        for page in reader.pages:
-            texto += page.extract_text() or ""
-            if len(texto) >= max_chars:
-                break
-        return texto[:max_chars].strip()
-    except Exception:
-        return ""
-
 
 
 async def discover_anvisa_kb():
