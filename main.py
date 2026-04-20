@@ -5668,23 +5668,32 @@ async def _sb_get(table: str, filters: dict = None, limit: int = 500) -> list[di
     except Exception:
         return []
 
-async def _sb_upsert(table: str, data: dict) -> bool:
-    """Insere ou atualiza registro no Supabase. Retorna True se OK."""
+async def _sb_upsert(table: str, data: dict, conflict_col: str = "") -> bool:
+    """
+    Insere ou atualiza registro no Supabase. Retorna True se OK.
+    conflict_col: coluna UNIQUE para resolver conflitos (ex: 'chave' para kb_documents).
+    Sem conflict_col, faz INSERT simples com merge-duplicates header.
+    """
     if not _SUPABASE_ON:
         return False
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        # Para tabelas com coluna UNIQUE conhecida, usa ?on_conflict=col
+        # Isso garante que o Supabase faça UPDATE quando o registro já existe
+        url = f"{_SUPABASE_URL}/rest/v1/{table}"
+        if conflict_col:
+            url += f"?on_conflict={conflict_col}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(
-                f"{_SUPABASE_URL}/rest/v1/{table}",
+                url,
                 headers={
                     "apikey": _SUPABASE_KEY,
                     "Authorization": f"Bearer {_SUPABASE_KEY}",
                     "Content-Type": "application/json",
-                    "Prefer": "resolution=merge-duplicates",
+                    "Prefer": "resolution=merge-duplicates,return=minimal",
                 },
                 json=data,
             )
-            return r.status_code in (200, 201)
+            return r.status_code in (200, 201, 204)
     except Exception:
         return False
 
@@ -10546,7 +10555,7 @@ async def _crawl_v5_background():
                     "fonte": url, "orgao": orgao, "categoria": categoria,
                     "conteudo": texto, "tamanho_chars": len(texto),
                     "atualizado_em": __import__("datetime").datetime.now().isoformat(),
-                })
+                }, conflict_col="chave")
                 if ok:
                     salvos += 1; detalhes[chave] = f"salvo ({len(texto)}c)"; _kb_cache[chave] = texto
                 else:
