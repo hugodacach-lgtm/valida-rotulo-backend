@@ -10156,17 +10156,23 @@ async def validar_lote(
             try:
                 # Gera relatório completo para este rótulo
                 relatorio_completo = ""
+                # KB para validar_lote — define variáveis antes do payload
+                _lote_obs = obs_geral or seg_np_categoria or nome or ""
+                _lote_cats = detect_categories(_lote_obs) if _lote_obs else []
+                try:
+                    _lote_kb = await asyncio.wait_for(
+                        get_kb_for_categories(_lote_cats), timeout=5.0
+                    ) if _lote_cats else ""
+                except Exception:
+                    _lote_kb = ""
+                _lote_sec = f"## LEGISLAÇÃO ESPECÍFICA\n{_lote_kb}\n---" if _lote_kb else ""
+                _lote_aprendizados = _kb_cache.get("sp_aprendizados_acumulados", "")
+                if _lote_aprendizados:
+                    _lote_sec = (_lote_sec + "\n\n" + _lote_aprendizados[:800]) if _lote_sec else _lote_aprendizados[:800]
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     payload = {
                         "model": "claude-sonnet-4-6",
                         "max_tokens": 2000,
-                        # KB para validar_lote
-                        _lote_cats = detect_categories(item.get("obs","") or item.get("produto","") or "")
-                        try:
-                            _lote_kb = await asyncio.wait_for(get_kb_for_categories(_lote_cats), timeout=5.0) if _lote_cats else ""
-                        except Exception:
-                            _lote_kb = ""
-                        _lote_sec = f"## LEGISLAÇÃO\n{_lote_kb}\n---" if _lote_kb else ""
                         "system": SP_VALIDACAO.replace("{kb_section}", _lote_sec),
                         "messages": [{
                             "role": "user",
