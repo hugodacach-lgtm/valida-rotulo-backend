@@ -10435,39 +10435,45 @@ _CRAWL_V5_URLS = [
      "ANVISA","rotulagem","rdc_727_2022"),
     ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/RDC_715_2022_.pdf",
      "ANVISA","rotulagem","rdc_715_2022_lactose"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2002/rdc0259_20_09_2002.html",
-     "ANVISA","rotulagem","rdc_259_2002"),
-    # ── Suplementos ───────────────────────────────────────────────────────────
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2018/rdc0243_26_07_2018.pdf",
-     "ANVISA","suplementos","rdc_243_2018"),
-    # ── Categorias de alimentos 2005 (HTML, texto completo) ───────────────────
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0264_22_09_2005.html",
-     "ANVISA","alimentos","rdc_264_2005_chocolate"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/res0266_22_09_2005.html",
-     "ANVISA","alimentos","rdc_266_2005_sorvetes"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0268_22_09_2005.html",
+    # rdc_259_2002 foi revogada pela rdc_727_2022 (já seeded com conteúdo completo)
+    # ── Suplementos (chave padronizada com seed SQL) ─────────────────────────
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000243&seqAto=000&valorAno=2018&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=8542",
+     "ANVISA","suplementos","rdc_243_2018_suplementos"),
+    # ── Categorias de alimentos — versões vigentes ────────────────────────────
+    # Normas 2005 AINDA VIGENTES (não revogadas em 2022):
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000268&seqAto=000&valorAno=2005&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=9882",
      "ANVISA","alimentos","rdc_268_2005_proteina_vegetal"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0272_22_09_2005.html",
-     "ANVISA","alimentos","rdc_272_2005_ferm_leveduras"),
     ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0263_22_09_2005.html",
-     "ANVISA","alimentos","rdc_263_2005_cereais"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0273_22_09_2005.html",
-     "ANVISA","alimentos","rdc_273_2005_alim_enriquecidos"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/res0274_22_09_2005.html",
-     "ANVISA","bebidas","rdc_274_2005_bebidas_nao_alc"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0276_22_09_2005.html",
-     "ANVISA","alimentos","rdc_276_2005_condimentos"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0277_22_09_2005.html",
-     "ANVISA","alimentos","rdc_277_2005_cafe_cha"),
+     "ANVISA","alimentos","rdc_263_2005_cereais_farinhas"),
+    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0272_22_09_2005.html",
+     "ANVISA","alimentos","rdc_272_2005_fermentos_leveduras"),
     ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/rdc0278_22_09_2005.html",
      "ANVISA","alimentos","rdc_278_2005_vinagre"),
-    # ── Aditivos e contaminantes ──────────────────────────────────────────────
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/RDC_725_2022_.pdf",
+    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2005/res0274_22_09_2005.html",
+     "ANVISA","bebidas","rdc_274_2005_bebidas_nao_alcoolicas"),
+    # Normas 2005 REVOGADAS → substituídas pelas 2022 (já incluídas acima):
+    # rdc_264/266/273/276/277/2005 → rdc_723/713/719/716/2022 (chaves no seed)
+    # rdc_259/2002 → rdc_727/2022 (chave no seed)
+    # ── Aditivos aromas e contaminantes (normas 2022 vigentes) ───────────────
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000725&seqAto=000&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=8542",
      "ANVISA","aditivos","rdc_725_2022_aromas"),
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/RDC_722_2022_.pdf",
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000722&seqAto=002&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_menu=9434&cod_modulo=310",
      "ANVISA","alimentos","rdc_722_2022_contaminantes"),
-    # ── Alegações funcionais ──────────────────────────────────────────────────
-    ("https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2003/res0267_22_09_2003.html",
+    # ── Normas 2022 que substituem as de 2005 revogadas ──────────────────────
+    # RDC 723/2022 = substitui RDC 264/2005 (chocolate) + RDC 266/2005 (sorvete)
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000723&seqAto=002&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_menu=1696&cod_modulo=134",
+     "ANVISA","alimentos","rdc_723_2022_acucar_chocolate"),
+    # RDC 713/2022 = substitui RDC 266/2005 (sorvetes/gelados)
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000713&seqAto=002&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_menu=1696&cod_modulo=134",
+     "ANVISA","alimentos","rdc_713_2022_gelados_sorvetes"),
+    # RDC 719/2022 = substitui RDC 273/2005 (misturas/prontos)
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000719&seqAto=002&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=8542",
+     "ANVISA","alimentos","rdc_719_2022_misturas_prontos"),
+    # RDC 716/2022 = substitui RDC 276/2005 (condimentos) + RDC 277/2005 (café/chá)
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000716&seqAto=002&valorAno=2022&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=8542",
+     "ANVISA","alimentos","rdc_716_2022_condimentos_cafe"),
+    # RDC 267/2003 = alegações funcionais — verificada: AINDA VIGENTE (não revogada)
+    ("https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=RDC&numeroAto=00000267&seqAto=000&valorAno=2003&orgao=RDC/DC/ANVISA/MS&cod_modulo=310&cod_menu=8542",
      "ANVISA","funcional","rdc_267_2003_funcional"),
     # ── MAPA POA — página de legislação HTML ─────────────────────────────────
     ("https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao",
