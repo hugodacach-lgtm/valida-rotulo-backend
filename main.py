@@ -697,110 +697,6 @@ def detect_categories(obs: str) -> list[str]:
         if "conserva_peixes" not in detected: detected.append("conserva_peixes")
     return list(dict.fromkeys(detected))  # remove duplicatas mantendo ordem
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SEED BRIDGE — chaves MAPA_URLS → chaves seeds Supabase
-# ══════════════════════════════════════════════════════════════════════════════
-_SEED_BRIDGE: dict[str, list[str]] = {
-    "embutidos":["in_4_2000_mortadela_linguica_salsicha_cms"],
-    "salame":["in_22_2000_salames_todos_tipos","in_22_2000_copa_presunto_cru_parma"],
-    "presunto":["in_portarias_presunto_apresuntado","in_22_2000_copa_presunto_cru_parma","portaria_1092_1104_2024_presunto_cozido_update"],
-    "hamburguer":["in_20_2000_hamburguer_almondega_kibe_fiambre","portaria_664_2022_carne_moida"],
-    "bacon":["in_21_2000_pate_bacon_lombo"],
-    "carne_moida":["portaria_664_2022_carne_moida","in_83_2003_in_92_2020_charque_jerked_corned_carne_moida"],
-    "charque":["in_83_2003_in_92_2020_charque_jerked_corned_carne_moida"],
-    "fiambre":["portaria_706_2022_fiambre_novo_rtiq"],
-    "carne_maturada":["portaria_723_2022_carne_maturada"],
-    "carnes_temperadas":["in_17_2018_produto_carneo_temperado"],
-    "almondega_kibe":["in_20_2000_hamburguer_almondega_kibe_fiambre"],
-    "gelatina_colageno":["portaria_384_2021_gelatina_colageno"],
-    "corned_beef":["in_83_2003_in_92_2020_charque_jerked_corned_carne_moida"],
-    "paleta_salgada":["in_6_2001_empanados_paleta_prato_elaborado"],
-    "paleta_empanados":["in_6_2001_empanados_paleta_prato_elaborado"],
-    "pate":["in_21_2000_pate_bacon_lombo"],
-    "prato_pronto_poa":["in_6_2001_empanados_paleta_prato_elaborado"],
-    "apresuntado":["in_portarias_presunto_apresuntado"],
-    "jerked_beef":["in_83_2003_in_92_2020_charque_jerked_corned_carne_moida"],
-    "carne_sol":["in_83_2003_in_92_2020_charque_jerked_corned_carne_moida"],
-    "frango_inteiro":["nomenclatura_carneos_dipoa_aves_bovinos","portaria_1485_2025_nomenclatura_poa"],
-    "miudos_visceras":["nomenclatura_carneos_dipoa_aves_bovinos"],
-    "peru_pato":["nomenclatura_carneos_dipoa_aves_bovinos"],
-    "nomenclatura":["portaria_1485_2025_nomenclatura_poa","nomenclatura_carneos_dipoa_aves_bovinos"],
-    "laticinios_geral":["portaria_146_1996_laticinios_gerais"],
-    "queijo_coalho_manteiga":["in_63_2011_queijo_coalho_manteiga_garrafa","portaria_146_1996_laticinios_gerais"],
-    "mussarela":["portaria_queijos_frescos_minas_muzzarela_prato_requeijao"],
-    "requeijao":["portaria_queijos_frescos_minas_muzzarela_prato_requeijao"],
-    "queijo_prato":["portaria_queijos_frescos_minas_muzzarela_prato_requeijao"],
-    "queijo_processado":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "queijo_parmesao":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "queijo_provolone":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "leite_uht":["in_76_2018_leite_pasteurizado_uht","res_dipoa_2_2002_longa_vida_portaria_370_1997"],
-    "leite_pasteurizado":["in_76_2018_leite_pasteurizado_uht"],
-    "leite_fermentado":["in_46_2007_leites_fermentados_iogurte_tipos"],
-    "doce_de_leite":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "leite_condensado":["in_47_2018_leite_condensado_in_84_2020_sobremesa"],
-    "leite_em_po":["portaria_146_1996_laticinios_gerais"],
-    "bebida_lactea":["portaria_146_1996_laticinios_gerais"],
-    "composto_lacteo":["portaria_146_1996_laticinios_gerais"],
-    "nata":["portaria_146_1996_laticinios_gerais"],
-    "leite_cabra":["portaria_146_1996_laticinios_gerais"],
-    "queijo_brie_camembert":["lei_13860_2019_selo_arte_queijo_artesanal","portaria_146_1996_laticinios_gerais"],
-    "queijo_suico_gruyere":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "queijo_gouda_edam":["portaria_queijos_curados_parmesao_provolone_doce_leite"],
-    "pescado_fresco":["rtiq_pescado_conservas_defumado_salgado_fresco","res_01_2008_peixe_cultivo_aquicultura"],
-    "pescado_congelado":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "pescado_salgado":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "camarao":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "lagosta":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "moluscos_cefalopodes":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_sardinha":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_sardinhas":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_atum":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_atuns":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_peixe":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "conserva_peixes":["rtiq_pescado_conservas_defumado_salgado_fresco"],
-    "mel":["in_11_2000_mel_produtos_apicolas"],
-    "mel_qualidade":["in_11_2000_mel_produtos_apicolas"],
-    "apicola_derivados":["in_11_2000_mel_produtos_apicolas"],
-    "ovos":["in_8_2000_ovos_derivados_classificacao"],
-    "ovo_codorna":["in_8_2000_ovos_derivados_classificacao"],
-    "ovos_derivados":["portaria_728_2022_747_2023_ovos_pasteurizados_nomenclatura"],
-    "ovos_pasteurizados":["portaria_728_2022_747_2023_ovos_pasteurizados_nomenclatura"],
-    "ovos_nomenclatura":["portaria_728_2022_747_2023_ovos_pasteurizados_nomenclatura"],
-    "cerveja":["in_55_2002_rotulagem_bebidas_vinhos_piq","piq_cerveja_especial_artesanal_bebida_mista_rtd"],
-    "cerveja_in14":["in_55_2002_rotulagem_bebidas_vinhos_piq"],
-    "vinho":["lei_7678_1988_decreto_8198_2014_vinhos_derivados","piq_vinho_espumante_frisante_suco_uva_nao_alcoolicos","indicacoes_geograficas_cachaca_vinho_cerveja"],
-    "vinho_lei7678":["lei_7678_1988_decreto_8198_2014_vinhos_derivados"],
-    "cachaça_destilados":["piq_cachaca_destilados_rum_vodca_gin_uisque","indicacoes_geograficas_cachaca_vinho_cerveja"],
-    "bebida_energetica":["lei_8918_1994_decreto_6871_2009_bebidas_gerais"],
-    "isotonica":["lei_8918_1994_decreto_6871_2009_bebidas_gerais"],
-    "suco_néctar":["lei_8918_1994_decreto_6871_2009_bebidas_gerais"],
-    "sucos_nectares_in49":["lei_8918_1994_decreto_6871_2009_bebidas_gerais"],
-    "refrigerante":["lei_8918_1994_decreto_6871_2009_bebidas_gerais"],
-    "agua_mineral":["rdc_717_2022_aguas_envasadas"],
-    "cafe_cevada_cha":["rtiq_cafe_torrado_soluve_cha_erva_mate"],
-    "alergenos_rdc727":["rdc_727_2022"],
-    "nutricional_in75":["in_75_2020"],
-    "rotulagem_geral":["rdc_727_2022"],
-    "rotulagem_anvisa_rdc715":["rdc_715_2022_lactose"],
-    "aditivos_rdc778":["rdc_778_2023_aditivos_principios","in_211_2023_limites_aditivos"],
-    "suplementos_rdc243":["rdc_243_2018_suplementos","in_28_2018_constituintes_suplementos"],
-    "suplementos_in28":["in_28_2018_constituintes_suplementos"],
-    "suplementos_rdc243_v2":["rdc_243_2018_suplementos"],
-    "suplementos_in28_v2":["in_28_2018_constituintes_suplementos"],
-    "regularizacao_rdc843":["rdc_843_2024_regularizacao"],
-    "nova_formula_rdc902":["rdc_902_2024_nova_formula"],
-    "cereais_rdc711":["rdc_263_2005_cereais_farinhas"],
-    "cereais_integrais_rdc712":["rdc_263_2005_cereais_farinhas"],
-    "oleos_gorduras_rdc270":["rdc_270_2005_oleos_gorduras"],
-    "oleos_gorduras":["rdc_270_2005_oleos_gorduras","pov_oleos_vegetais_frutas_hortalicas_cereais_classificacao"],
-    "azeite_oliva":["rdc_270_2005_oleos_gorduras"],
-    "acucares_rdc713":["rdc_723_2022_acucar_chocolate"],
-    "inmetro_conteudo_liq":["inmetro_conteudo_liquido_rtac_249_2021"],
-    "inmetro_carnes_queijos":["inmetro_conteudo_liquido_rtac_249_2021"],
-    "lei_10831_organicos":["lei_10831_2003_decreto_6323_2007_organicos_rotulagem"],
-    "dec_6323_organicos":["lei_10831_2003_decreto_6323_2007_organicos_rotulagem"],
-}
-
 # ── FALLBACK TEXTUAL — RDC 725/2022 (PDF scanned, sem texto extraível) ───────
 RDC_725_FALLBACK = """RESOLUÇÃO RDC Nº 725, DE 1º DE JULHO DE 2022 — ANVISA
 Dispõe sobre os aditivos alimentares aromatizantes. Vigência: 1/9/2022.
@@ -2717,46 +2613,45 @@ async def pdf_to_images_b64(pdf_bytes: bytes) -> list[dict]:
 
 
 async def get_kb_for_categories(categories: list[str]) -> str:
-    """Carrega KB em 3 camadas: cache → seeds Supabase → PDF gov.br."""
+    """Carrega e combina KB para múltiplas categorias detectadas."""
     if not categories:
         return ""
 
     async def fetch_safe(url: str) -> str:
+        """Fetch com timeout agressivo — gov.br pode ser lento."""
         try:
             return await asyncio.wait_for(fetch_pdf_text(url), timeout=4.0)
         except Exception:
             return ""
 
     async def load_one(cat: str) -> str:
-        # Camada 1: cache direto
-        if cat in _kb_cache and _kb_cache[cat]:
+        if cat in _kb_cache:
             return _kb_cache[cat]
-        # Camada 2: seeds Supabase via _SEED_BRIDGE
-        seed_parts = [_kb_cache[k] for k in _SEED_BRIDGE.get(cat, []) if k in _kb_cache and _kb_cache[k]]
-        if seed_parts:
-            result = "\n\n".join(seed_parts)
-            _kb_cache[cat] = result
-            return result
-        # Camada 3: PDF gov.br em tempo real
         urls = MAPA_URLS.get(cat, [])
         if not urls:
             return ""
         texts = await asyncio.gather(*[fetch_safe(u) for u in urls])
         result = "\n\n".join(t for t in texts if t)
-        if result:
-            _kb_cache[cat] = result
+        _kb_cache[cat] = result
         return result
 
+    # Carrega em paralelo, max 2 categorias para não estourar o contexto
+    # Timeout global de 6s — se KB demorar mais, segue sem ela
     cats_to_load = categories[:2]
     try:
-        texts = await asyncio.wait_for(asyncio.gather(*[load_one(c) for c in cats_to_load]), timeout=6.0)
+        texts = await asyncio.wait_for(
+            asyncio.gather(*[load_one(c) for c in cats_to_load]),
+            timeout=6.0
+        )
     except asyncio.TimeoutError:
         texts = [""] * len(cats_to_load)
 
     sections = []
     for cat, text in zip(cats_to_load, texts):
         if text:
-            sections.append(f"### RTIQ: {cat.upper().replace('_',' ')}\n{text[:3000]}")
+            # Limita cada RTIQ a 2000 chars para não exceder contexto
+            sections.append(f"### RTIQ: {cat.upper().replace('_',' ')}\n{text[:2000]}")
+
     return "\n\n---\n\n".join(sections)
 
 
@@ -4526,7 +4421,7 @@ Se o relatório estiver completo e correto, responda apenas: "✅ RELATÓRIO VAL
 # ═══════════════════════════════════════════════════════════════════════════════
 async def call_claude_simple(system: str, user: str, max_tokens: int = 350) -> str:
     payload = {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-4-20250514",
         "max_tokens": max_tokens,
         "temperature": 0,
         "system": system,
@@ -4625,7 +4520,7 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
         {"type": "text", "text": f"Identifique este rótulo.{' Dica: ' + obs if obs else ''} Retorne APENAS o JSON."}
     ]
     payload = {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-4-20250514",
         "max_tokens": 300,
         "temperature": 0,
         "system": SP_DETECT,
@@ -4848,10 +4743,6 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     if categories:
         fewshot = get_fewshot_examples(categories[0], caminho_np=seg_np_categoria)
 
-    # Adiciona aprendizados acumulados ao contexto
-    _aprendizados = _kb_cache.get("sp_aprendizados_acumulados", "")
-    if _aprendizados:
-        kb_section = kb_section + "\n\n" + _aprendizados[:1500] if kb_section else _aprendizados[:1500]
     system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
@@ -4906,8 +4797,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     case_id = _case_id(image_b64)
 
     payload = {
-        "model": "claude-sonnet-4-6",
-        "max_tokens": 2800,
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 8192,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -5510,15 +5401,11 @@ async def avaliar_rotulo(
     except Exception:
         kb_text = ""
     kb_section = f"## LEGISLAÇÃO ESPECÍFICA\n{kb_text}\n---" if kb_text else ""
-    # Adiciona aprendizados acumulados ao contexto
-    _aprendizados = _kb_cache.get("sp_aprendizados_acumulados", "")
-    if _aprendizados:
-        kb_section = kb_section + "\n\n" + _aprendizados[:1500] if kb_section else _aprendizados[:1500]
     system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
 
     payload = {
-        "model": "claude-sonnet-4-6",
-        "max_tokens": 4000,
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 8192,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -7059,7 +6946,7 @@ Retorne SOMENTE o JSON conforme especificado."""
                     headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
                              "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
-                    json={"model": "claude-sonnet-4-6",
+                    json={"model": "claude-sonnet-4-20250514",
                           "max_tokens": 2000,
                           "system": sp_ativo,
                           "messages": [{"role": "user", "content": user_msg}]}
@@ -7106,8 +6993,8 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
                     headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
                              "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
-                    json={"model": "claude-sonnet-4-6",
-                          "max_tokens": 3000, "stream": True,
+                    json={"model": "claude-sonnet-4-20250514",
+                          "max_tokens": 8192, "stream": True,
                           "system": val_system,
                           "messages": [{"role": "user", "content": val_msg}]}
                 ) as resp2:
@@ -7251,7 +7138,7 @@ async def extrair_receita(
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-6", "max_tokens": 2000,
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 2000,
                       "system": SP_EXTRAIR_RECEITA,
                       "messages": [{"role": "user", "content": msg_content}]}
             )
@@ -8197,7 +8084,7 @@ async def _gerar_painel(painel_key: str, msg_content: list) -> dict:
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-6",
+                json={"model": "claude-sonnet-4-20250514",
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido para o painel solicitado, nada mais.",
                       "messages": [{"role": "user", "content": msg_content}]}
@@ -8389,7 +8276,7 @@ async def gerar_design_rotulo(request: Request):
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-6",
+                json={"model": "claude-sonnet-4-20250514",
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
                       "messages": [{"role": "user", "content": msg_content}]}
@@ -8527,7 +8414,7 @@ async def _gerar_uma_variacao(
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-6",
+                json={"model": "claude-sonnet-4-20250514",
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
                       "messages": [{"role": "user", "content": conteudo}]}
@@ -9737,7 +9624,7 @@ Retorne SOMENTE o JSON conforme especificado."""
                 headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-6",
+                json={"model": "claude-sonnet-4-20250514",
                       "max_tokens": 1500,
                       "system": _SP_TABELA_NUTRICIONAL,
                       "messages": [{"role": "user", "content": user_msg}]}
@@ -10156,24 +10043,11 @@ async def validar_lote(
             try:
                 # Gera relatório completo para este rótulo
                 relatorio_completo = ""
-                # KB para validar_lote — define variáveis antes do payload
-                _lote_obs = obs_geral or seg_np_categoria or nome or ""
-                _lote_cats = detect_categories(_lote_obs) if _lote_obs else []
-                try:
-                    _lote_kb = await asyncio.wait_for(
-                        get_kb_for_categories(_lote_cats), timeout=5.0
-                    ) if _lote_cats else ""
-                except Exception:
-                    _lote_kb = ""
-                _lote_sec = f"## LEGISLAÇÃO ESPECÍFICA\n{_lote_kb}\n---" if _lote_kb else ""
-                _lote_aprendizados = _kb_cache.get("sp_aprendizados_acumulados", "")
-                if _lote_aprendizados:
-                    _lote_sec = (_lote_sec + "\n\n" + _lote_aprendizados[:800]) if _lote_sec else _lote_aprendizados[:800]
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     payload = {
-                        "model": "claude-sonnet-4-6",
+                        "model": "claude-sonnet-4-20250514",
                         "max_tokens": 2000,
-                        "system": SP_VALIDACAO.replace("{kb_section}", _lote_sec),
+                        "system": SP_VALIDACAO.replace("{kb_section}", ""),
                         "messages": [{
                             "role": "user",
                             "content": [
@@ -10923,112 +10797,6 @@ async def refresh_kb_vegetal():
         "detalhes": results,
         "nota": "Execute /kb/refresh-vegetal periodicamente para manter KB atualizada."
     }
-
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CAMADA 3 — APRENDIZAGEM AUTOMÁTICA A PARTIR DE FEEDBACKS
-# Lê feedbacks com correções do Supabase → Claude analisa padrões →
-# Salva sumário de aprendizados como doc especial no KB.
-# Executado automaticamente quando feedbacks_pendentes >= DISTILL_THRESHOLD.
-# ══════════════════════════════════════════════════════════════════════════════
-_DISTILL_THRESHOLD = 20   # feedbacks para acionar nova destilação
-_DISTILL_LOCK = False     # evita execuções simultâneas
-
-async def _distill_feedbacks_background():
-    """Analisa feedbacks acumulados e atualiza aprendizados no KB."""
-    global _DISTILL_LOCK
-    if _DISTILL_LOCK or not _SUPABASE_ON:
-        return
-    _DISTILL_LOCK = True
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            # 1. Busca feedbacks com correção (campo 'correcao' preenchido)
-            r = await client.get(
-                f"{_SUPABASE_URL}/rest/v1/validacoes",
-                headers={"apikey": _SUPABASE_KEY, "Authorization": f"Bearer {_SUPABASE_KEY}"},
-                params={"select": "produto,orgao,correcao,feedback_texto,criado_em",
-                        "correcao": "not.is.null",
-                        "order": "criado_em.desc",
-                        "limit": "100"}
-            )
-            if r.status_code != 200:
-                return
-            feedbacks = r.json()
-            if not feedbacks or len(feedbacks) < _DISTILL_THRESHOLD:
-                return
-
-            # 2. Envia para Claude analisar padrões
-            feedback_txt = "\n".join([
-                f"- Produto: {fb.get('produto','?')} | Correção: {fb.get('correcao','?')} | {fb.get('feedback_texto','')}"
-                for fb in feedbacks[:80]
-            ])
-            payload = {
-                "model": "claude-sonnet-4-6",
-                "max_tokens": 2000,
-                "system": """Você é um especialista em legislação de alimentos brasileira.
-Analise os feedbacks de correção de validações de rótulos abaixo e identifique:
-1. Padrões de erros recorrentes (o sistema errou mais de 2x no mesmo tipo)
-2. Regras que o sistema parece não conhecer ou aplicar incorretamente
-3. Produtos/categorias com mais não-conformidades mal detectadas
-Formato: lista de APRENDIZADOS concisos, máximo 15 itens, cada um começando com "APRENDIZADO:".
-Foque em regras práticas e objetivas que ajudem a melhorar as próximas validações.""",
-                "messages": [{"role": "user", "content": f"Feedbacks dos últimos {len(feedbacks)} casos:\n{feedback_txt}\n\nGere a lista de aprendizados."}]
-            }
-            r2 = await client.post("https://api.anthropic.com/v1/messages",
-                headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json=payload, timeout=60.0)
-            if r2.status_code != 200:
-                return
-            aprendizados = r2.json().get("content", [{}])[0].get("text", "")
-            if not aprendizados or len(aprendizados) < 100:
-                return
-
-            # 3. Salva no Supabase como doc especial do KB
-            import datetime as _dt
-            doc = {
-                "chave": "sp_aprendizados_acumulados",
-                "titulo": f"Aprendizados Automáticos — {_dt.datetime.now().strftime('%Y-%m-%d')}",
-                "orgao": "SISTEMA",
-                "categoria": "aprendizados",
-                "fonte": "feedbacks_validacoes",
-                "conteudo": f"## APRENDIZADOS DO SISTEMA (gerado automaticamente em {_dt.datetime.now().strftime('%Y-%m-%d %H:%M')})\n\nBaseado em {len(feedbacks)} feedbacks de RTs.\n\n{aprendizados}",
-                "tamanho_chars": len(aprendizados),
-                "atualizado_em": _dt.datetime.now().isoformat()
-            }
-            await client.post(
-                f"{_SUPABASE_URL}/rest/v1/kb_documents",
-                headers={"apikey": _SUPABASE_KEY, "Authorization": f"Bearer {_SUPABASE_KEY}",
-                         "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates"},
-                json=doc, timeout=10.0)
-            # Atualiza cache imediatamente
-            _kb_cache["sp_aprendizados_acumulados"] = doc["conteudo"]
-    except Exception:
-        pass
-    finally:
-        _DISTILL_LOCK = False
-
-
-@app.get("/admin/distill-feedbacks")
-async def admin_distill_feedbacks():
-    """Força a destilação de feedbacks em aprendizados (admin only).
-    Executar manualmente ou via cron quando acumular feedbacks suficientes."""
-    global _DISTILL_THRESHOLD
-    _DISTILL_THRESHOLD = 0  # força execução independente do threshold
-    import asyncio as _aio
-    _aio.create_task(_distill_feedbacks_background())
-    return {"status": "destilação iniciada em background",
-            "nota": "Acesse /kb/status em 30s para verificar 'sp_aprendizados_acumulados' no cache"}
-
-
-@app.get("/admin/aprendizados")
-async def admin_aprendizados():
-    """Exibe os aprendizados acumulados pelo sistema."""
-    content = _kb_cache.get("sp_aprendizados_acumulados", "")
-    if not content:
-        return {"status": "nenhum aprendizado gerado ainda",
-                "como_gerar": "POST /admin/distill-feedbacks (precisa de feedbacks com correção no Supabase)"}
-    return {"status": "ok", "chars": len(content), "conteudo": content[:3000]}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
