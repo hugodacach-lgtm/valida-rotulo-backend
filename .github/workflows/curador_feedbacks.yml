@@ -1,0 +1,34 @@
+name: Curador Semanal de Feedbacks
+
+on:
+  schedule:
+    # Toda segunda-feira às 12:00 UTC = 09:00 BRT
+    - cron: '0 12 * * 1'
+  workflow_dispatch:  # permite rodar manualmente pelo GitHub UI
+
+jobs:
+  curar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: |
+          pip install anthropic==0.40.0 requests==2.32.3
+
+      - name: Rodar curador
+        env:
+          SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:      ${{ secrets.SUPABASE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
+          EMAIL_DESTINO:     hugodacach@gmail.com
+        run: python scripts/curador_feedbacks.py
