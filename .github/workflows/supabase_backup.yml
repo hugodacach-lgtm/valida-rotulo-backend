@@ -29,7 +29,7 @@ jobs:
       - name: Rodar backup
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python scripts/backup_supabase.py
 
       - name: Commit e push
