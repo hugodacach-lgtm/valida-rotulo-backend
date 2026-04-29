@@ -4667,16 +4667,10 @@ Use como referência primária na validação:
 
     # Injetar contexto NP (não-POA) — prioriza: seg_np_categoria > categoria detectada > obs
     # seg_np_categoria: categoria selecionada pelo RT antes do upload (Task #4)
+    # Bug fix: np_context é calculado aqui mas só é appendado em system_prompt
+    # após a definição do mesmo (mais abaixo)
     np_context = get_np_fallback(obs, categoria_detectada=seg_np_categoria)
-    if np_context:
-        system_prompt += np_context
 
-    # Se RT selecionou estado SIE explicitamente, injeta normas estaduais diretamente
-    if seg_estado and not sie_context:
-        for estado_key, fallback_text in SIE_ESTADO_MAP.items():
-            if estado_key.upper() == seg_estado.upper():
-                sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {seg_estado.upper()} (selecionado pelo RT)\n{fallback_text}"
-                break
     funcional_context = ""
     if any(kw in obs.lower() for kw in ["funcional", "probiótico", "probiotico", "enriquecido",
                                           "ômega", "omega", "lactobacillus", "bifidobacterium",
@@ -4690,15 +4684,24 @@ Use como referência primária na validação:
                                           "steak", "hamburguer recheado"]):
         prato_pronto_context = f"\n\n## PRATO PRONTO / PRODUTO CÁRNEO ELABORADO\n{PRATO_PRONTO_POA_FALLBACK}"
 
-    # Injetar norma estadual SIE quando estado detectado
+    # Injetar norma estadual SIE — prioridade: seg_estado (RT explícito) > sigla > obs
     sie_context = ""
-    if orgao_final.upper() == "SIE" and sigla_sie:
-        # Detectar estado pelo carimbo/sigla
+
+    # Prioridade 1 — RT selecionou estado SIE explicitamente no formulário
+    if seg_estado:
+        for estado_key, fallback_text in SIE_ESTADO_MAP.items():
+            if estado_key.upper() == seg_estado.upper():
+                sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {seg_estado.upper()} (selecionado pelo RT)\n{fallback_text}"
+                break
+
+    # Prioridade 2 — Detectar pelo carimbo/sigla SIE
+    if not sie_context and orgao_final.upper() == "SIE" and sigla_sie:
         for estado_key, fallback_text in SIE_ESTADO_MAP.items():
             if estado_key.upper() in sigla_sie.upper():
                 sie_context = f"\n\n## NORMAS COMPLEMENTARES SIE — {sigla_sie.upper()}\n{fallback_text}"
                 break
-    # Também detectar pelo obs do usuário (ex: "CISPOA", "SISP")
+
+    # Prioridade 3 — Detectar pelo obs do usuário (ex: "CISPOA", "SISP")
     if not sie_context and obs:
         for estado_key, fallback_text in SIE_ESTADO_MAP.items():
             if estado_key.upper() in obs.upper():
@@ -4744,6 +4747,8 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         fewshot = get_fewshot_examples(categories[0], caminho_np=seg_np_categoria)
 
     system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
+    if np_context:
+        system_prompt += np_context
     if orgao_context:
         system_prompt += f"\n\n{orgao_context}"
     if sie_context:
