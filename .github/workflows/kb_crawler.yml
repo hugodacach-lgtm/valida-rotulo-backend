@@ -1,31 +1,318 @@
-name: KB Crawler — MAPA & ANVISA
+name: KB Crawler — MAPA, Anvisa & Planalto Fallback
 
 on:
   schedule:
-    - cron: "0 8 * * 0"   # Todo domingo 05h Brasília (08h UTC)
-  workflow_dispatch:        # Execução manual pelo GitHub UI
+    - cron: '0 5 * * 3'  # toda quarta-feira às 05h UTC (02h Brasília)
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   crawl:
-    name: Dispara crawl no backend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    permissions:
+      contents: write
 
     steps:
-      - name: Acionar /kb/crawl-full no Render
-        run: |
-          echo "Disparando crawl no backend Render..."
-          RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
-            -X POST https://valida-rotulo-backend.onrender.com/kb/crawl-full \
-            -H "Content-Type: application/json" \
-            --max-time 30)
-          echo "HTTP status: $RESPONSE"
-          cat response.json
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Aguardar processamento (4 minutos)
-        run: sleep 240
+      - name: Install dependencies
+        run: pip install httpx pypdf beautifulsoup4 lxml --quiet
 
-      - name: Verificar resultado em /kb/crawl-status
+      - name: Crawl normas com fallback Planalto
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          echo "Verificando resultado..."
-          curl -s https://valida-rotulo-backend.onrender.com/kb/crawl-status | python3 -m json.tool
+          python3 << 'PYEOF'
+          import os, json, re, time, datetime, base64
+          import urllib.request, urllib.error
+          import httpx
+          from bs4 import BeautifulSoup
+
+          SUPABASE_URL = os.environ["SUPABASE_URL"]
+          SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+          GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+          REPO         = os.environ["REPO"]
+
+          HEADERS = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
+              "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+              "Accept-Language": "pt-BR,pt;q=0.9",
+          }
+
+          # ── Normas com URL primária + fallbacks ───────────────────────────
+          # Formato: (chave, orgao, categoria, [urls_em_ordem_de_preferencia])
+          NORMAS = [
+              # ANVISA — RDCs principais
+              ("rdc_727_2022", "ANVISA", "rotulagem",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-727-de-1-de-marco-de-2022",
+                "https://legislacao.anvisa.gov.br/legislacao/#/27596/visualizar",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/rdc0727_01_03_2022.html"]),
+
+              ("rdc_429_2020", "ANVISA", "rotulagem_nutricional",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-429-de-8-de-outubro-de-2020",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2020/rdc0429_08_10_2020.html"]),
+
+              ("in_75_2020", "ANVISA", "rotulagem_nutricional",
+               ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-in-n-75-de-8-de-outubro-de-2020",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2020/int0075_08_10_2020.html"]),
+
+              ("rdc_724_2022", "ANVISA", "microbiologicos",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-724-de-1-de-marco-de-2022",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/rdc0724_01_03_2022.html"]),
+
+              ("rdc_722_2022", "ANVISA", "contaminantes",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-722-de-1-de-marco-de-2022",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2022/rdc0722_01_03_2022.html"]),
+
+              ("rdc_778_2023", "ANVISA", "aditivos",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-778-de-2-de-junho-de-2023",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2023/rdc0778_02_06_2023.html"]),
+
+              ("in_211_2023", "ANVISA", "aditivos",
+               ["https://www.in.gov.br/en/web/dou/-/instrucao-normativa-n-211-de-21-de-julho-de-2023"]),
+
+              ("rdc_843_2024", "ANVISA", "regularizacao",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-843-de-26-de-julho-de-2024"]),
+
+              ("rdc_715_2022", "ANVISA", "rotulagem_especial",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-715-de-1-de-marco-de-2022"]),
+
+              ("rdc_332_2019", "ANVISA", "gordura_trans",
+               ["https://www.in.gov.br/en/web/dou/-/resolucao-rdc-n-332-de-23-de-dezembro-de-2019",
+                "https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2019/rdc0332_23_12_2019.html"]),
+
+              # MAPA — Portarias e INs
+              ("portaria_1485_2025", "MAPA", "nomenclatura_poa",
+               ["https://www.in.gov.br/en/web/dou/-/portaria-sda-mapa-n-1.485-de-",
+                "https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao"]),
+
+              ("in_4_2000_embutidos", "MAPA", "poa_carnes",
+               ["https://sistemasweb.agricultura.gov.br/sislegis/action/detalhaAto.do?method=consultarLegislacaoFederal&tipo=INM&numero=0004&sequencia=0&ano=2000&data=31/03/2000&orgao=SDA/MAPA&codTipo=&desItem=&desItemFim=",
+                "https://www.gov.br/agricultura/pt-br/assuntos/inspecao/produtos-animal/legislacao/instrucoes-normativas-portarias-e-circulares/instrucao-normativa-n-04-de-31-de-marco-de-2000.pdf"]),
+
+              # Planalto — leis com HTML estático (maior sucesso)
+              ("lei_8078_cdc", "Planalto", "consumidor",
+               ["https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm"]),
+
+              ("lei_10674_2003_gluten", "Planalto", "rotulagem_especial",
+               ["https://www.planalto.gov.br/ccivil_03/leis/2003/l10.674.htm"]),
+
+              ("decreto_4680_2003_transgenicos", "Planalto", "transgenicos",
+               ["https://www.planalto.gov.br/ccivil_03/decreto/2003/d4680.htm"]),
+
+              ("lei_10831_2003_organicos", "Planalto", "organicos",
+               ["https://www.planalto.gov.br/ccivil_03/leis/2003/l10.831.htm"]),
+
+              ("decreto_6323_2007_organicos", "Planalto", "organicos",
+               ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6323.htm"]),
+
+              ("lei_7678_1988_vinho", "Planalto", "bebidas",
+               ["https://www.planalto.gov.br/ccivil_03/leis/l7678.htm"]),
+
+              ("decreto_6871_2009_bebidas", "Planalto", "bebidas",
+               ["https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6871.htm"]),
+
+              ("decreto_9013_2017_riispoa", "Planalto", "poa_geral",
+               ["https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2017/decreto/d9013.htm"]),
+          ]
+
+          # ── Helpers Supabase ───────────────────────────────────────────────
+          def sb_get(chave):
+              req = urllib.request.Request(
+                  f"{SUPABASE_URL}/rest/v1/kb_documents?chave=eq.{chave}&select=tamanho_chars",
+                  headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+              )
+              with urllib.request.urlopen(req) as r:
+                  rows = json.loads(r.read())
+                  return rows[0]["tamanho_chars"] if rows else 0
+
+          def sb_upsert(chave, orgao, categoria, url, texto):
+              payload = {
+                  "chave": chave,
+                  "titulo": chave.replace("_", " ").title(),
+                  "fonte": url,
+                  "orgao": orgao,
+                  "categoria": categoria,
+                  "conteudo": texto,
+                  "tamanho_chars": len(texto),
+                  "atualizado_em": datetime.datetime.now().isoformat(),
+              }
+              req = urllib.request.Request(
+                  f"{SUPABASE_URL}/rest/v1/kb_documents",
+                  data=json.dumps(payload).encode(),
+                  headers={
+                      "apikey": SUPABASE_KEY,
+                      "Authorization": f"Bearer {SUPABASE_KEY}",
+                      "Content-Type": "application/json",
+                      "Prefer": "resolution=merge-duplicates"
+                  },
+                  method="POST"
+              )
+              with urllib.request.urlopen(req) as r:
+                  return r.status in [200, 201]
+
+          # ── Extração de texto ──────────────────────────────────────────────
+          def extract_text(html_or_content, url, content_type=""):
+              if "pdf" in content_type or url.lower().endswith(".pdf"):
+                  try:
+                      from pypdf import PdfReader
+                      import io
+                      reader = PdfReader(io.BytesIO(html_or_content))
+                      return " ".join(pg.extract_text() or "" for pg in reader.pages)[:8000].strip()
+                  except Exception:
+                      return ""
+
+              try:
+                  soup = BeautifulSoup(html_or_content, "lxml")
+              except Exception:
+                  soup = BeautifulSoup(html_or_content, "html.parser")
+
+              # Remove scripts e styles
+              for tag in soup(["script", "style", "nav", "footer", "header"]):
+                  tag.decompose()
+
+              text = soup.get_text(separator=" ", strip=True)
+              text = re.sub(r"\s{2,}", " ", text).strip()
+              return text[:8000]
+
+          # ── Tentar múltiplas URLs com fallback ────────────────────────────
+          def try_fetch(urls):
+              with httpx.Client(timeout=25, follow_redirects=True, headers=HEADERS) as client:
+                  for url in urls:
+                      try:
+                          r = client.get(url)
+                          if r.status_code != 200:
+                              print(f"    HTTP {r.status_code} → {url[:60]}")
+                              time.sleep(0.5)
+                              continue
+
+                          ctype = r.headers.get("content-type", "")
+                          content = r.content if "pdf" in ctype else r.text
+                          texto = extract_text(content, url, ctype)
+
+                          if len(texto) < 100:
+                              print(f"    Conteúdo vazio → {url[:60]}")
+                              time.sleep(0.5)
+                              continue
+
+                          return url, texto
+
+                      except Exception as e:
+                          print(f"    Erro: {str(e)[:50]} → {url[:60]}")
+                          time.sleep(0.5)
+                          continue
+              return None, None
+
+          # ── Executar crawl ─────────────────────────────────────────────────
+          print(f"🕷️  Iniciando crawl de {len(NORMAS)} normas...\n")
+
+          salvos = 0
+          mantidos = 0
+          falhos = 0
+          detalhes = {}
+
+          for chave, orgao, categoria, urls in NORMAS:
+              print(f"  [{chave}]")
+
+              try:
+                  existente = sb_get(chave)
+              except Exception:
+                  existente = 0
+
+              url_ok, texto = try_fetch(urls)
+
+              if not url_ok:
+                  print(f"    ❌ Todas as URLs falharam")
+                  falhos += 1
+                  detalhes[chave] = "todas_urls_falharam"
+                  time.sleep(0.5)
+                  continue
+
+              if existente >= len(texto):
+                  print(f"    ✅ Mantido ({existente} chars — sem mudança)")
+                  mantidos += 1
+                  detalhes[chave] = f"mantido_{existente}c"
+                  time.sleep(0.3)
+                  continue
+
+              try:
+                  ok = sb_upsert(chave, orgao, categoria, url_ok, texto)
+                  if ok:
+                      print(f"    ✅ Salvo ({len(texto)} chars via {url_ok[:50]})")
+                      salvos += 1
+                      detalhes[chave] = f"salvo_{len(texto)}c"
+                  else:
+                      print(f"    ❌ Erro ao salvar no Supabase")
+                      falhos += 1
+                      detalhes[chave] = "erro_supabase"
+              except Exception as e:
+                  print(f"    ❌ {str(e)[:60]}")
+                  falhos += 1
+                  detalhes[chave] = f"erro:{str(e)[:40]}"
+
+              time.sleep(0.8)
+
+          # ── Relatório final ────────────────────────────────────────────────
+          hoje = datetime.date.today().isoformat()
+          total = len(NORMAS)
+          taxa = round((salvos + mantidos) / total * 100) if total else 0
+
+          print(f"""
+          ═══════════════════════════════════════
+          📊 RESULTADO DO CRAWL — {hoje}
+          ═══════════════════════════════════════
+          Total:    {total}
+          Salvos:   {salvos}
+          Mantidos: {mantidos}
+          Falhos:   {falhos}
+          Taxa:     {taxa}%
+          ═══════════════════════════════════════
+          """)
+
+          # Salvar relatório no GitHub
+          relatorio = {
+              "data": hoje,
+              "total": total,
+              "salvos": salvos,
+              "mantidos": mantidos,
+              "falhos": falhos,
+              "taxa_sucesso": taxa,
+              "detalhes": detalhes
+          }
+
+          url = f"https://api.github.com/repos/{REPO}/contents/crawler_reports/crawl_{hoje}.json"
+          content_b64 = base64.b64encode(json.dumps(relatorio, indent=2).encode()).decode()
+          sha = None
+          try:
+              req = urllib.request.Request(url, headers={
+                  "Authorization": f"Bearer {GITHUB_TOKEN}",
+                  "Accept": "application/vnd.github+json"
+              })
+              with urllib.request.urlopen(req) as r:
+                  sha = json.loads(r.read())["sha"]
+          except urllib.error.HTTPError as e:
+              if e.code != 404:
+                  raise
+
+          payload = {"message": f"crawler: relatório {hoje}", "content": content_b64}
+          if sha:
+              payload["sha"] = sha
+
+          req = urllib.request.Request(url,
+              data=json.dumps(payload).encode(),
+              headers={"Authorization": f"Bearer {GITHUB_TOKEN}",
+                       "Accept": "application/vnd.github+json",
+                       "Content-Type": "application/json"},
+              method="PUT"
+          )
+          urllib.request.urlopen(req)
+          print(f"✅ Relatório salvo em crawler_reports/crawl_{hoje}.json")
+          PYEOF
