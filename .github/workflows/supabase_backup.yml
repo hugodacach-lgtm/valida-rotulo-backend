@@ -26,15 +26,6 @@ jobs:
       - name: Instalar dependências
         run: pip install requests==2.32.3
 
-      - name: Debug secret
-        env:
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        run: |
-          echo "SUPABASE_KEY length: ${#SUPABASE_KEY}"
-          echo "SUPABASE_URL length: ${#SUPABASE_URL}"
-          echo "KEY first 4 chars (deve ser eyJh): ${SUPABASE_KEY:0:4}"
-          echo "URL first 8 chars (deve ser https://): ${SUPABASE_URL:0:8}"
 
       - name: Rodar backup
         env:
