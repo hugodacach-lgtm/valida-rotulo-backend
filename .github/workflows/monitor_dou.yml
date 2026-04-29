@@ -1,0 +1,318 @@
+name: Monitor DOU — Normas Alimentares
+
+on:
+  schedule:
+    - cron: '0 9 * * 0'  # todo domingo às 09h UTC (06h Brasília)
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Monitorar DOU e detectar normas novas
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, urllib.request, urllib.error, datetime, base64, re
+          import xml.etree.ElementTree as ET
+
+          SUPABASE_URL = os.environ["SUPABASE_URL"]
+          SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+          RESEND_KEY   = os.environ.get("RESEND_API_KEY", "")
+          GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+          REPO         = os.environ["REPO"]
+
+          # ── Palavras-chave relevantes para rotulagem de alimentos ──────────
+          KEYWORDS = [
+              "rotulagem", "rótulo", "alimento", "bebida",
+              "anvisa", "mapa", "inmetro", "dipoa", "sda",
+              "RDC", "instrução normativa", "portaria",
+              "aditivo", "contaminante", "microbiológico",
+              "embalagem", "denominação", "ingrediente",
+              "nutricional", "alérgeno", "transgênico",
+              "orgânico", "suplemento", "fórmula infantil",
+              "poa", "produto de origem animal", "fiscalização",
+              "vigilância sanitária"
+          ]
+
+          # ── Feeds RSS do DOU (seções I e III — ANVISA/MAPA publicam aqui) ─
+          DOU_FEEDS = [
+              "https://www.in.gov.br/servicos/rss/secao1.xml",
+              "https://www.in.gov.br/servicos/rss/secao3.xml",
+          ]
+
+          # ── Carregar chaves já na KB para evitar duplicatas ───────────────
+          def get_kb_chaves():
+              req = urllib.request.Request(
+                  f"{SUPABASE_URL}/rest/v1/kb_documents?select=chave,titulo&limit=1000",
+                  headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+              )
+              with urllib.request.urlopen(req) as r:
+                  return {row["titulo"].lower(): row["chave"] for row in json.loads(r.read())}
+
+          # ── Carregar normas já detectadas anteriormente ───────────────────
+          def get_detected_urls():
+              url = f"https://api.github.com/repos/{REPO}/contents/dou_monitor/detected_urls.json"
+              try:
+                  req = urllib.request.Request(url, headers={
+                      "Authorization": f"Bearer {GITHUB_TOKEN}",
+                      "Accept": "application/vnd.github+json"
+                  })
+                  with urllib.request.urlopen(req) as r:
+                      data = json.loads(r.read())
+                      return json.loads(base64.b64decode(data["content"]).decode())
+              except urllib.error.HTTPError as e:
+                  if e.code == 404:
+                      return {"urls": [], "updated_at": ""}
+                  raise
+
+          def save_detected_urls(detected):
+              url = f"https://api.github.com/repos/{REPO}/contents/dou_monitor/detected_urls.json"
+              content_str = json.dumps(detected, ensure_ascii=False, indent=2)
+              content_b64 = base64.b64encode(content_str.encode()).decode()
+              sha = None
+              try:
+                  req = urllib.request.Request(url, headers={
+                      "Authorization": f"Bearer {GITHUB_TOKEN}",
+                      "Accept": "application/vnd.github+json"
+                  })
+                  with urllib.request.urlopen(req) as r:
+                      sha = json.loads(r.read())["sha"]
+              except urllib.error.HTTPError as e:
+                  if e.code != 404:
+                      raise
+              payload = {
+                  "message": f"monitor: URLs detectadas atualizadas {datetime.date.today()}",
+                  "content": content_b64
+              }
+              if sha:
+                  payload["sha"] = sha
+              req = urllib.request.Request(url,
+                  data=json.dumps(payload).encode(),
+                  headers={"Authorization": f"Bearer {GITHUB_TOKEN}",
+                           "Accept": "application/vnd.github+json",
+                           "Content-Type": "application/json"},
+                  method="PUT"
+              )
+              urllib.request.urlopen(req)
+
+          # ── Parsear RSS e filtrar itens relevantes ────────────────────────
+          def fetch_rss(feed_url):
+              try:
+                  req = urllib.request.Request(feed_url,
+                      headers={"User-Agent": "InspectIA-Monitor/1.0"})
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return ET.parse(r)
+              except Exception as e:
+                  print(f"  ⚠️ Erro ao buscar {feed_url}: {e}")
+                  return None
+
+          def is_relevant(title, description=""):
+              text = (title + " " + description).lower()
+              return any(kw.lower() in text for kw in KEYWORDS)
+
+          def extract_norma_info(title):
+              """Extrai tipo e número da norma do título."""
+              patterns = [
+                  r"(RDC)\s+n[ºo°]?\s*(\d+)",
+                  r"(Instrução Normativa|IN)\s+n[ºo°]?\s*(\d+)",
+                  r"(Portaria)\s+n[ºo°]?\s*(\d+)",
+                  r"(Decreto)\s+n[ºo°]?\s*(\d+)",
+                  r"(Lei)\s+n[ºo°]?\s*(\d+)",
+                  r"(Resolução)\s+n[ºo°]?\s*(\d+)",
+              ]
+              for pat in patterns:
+                  m = re.search(pat, title, re.IGNORECASE)
+                  if m:
+                      return m.group(1).upper(), m.group(2)
+              return None, None
+
+          # ── Executar monitoramento ─────────────────────────────────────────
+          print("🔍 Iniciando monitoramento do DOU...\n")
+
+          kb_chaves = get_kb_chaves()
+          detected = get_detected_urls()
+          known_urls = set(detected.get("urls", []))
+
+          novas_normas = []
+          total_analisados = 0
+
+          for feed_url in DOU_FEEDS:
+              secao = "Seção I" if "secao1" in feed_url else "Seção III"
+              print(f"📰 Buscando {secao}...")
+              tree = fetch_rss(feed_url)
+              if not tree:
+                  continue
+
+              root = tree.getroot()
+              items = root.findall(".//item")
+              print(f"  {len(items)} itens encontrados")
+
+              for item in items:
+                  title = item.findtext("title", "")
+                  link  = item.findtext("link", "")
+                  desc  = item.findtext("description", "")
+                  pub   = item.findtext("pubDate", "")
+
+                  total_analisados += 1
+
+                  if link in known_urls:
+                      continue
+
+                  if not is_relevant(title, desc):
+                      continue
+
+                  tipo, numero = extract_norma_info(title)
+                  novas_normas.append({
+                      "titulo": title,
+                      "link": link,
+                      "publicado": pub,
+                      "secao": secao,
+                      "tipo": tipo,
+                      "numero": numero,
+                      "desc": desc[:300] if desc else ""
+                  })
+                  known_urls.add(link)
+
+          print(f"\n📊 Total analisados: {total_analisados}")
+          print(f"🆕 Novas normas relevantes: {len(novas_normas)}")
+
+          # ── Salvar URLs detectadas ─────────────────────────────────────────
+          detected["urls"] = list(known_urls)
+          detected["updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+          save_detected_urls(detected)
+          print("✅ URLs detectadas salvas")
+
+          # ── Gerar relatório ────────────────────────────────────────────────
+          hoje = datetime.date.today().isoformat()
+
+          if not novas_normas:
+              print("\n✅ Nenhuma norma nova relevante esta semana.")
+              relatorio = f"# Monitor DOU — {hoje}\n\n✅ **Nenhuma norma nova relevante detectada esta semana.**\n\nTotal analisados: {total_analisados} itens do DOU.\n"
+          else:
+              linhas = [f"# Monitor DOU — {hoje}\n"]
+              linhas.append(f"**{len(novas_normas)} nova(s) norma(s) relevante(s) detectada(s)**\n")
+              linhas.append("Avalie cada item abaixo e decida se precisa entrar na KB do ValidaRótulo IA.\n")
+              linhas.append("---\n")
+
+              for i, n in enumerate(novas_normas, 1):
+                  tipo_str = f"{n['tipo']} {n['numero']}" if n['tipo'] else "Norma"
+                  linhas.append(f"## {i}. {tipo_str} — {n['secao']}")
+                  linhas.append(f"**Título:** {n['titulo']}")
+                  linhas.append(f"**Link:** {n['link']}")
+                  linhas.append(f"**Publicado:** {n['publicado']}")
+                  if n['desc']:
+                      linhas.append(f"**Resumo:** {n['desc']}")
+                  linhas.append("")
+                  linhas.append("**Ação recomendada:**")
+                  linhas.append("- [ ] Ler a norma completa")
+                  linhas.append("- [ ] Verificar se afeta rotulagem (campos obrigatórios, prazos, denominações)")
+                  linhas.append("- [ ] Se afeta → adicionar na KB via Shell do Render")
+                  linhas.append("\n---\n")
+
+              relatorio = "\n".join(linhas)
+
+          # ── Salvar relatório no GitHub ─────────────────────────────────────
+          report_path = f"dou_monitor/relatorio_{hoje}.md"
+          content_b64 = base64.b64encode(relatorio.encode()).decode()
+
+          sha = None
+          url = f"https://api.github.com/repos/{REPO}/contents/{report_path}"
+          try:
+              req = urllib.request.Request(url, headers={
+                  "Authorization": f"Bearer {GITHUB_TOKEN}",
+                  "Accept": "application/vnd.github+json"
+              })
+              with urllib.request.urlopen(req) as r:
+                  sha = json.loads(r.read())["sha"]
+          except urllib.error.HTTPError as e:
+              if e.code != 404:
+                  raise
+
+          payload = {"message": f"monitor: relatório DOU {hoje}", "content": content_b64}
+          if sha:
+              payload["sha"] = sha
+
+          req = urllib.request.Request(url,
+              data=json.dumps(payload).encode(),
+              headers={"Authorization": f"Bearer {GITHUB_TOKEN}",
+                       "Accept": "application/vnd.github+json",
+                       "Content-Type": "application/json"},
+              method="PUT"
+          )
+          urllib.request.urlopen(req)
+          print(f"✅ Relatório salvo: {report_path}")
+
+          # ── Enviar email se houver normas novas ───────────────────────────
+          if novas_normas and RESEND_KEY:
+              html_items = ""
+              for n in novas_normas:
+                  tipo_str = f"{n['tipo']} {n['numero']}" if n['tipo'] else "Norma"
+                  html_items += f"""
+                  <div style="background:#f8f9fa;border-left:4px solid #16a34a;padding:12px 16px;margin:12px 0;border-radius:4px">
+                    <strong>{tipo_str}</strong> — {n['secao']}<br>
+                    <span style="color:#374151">{n['titulo']}</span><br>
+                    <a href="{n['link']}" style="color:#16a34a;font-size:12px">Ver no DOU →</a>
+                    {f'<p style="color:#6b7280;font-size:12px;margin:4px 0">{n["desc"]}</p>' if n['desc'] else ''}
+                  </div>"""
+
+              email_body = f"""
+              <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                <div style="background:#111827;padding:20px 24px;border-radius:8px 8px 0 0">
+                  <h2 style="color:#f9fafb;margin:0;font-size:18px">🔍 Inspect-IA — Monitor DOU</h2>
+                  <p style="color:#9ca3af;margin:4px 0 0;font-size:13px">{hoje}</p>
+                </div>
+                <div style="background:#fff;padding:20px 24px;border:1px solid #e5e7eb;border-top:none">
+                  <p style="color:#374151"><strong>{len(novas_normas)} nova(s) norma(s) relevante(s)</strong> detectada(s) no DOU esta semana.</p>
+                  <p style="color:#6b7280;font-size:13px">Avalie cada item e decida se precisa entrar na KB do ValidaRótulo IA.</p>
+                  {html_items}
+                  <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+                  <p style="color:#9ca3af;font-size:11px">
+                    Relatório completo disponível em: github.com/{REPO}/blob/main/{report_path}<br>
+                    Inspect-IA · Monitor DOU · Automático
+                  </p>
+                </div>
+              </div>"""
+
+              email_payload = {
+                  "from": "monitor@inspect-ia.com.br",
+                  "to": ["hugo@inspect-ia.com.br"],
+                  "subject": f"[Inspect-IA] {len(novas_normas)} norma(s) nova(s) no DOU — {hoje}",
+                  "html": email_body
+              }
+
+              try:
+                  req = urllib.request.Request(
+                      "https://api.resend.com/emails",
+                      data=json.dumps(email_payload).encode(),
+                      headers={"Authorization": f"Bearer {RESEND_KEY}",
+                               "Content-Type": "application/json"},
+                      method="POST"
+                  )
+                  with urllib.request.urlopen(req) as r:
+                      print(f"✅ Email enviado para hugo@inspect-ia.com.br")
+              except Exception as e:
+                  print(f"⚠️ Email não enviado: {e}")
+          elif not novas_normas:
+              print("📭 Sem normas novas — email não enviado")
+          else:
+              print("⚠️ RESEND_API_KEY não configurado — email não enviado")
+
+          print("\n🎉 Monitoramento concluído!")
+          PYEOF
