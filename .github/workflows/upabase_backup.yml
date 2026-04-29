@@ -1,0 +1,128 @@
+name: Daily Supabase Backup
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # todo dia às 06h UTC (03h Brasília)
+  workflow_dispatch:       # permite rodar manualmente pelo GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Exportar KB do Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, urllib.request, datetime
+
+          URL = os.environ["SUPABASE_URL"]
+          KEY = os.environ["SUPABASE_SERVICE_KEY"]
+
+          def fetch_all(table):
+              rows = []
+              offset = 0
+              limit = 1000
+              while True:
+                  req = urllib.request.Request(
+                      f"{URL}/rest/v1/{table}?select=*&limit={limit}&offset={offset}&order=created_at.asc",
+                      headers={
+                          "apikey": KEY,
+                          "Authorization": f"Bearer {KEY}",
+                      }
+                  )
+                  try:
+                      with urllib.request.urlopen(req) as r:
+                          batch = json.loads(r.read())
+                          rows.extend(batch)
+                          if len(batch) < limit:
+                              break
+                          offset += limit
+                  except Exception as e:
+                      print(f"  erro ao buscar offset {offset}: {e}")
+                      break
+              return rows
+
+          def fetch_all_kb(table):
+              rows = []
+              offset = 0
+              limit = 1000
+              while True:
+                  req = urllib.request.Request(
+                      f"{URL}/rest/v1/{table}?select=*&limit={limit}&offset={offset}&order=chave.asc",
+                      headers={
+                          "apikey": KEY,
+                          "Authorization": f"Bearer {KEY}",
+                      }
+                  )
+                  try:
+                      with urllib.request.urlopen(req) as r:
+                          batch = json.loads(r.read())
+                          rows.extend(batch)
+                          if len(batch) < limit:
+                              break
+                          offset += limit
+                  except Exception as e:
+                      print(f"  erro ao buscar offset {offset}: {e}")
+                      break
+              return rows
+
+          backup = {
+              "exportado_em": datetime.datetime.utcnow().isoformat() + "Z",
+              "tabelas": {}
+          }
+
+          # kb_documents — ordena por chave
+          try:
+              dados = fetch_all_kb("kb_documents")
+              backup["tabelas"]["kb_documents"] = dados
+              print(f"✅ kb_documents: {len(dados)} registros")
+          except Exception as e:
+              print(f"⚠️ kb_documents: {e}")
+              backup["tabelas"]["kb_documents"] = []
+
+          # demais tabelas — ordena por created_at
+          for tabela in ["validacoes", "feedbacks"]:
+              try:
+                  dados = fetch_all(tabela)
+                  backup["tabelas"][tabela] = dados
+                  print(f"✅ {tabela}: {len(dados)} registros")
+              except Exception as e:
+                  print(f"⚠️ {tabela}: {e} (tabela pode não existir ainda)")
+                  backup["tabelas"][tabela] = []
+
+          os.makedirs("backups", exist_ok=True)
+          data_hoje = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+          filename = f"backups/supabase_backup_{data_hoje}.json"
+
+          with open(filename, "w", encoding="utf-8") as f:
+              json.dump(backup, f, ensure_ascii=False, indent=2)
+
+          # latest = acesso rápido ao backup mais recente
+          with open("backups/supabase_backup_latest.json", "w", encoding="utf-8") as f:
+              json.dump(backup, f, ensure_ascii=False, indent=2)
+
+          total = sum(len(v) for v in backup["tabelas"].values())
+          print(f"\n📦 Backup: {filename}")
+          print(f"📊 Total registros: {total}")
+          PYEOF
+
+      - name: Commit e push do backup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          git diff --staged --quiet || git commit -m "backup: Supabase $(date -u '+%Y-%m-%d') [automated]"
+          git push
