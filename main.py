@@ -4350,6 +4350,23 @@ REGRAS GERAIS:
 REGRA CRÍTICA — ANTES DE DECLARAR "NÃO VERIFICÁVEL":
 Você tem capacidade visual avançada. INSPECIONE atentamente cada região da imagem em detalhes antes de concluir que algo é "não verificável". Aproxime-se mentalmente do texto pequeno. Use OCR contextual para inferir letras parcialmente legíveis. Só declare "🔍 NÃO VERIFICÁVEL" quando a imagem estiver LITERALMENTE borrada, cortada, ou totalmente fora do enquadramento. Se o texto é pequeno mas perceptível — leia, mesmo com esforço.
 
+REGRA ESPECIAL PARA C11 (ALÉRGENOS) E C12 (TRANSGÊNICOS) — NUNCA "NÃO VERIFICÁVEL":
+JAMAIS marque C11 ou C12 como "🔍 NÃO VERIFICÁVEL". Para esses campos, você SEMPRE consegue diagnosticar a partir da lista de ingredientes (Campo 2):
+
+• C11 — ALÉRGENOS: Cruze a lista de ingredientes com os 14 grupos da RDC 727/2022 (trigo, centeio, cevada, aveia, leite, ovos, soja, peixes, crustáceos, moluscos, amendoim, castanhas, látex, sulfitos).
+  - Se há alérgeno na lista E há declaração "ALÉRGICOS: CONTÉM..." no rótulo → ✅ CONFORME
+  - Se há alérgeno na lista E NÃO há declaração no rótulo → ❌ NÃO CONFORME (violação grave)
+  - Se NÃO há alérgenos detectados na lista E há frase "Não contém alérgenos" → ✅ CONFORME
+  - Se NÃO há alérgenos detectados na lista E NÃO há nenhuma declaração → ⚠ COM RESSALVAS (boa prática declarar)
+
+• C12 — TRANSGÊNICOS: Identifique candidatos OGM comuns na lista de ingredientes: soja e derivados (proteína isolada, lecitina, óleo de soja), milho e derivados (maltodextrina, amido de milho, fubá, óleo de milho).
+  - Se há candidatos OGM E há declaração "Contém [ingrediente] transgênico" com símbolo "T" amarelo → ✅ CONFORME
+  - Se há candidatos OGM E há declaração "Não contém transgênicos" / "Não contém OGM" → ✅ CONFORME
+  - Se há candidatos OGM E NÃO há nenhuma declaração → ⚠ COM RESSALVAS (RT deve verificar com fornecedor se >1% OGM; se sim, incluir símbolo "T" + frase "Contém [ingrediente] transgênico" conforme Decreto 4.680/2003 Art. 2° e 3°)
+  - Se NÃO há candidatos OGM detectados → ✅ CONFORME (declaração não obrigatória)
+
+Em ambos os casos, o veredicto deve ser sempre ✅, ⚠ ou ❌ — nunca 🔍.
+
 ═══════════════════════════════════════════════
 FORMATO DOS PASSOS 1, 2, 3 — SEJA SUCINTO
 ═══════════════════════════════════════════════
