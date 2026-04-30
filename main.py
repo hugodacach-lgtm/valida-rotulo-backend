@@ -36,6 +36,11 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
+# Modelo Anthropic — controlável via env var ANTHROPIC_MODEL no Render.
+# Default: Sonnet 4.6 (recomendação Anthropic para novas integrações).
+# Para rollback rápido: setar ANTHROPIC_MODEL=claude-sonnet-4-5 no Render.
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # KNOWLEDGE BASE — URLs dos PDFs oficiais MAPA/ANVISA/INMETRO
 # 50 categorias cobrindo toda a cadeia POA
@@ -4421,7 +4426,7 @@ Se o relatório estiver completo e correto, responda apenas: "✅ RELATÓRIO VAL
 # ═══════════════════════════════════════════════════════════════════════════════
 async def call_claude_simple(system: str, user: str, max_tokens: int = 350) -> str:
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": ANTHROPIC_MODEL,
         "max_tokens": max_tokens,
         "temperature": 0,
         "system": system,
@@ -4442,21 +4447,59 @@ def extrair_score(texto: str):
     """
     Extrai score do relatório — suporta /14 (padrão) e /15 (com Campo 15 de alegações).
     Retorna float para preservar valores como 9.5, 10.5, etc.
+
+    Regex tolerante: aceita variações como "SCORE: 9/14", "**SCORE:** 9.5/14",
+    "Score 9 / 14", "SCORE FINAL: 9/14", etc.
     """
-    # Tenta X.X/15 (com Campo 15 de alegações)
-    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*15", texto, re.IGNORECASE)
+    if not texto:
+        return None
+
+    # Regex unificada e tolerante:
+    # - opcional: ** ou markdown ao redor
+    # - SCORE seguido opcionalmente por palavras (FINAL, GERAL)
+    # - separador flexível (: ou espaço)
+    # - número com . ou , decimal
+    # - / com espaços opcionais antes e depois
+    # - 14 ou 15 como denominador
+    pattern = r"(?:\*\*)?\s*SCORE(?:\s+(?:FINAL|GERAL|TOTAL))?(?:\*\*)?[:\s]+\s*\*?\*?\s*([\d]+(?:[.,][\d]+)?)\s*/\s*(14|15)"
+    m = re.search(pattern, texto, re.IGNORECASE)
     if m:
-        return float(m.group(1).replace(",", "."))
-    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*15", texto, re.IGNORECASE)
-    if m:
-        return float(m.group(1))
-    # Padrão: X.X/14
-    m = re.search(r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*14", texto, re.IGNORECASE)
-    if m:
-        return float(m.group(1).replace(",", "."))
-    # Fallback: X/14
-    m = re.search(r"SCORE[:\s]+(\d+)\s*/\s*14", texto, re.IGNORECASE)
-    return float(m.group(1)) if m else None
+        try:
+            return float(m.group(1).replace(",", "."))
+        except (ValueError, TypeError):
+            pass
+
+    # Fallback legado para compatibilidade — se Sonnet 4.6 escrever em formato totalmente novo
+    legacy_patterns = [
+        r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*15",
+        r"SCORE[:\s]+(\d+)\s*/\s*15",
+        r"SCORE[:\s]+([\d]+[.,][\d]*)\s*/\s*14",
+        r"SCORE[:\s]+(\d+)\s*/\s*14",
+    ]
+    for pat in legacy_patterns:
+        m = re.search(pat, texto, re.IGNORECASE)
+        if m:
+            try:
+                return float(m.group(1).replace(",", "."))
+            except (ValueError, TypeError):
+                continue
+
+    # SALVAGUARDA: parser falhou — log Sentry para alerta proativo
+    # Isso é importante após troca de modelo: se Sonnet 4.6 mudar formato,
+    # você é avisado em vez de descobrir só quando revisão crítica não disparar.
+    try:
+        # Guard: só tenta logar se sentry_sdk está disponível (pode não ter sido importado)
+        if "sentry_sdk" in dir() or "sentry_sdk" in globals():
+            if os.environ.get("SENTRY_DSN") and len(texto) > 200:
+                preview = texto[:300].replace("\n", " ")
+                sentry_sdk.capture_message(
+                    f"[score_parser] Falhou ao extrair score. Modelo: {ANTHROPIC_MODEL}. Preview: {preview}",
+                    level="warning"
+                )
+    except Exception:
+        pass  # nunca deixar Sentry quebrar o fluxo
+
+    return None
 
 def extrair_veredicto(texto: str) -> str:
     m = re.search(r"VEREDICTO[:\s]+(APROVADO COM RESSALVAS|APROVADO|REPROVADO)", texto, re.IGNORECASE)
@@ -4520,7 +4563,7 @@ async def detect_product_phase1(image_b64: str, mime_type: str, obs: str) -> dic
         {"type": "text", "text": f"Identifique este rótulo.{' Dica: ' + obs if obs else ''} Retorne APENAS o JSON."}
     ]
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": ANTHROPIC_MODEL,
         "max_tokens": 300,
         "temperature": 0,
         "system": SP_DETECT,
@@ -4802,7 +4845,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
     case_id = _case_id(image_b64)
 
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": ANTHROPIC_MODEL,
         "max_tokens": 8192,
         "temperature": 0,
         "stream": True,
@@ -5409,7 +5452,7 @@ async def avaliar_rotulo(
     system_prompt = SP_VALIDACAO.replace("{kb_section}", kb_section)
 
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": ANTHROPIC_MODEL,
         "max_tokens": 8192,
         "temperature": 0,
         "stream": True,
@@ -6951,7 +6994,7 @@ Retorne SOMENTE o JSON conforme especificado."""
                     headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
                              "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
-                    json={"model": "claude-sonnet-4-20250514",
+                    json={"model": ANTHROPIC_MODEL,
                           "max_tokens": 2000,
                           "system": sp_ativo,
                           "messages": [{"role": "user", "content": user_msg}]}
@@ -6998,7 +7041,7 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
                     headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY",""),
                              "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
-                    json={"model": "claude-sonnet-4-20250514",
+                    json={"model": ANTHROPIC_MODEL,
                           "max_tokens": 8192, "stream": True,
                           "system": val_system,
                           "messages": [{"role": "user", "content": val_msg}]}
@@ -7143,7 +7186,7 @@ async def extrair_receita(
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 2000,
+                json={"model": ANTHROPIC_MODEL, "max_tokens": 2000,
                       "system": SP_EXTRAIR_RECEITA,
                       "messages": [{"role": "user", "content": msg_content}]}
             )
@@ -8089,7 +8132,7 @@ async def _gerar_painel(painel_key: str, msg_content: list) -> dict:
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514",
+                json={"model": ANTHROPIC_MODEL,
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido para o painel solicitado, nada mais.",
                       "messages": [{"role": "user", "content": msg_content}]}
@@ -8281,7 +8324,7 @@ async def gerar_design_rotulo(request: Request):
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514",
+                json={"model": ANTHROPIC_MODEL,
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
                       "messages": [{"role": "user", "content": msg_content}]}
@@ -8419,7 +8462,7 @@ async def _gerar_uma_variacao(
                 headers={"x-api-key": ANTHROPIC_API_KEY,
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514",
+                json={"model": ANTHROPIC_MODEL,
                       "max_tokens": 8000,
                       "system": "Voce e um designer senior de embalagens. Gere apenas codigo SVG valido, nada mais.",
                       "messages": [{"role": "user", "content": conteudo}]}
@@ -9629,7 +9672,7 @@ Retorne SOMENTE o JSON conforme especificado."""
                 headers={"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
                          "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514",
+                json={"model": ANTHROPIC_MODEL,
                       "max_tokens": 1500,
                       "system": _SP_TABELA_NUTRICIONAL,
                       "messages": [{"role": "user", "content": user_msg}]}
@@ -10050,7 +10093,7 @@ async def validar_lote(
                 relatorio_completo = ""
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     payload = {
-                        "model": "claude-sonnet-4-20250514",
+                        "model": ANTHROPIC_MODEL,
                         "max_tokens": 2000,
                         "system": SP_VALIDACAO.replace("{kb_section}", ""),
                         "messages": [{
