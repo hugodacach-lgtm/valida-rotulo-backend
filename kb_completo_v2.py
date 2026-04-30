@@ -1861,6 +1861,704 @@ PONTOS CRÍTICOS: "Orgânico" sem selo SisOrg = NÃO CONFORME (propaganda engano
 BASE LEGAL: Lei 10831/2003, Decreto 6323/2007, IN MAPA 17/2014.""".strip()
 },
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 4 — 12 GAPS CRÍTICOS NÃO-POA (embalagens, alegações, suplementos aprofundado,
+#            bebidas alcoólicas, alimentos infantis complementares)
+# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 1 — EMBALAGENS E MATERIAIS EM CONTATO COM ALIMENTOS
+# ══════════════════════════════════════════════════════════════════════════════
+{
+"chave": "rdc_91_2001_embalagens_geral",
+"titulo": "RDC 91/2001 — Critérios Gerais e Classificação de Embalagens em Contato com Alimentos",
+"fonte": "RDC ANVISA 91/2001",
+"orgao": "ANVISA",
+"categoria": "embalagens_contato",
+"conteudo": """RDC 91/2001 — EMBALAGENS E MATERIAIS EM CONTATO COM ALIMENTOS (NORMA-MÃE)
+
+OBJETO: Estabelece critérios gerais e classifica todos os materiais para embalagens e equipamentos em contato com alimentos. É a norma-mãe do sistema de regulação de embalagens alimentares no Brasil.
+
+CLASSIFICAÇÃO DE MATERIAIS (Art. 3°):
+1. PLÁSTICOS: polímeros sintéticos ou naturais → regulados pela RDC 56/2012 (polímeros) e RDC 326/2019 (aditivos)
+2. CELULÓSICOS: papel, papelão, cartão → regulados pela RDC 88/2016
+3. METÁLICOS: alumínio, aço, folha-de-flandres → regulados pela RDC 854/2024
+4. ELASTOMÉRICOS: borracha natural e sintética → regulados por norma específica
+5. VIDRO: material inerte, menor regulação
+6. CELULOSE REGENERADA: celofane → regulado por norma específica
+
+PRINCÍPIO DA LISTA POSITIVA: apenas substâncias expressamente autorizadas pela ANVISA podem ser usadas em embalagens alimentares. Não existe "lista negativa" — o que não está na lista positiva está proibido.
+
+REQUISITOS GERAIS (Art. 4°):
+- Embalagem não pode ceder substâncias ao alimento em quantidades que representem risco à saúde
+- Não pode alterar as características sensoriais do alimento (sabor, odor, cor, textura)
+- Não pode transferir substâncias em quantidade superior ao limite de migração estabelecido
+- Deve ser inerte ao alimento nas condições normais de uso (temperatura, pH, tempo)
+
+MIGRAÇÃO (Art. 5°):
+- Migração total: máximo 60mg/kg de alimento ou 10mg/dm² de embalagem
+- Migração específica: limites individuais por substância conforme normas específicas
+- Simulantes de alimento: para testes, usar simulantes conforme pH e natureza do alimento
+
+DECLARAÇÃO NA EMBALAGEM:
+- Embalagens que requerem condições especiais de uso: obrigatório declarar temperatura máxima, compatibilidade com micro-ondas, etc.
+- Símbolo de "adequado para contato com alimentos": taça + garfo (obrigatório em embalagens plásticas)
+
+IMPACTO NA VALIDAÇÃO DE RÓTULO:
+- Campo fabricante/responsável: verificar se fabricante de embalagem tem licença sanitária
+- Campo modo de uso: verificar se temperatura declarada é compatível com embalagem
+- "Apto para micro-ondas": embalagem plástica deve ser de material aprovado para essa finalidade
+- Embalagem colorida: pigmentos e corantes devem ser aprovados para contato alimentar
+
+PONTOS CRÍTICOS:
+- Embalagem plástica colorida sem aprovação dos pigmentos = NÃO CONFORME
+- Embalagem metálica: RDC 854/2024 exige conformidade com lista positiva de ligas e revestimentos
+- "Apto para micro-ondas" em embalagem PVC = NÃO CONFORME (PVC não é aprovado para micro-ondas)
+- Embalagem em material não listado na ANVISA = NÃO CONFORME
+
+BASE LEGAL: RDC 91/2001, complementada por RDC 56/2012, RDC 88/2016, RDC 326/2019, RDC 854/2024, RDC 51/2010.""".strip()
+},
+
+{
+"chave": "rdc_56_2012_embalagens_plasticas",
+"titulo": "RDC 56/2012 + RDC 326/2019 — Embalagens Plásticas em Contato com Alimentos",
+"fonte": "RDC ANVISA 56/2012 + RDC 326/2019",
+"orgao": "ANVISA",
+"categoria": "embalagens_contato",
+"conteudo": """RDC 56/2012 — LISTA POSITIVA DE POLÍMEROS PARA EMBALAGENS PLÁSTICAS
+RDC 326/2019 — LISTA POSITIVA DE ADITIVOS PARA MATERIAIS PLÁSTICOS
+
+OBJETO: Define quais polímeros e aditivos podem ser usados em embalagens plásticas em contato direto com alimentos.
+
+POLÍMEROS AUTORIZADOS (principais — Anexo da RDC 56/2012):
+- PET (Polietileno tereftalato): garrafas, bandejas. Não apto para micro-ondas.
+- PE (Polietileno): sacos, filmes, tampas. PEAD (alta densidade) e PEBD (baixa densidade).
+- PP (Polipropileno): potes, filmes, tampas. ÚNICO plástico aprovado para micro-ondas em geral.
+- PS (Poliestireno): bandejas, copos. Não apto para alimentos quentes.
+- PVC (Policloreto de vinila): filmes stretch. Restrições para alimentos gordurosos.
+- PA (Poliamida/Nylon): embalagens a vácuo, filmes multicamada.
+- PC (Policarbonato): substituído por outras resinas (questões de BPA).
+
+ADITIVOS AUTORIZADOS (RDC 326/2019 — revogou RDC 17/2008):
+- Antioxidantes, estabilizantes, plastificantes, lubrificantes — apenas os listados.
+- Migração total: ≤ 60mg/kg de alimento.
+- Pigmentos e corantes: devem cumprir RDC 52/2010.
+- Aminas aromáticas primárias: não detectáveis (LD = 0,01mg/kg).
+
+EMBALAGEM RECICLADA (RDC 20/2008):
+- PET reciclado grau alimentício (PET-PCR): permitido com registro prévio na ANVISA.
+- Fabricante de embalagem PET reciclada deve estar licenciado pela ANVISA.
+- Produtor de alimento deve verificar regularidade do fornecedor de embalagem.
+
+MICRO-ONDAS:
+- PP: aprovado geralmente ✅
+- PET: aprovado para temperaturas moderadas (verificar especificação) ⚠️
+- PS, PVC: NÃO aprovados para micro-ondas ❌
+- "Apto para micro-ondas" no rótulo exige que a embalagem seja de material compatível.
+
+IMPACTO NA VALIDAÇÃO DE RÓTULO:
+- Rótulo afirma "apto para micro-ondas": verificar se a embalagem é PP ou material aprovado
+- Embalagem plástica colorida: pigmentos devem ser aprovados pela ANVISA
+- Embalagem PET reciclada: fornecedor deve ter registro ANVISA
+- Declaração de temperatura: deve ser compatível com o polímero
+
+PONTOS CRÍTICOS:
+- "Leve ao micro-ondas" em embalagem PS ou PVC = NÃO CONFORME
+- Embalagem colorida com pigmentos não aprovados = NÃO CONFORME
+- PET reciclado sem registro ANVISA do fabricante = NÃO CONFORME
+
+BASE LEGAL: RDC 56/2012, RDC 326/2019 (revogou RDC 17/2008), RDC 51/2010 (migração), RDC 91/2001.""".strip()
+},
+
+{
+"chave": "rdc_88_2016_embalagens_celulosicas",
+"titulo": "RDC 88/2016 — Embalagens Celulósicas (Papel, Papelão, Cartão) em Contato com Alimentos",
+"fonte": "RDC ANVISA 88/2016",
+"orgao": "ANVISA",
+"categoria": "embalagens_contato",
+"conteudo": """RDC 88/2016 — MATERIAIS CELULÓSICOS EM CONTATO COM ALIMENTOS
+
+OBJETO: Regula papel, papelão, cartão e celulose regenerada usados em embalagens primárias (contato direto) com alimentos.
+
+MATERIAIS ABRANGIDOS:
+- Papel kraft, papel sulfite, papel pergaminho
+- Papelão ondulado (quando em contato direto)
+- Cartão para embalagem (caixinhas de leite, caixas de suco)
+- Celulose regenerada (celofane)
+- Materiais compostos: papel laminado com plástico ou alumínio
+
+SUBSTÂNCIAS PERMITIDAS (Lista Positiva):
+Fibras: celulose virgem e reciclada com limitações. Celulose reciclada de pós-consumo: restrições mais rígidas (contaminantes do ciclo de reciclagem).
+Aditivos de processo: colas, adesivos, agentes de colagem, alvejantes ópticos — apenas os listados.
+Tintas de impressão: na face externa (não em contato) devem ser de baixo set-off (não migrar para o alimento através da embalagem).
+
+PAPEL RECICLADO:
+Papel reciclado de pós-consumo tem risco de contaminantes (tintas, adesivos, substâncias do uso anterior). ANVISA estabelece limites para: minerais de petróleo (MOSH/MOAH), diisopropilnaftaleno (DIPN), metais pesados.
+Embalagem primária (contato direto) com papel reciclado de pós-consumo: deve comprovar conformidade com os limites.
+
+EMBALAGEM LONGA VIDA (Tetra Pak e similares):
+Multicamada: plástico + alumínio + papel. Cada camada regulada por sua norma específica.
+O plástico interno em contato com o alimento: deve cumprir RDC 56/2012.
+
+IMPACTO NA VALIDAÇÃO DE RÓTULO:
+- Embalagem de papel para alimentos gordurosos (pizza, salgado): verificar se papel é aprovado para gordura
+- "Embalagem sustentável/reciclada": papel reciclado pós-consumo exige comprovação de conformidade
+- Tintas na embalagem: migração por set-off deve ser controlada (não é declarado no rótulo mas é responsabilidade do fabricante)
+
+PONTOS CRÍTICOS:
+- Papel reciclado de pós-consumo em contato com alimento gorduroso = ALERTA (verificar MOSH/MOAH)
+- Tinta de impressão em contato direto com alimento = NÃO CONFORME
+- Caixa de papelão reciclado como embalagem primária sem comprovação = ALERTA
+
+BASE LEGAL: RDC 88/2016, RDC 91/2001.""".strip()
+},
+
+{
+"chave": "rdc_854_2024_embalagens_metalicas",
+"titulo": "RDC 854/2024 — Embalagens e Equipamentos Metálicos em Contato com Alimentos",
+"fonte": "RDC ANVISA 854/2024 (revogou RDC 20/2007)",
+"orgao": "ANVISA",
+"categoria": "embalagens_contato",
+"conteudo": """RDC 854/2024 — MATERIAIS METÁLICOS EM CONTATO COM ALIMENTOS
+VIGÊNCIA: 02/05/2024. Revogou a RDC 20/2007.
+
+OBJETO: Regula embalagens, utensílios e equipamentos metálicos (latas, tampas, bandejas de alumínio, aço inox) em contato com alimentos.
+
+MATERIAIS METÁLICOS PERMITIDOS:
+- Aço inox: ligas definidas na norma (série AISI permitidas — verificar lista)
+- Alumínio e ligas de alumínio: com especificações de pureza
+- Folha-de-flandres (estanho sobre aço): para latas de conserva
+- Aço cromado eletrolítico (TFS/TFC): alternativa à folha-de-flandres
+- Aço carbono: apenas com revestimento polimérico aprovado (NÃO em contato direto sem revestimento)
+
+REVESTIMENTOS INTERNOS DE LATAS:
+- Vernizes epóxi, acrílico, organoassol: os mais comuns em conservas, bebidas, alimentos ácidos
+- Revestimento deve ser feito de substâncias das listas positivas de plásticos (RDC 56/2012, RDC 326/2019)
+- BPA (Bisfenol A) em vernizes: em revisão pela ANVISA, usar alternativas (BPA-NI = BPA não intencional)
+
+REQUISITOS DE MIGRAÇÃO:
+- Alumínio: limite de migração em alimentos ácidos (pH < 4) mais restritivo
+- Chumbo e cádmio: limites rígidos para folha-de-flandres e soldas
+- Proibido soldas com chumbo e estanho para latas de alimentos (Lei 9832/1999)
+
+ENSAIOS EXIGIDOS (pelo fabricante de embalagem, não declarado no rótulo):
+- Migração global
+- Migração específica de metais
+- Resistência à corrosão para alimentos ácidos
+
+IMPACTO NA VALIDAÇÃO DE RÓTULO:
+- Lata de alumínio para bebida ácida (pH < 4): verificar se revestimento interno é compatível
+- "Pode conter BPA": declaração voluntária que algumas empresas adotam
+- Bandeja de alumínio para forno: verificar especificação de temperatura máxima
+
+PONTOS CRÍTICOS:
+- Aço carbono sem revestimento em contato com alimento = NÃO CONFORME
+- Soldas com chumbo em latas = NÃO CONFORME (Lei 9832/1999)
+- Lata de alumínio para alimento ácido sem revestimento interno aprovado = ALERTA
+
+BASE LEGAL: RDC 854/2024 (revogou RDC 20/2007), Lei 9832/1999, RDC 91/2001.""".strip()
+},
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 2 — ALEGAÇÕES FUNCIONAIS E NUTRICIONAIS COMPLETAS
+# ══════════════════════════════════════════════════════════════════════════════
+{
+"chave": "alegacoes_funcionais_lista_completa",
+"titulo": "Lista Completa de Alegações Funcionais Aprovadas ANVISA — Res. 18/1999 + Resolução 2/2002",
+"fonte": "Resolução ANVISA 18/1999 + Resolução 2/2002 (atualizada) + IN 28/2018",
+"orgao": "ANVISA",
+"categoria": "alegacoes_saude",
+"conteudo": """LISTA COMPLETA DE ALEGAÇÕES FUNCIONAIS E DE SAÚDE APROVADAS PELA ANVISA
+
+BASE LEGAL: Resolução ANVISA 18/1999 (alegações funcionais), Resolução 2/2002 (lista positiva atualizada), IN 28/2018 (suplementos).
+
+TIPOS DE ALEGAÇÃO:
+1. PROPRIEDADE NUTRICIONAL: sobre conteúdo de nutriente (ex: "rico em fibras", "fonte de vitamina C", "baixo em sódio")
+   Base: RDC 429/2020 — critérios quantitativos para cada alegação.
+2. PROPRIEDADE FUNCIONAL: papel fisiológico do nutriente/substância (lista positiva ANVISA obrigatória)
+3. PROPRIEDADE DE SAÚDE: relação nutriente-doença (lista positiva ANVISA, mais restrita)
+
+ALEGAÇÕES FUNCIONAIS APROVADAS — LISTA POSITIVA COMPLETA:
+
+FIBRAS ALIMENTARES
+- Fibra alimentar: "As fibras alimentares auxiliam o funcionamento do intestino." Quantidade mínima: 2,5g por porção.
+- Farelo de aveia: "O farelo de aveia contribui para a redução do colesterol." Mínimo: 3g de beta-glucana/dia.
+
+VITAMINAS
+- Vitamina A: "A vitamina A contribui para a manutenção da visão normal, da saúde da pele e das membranas mucosas, do funcionamento do sistema imunológico."
+- Vitamina C: "A vitamina C contribui contra o estresse oxidativo." E "A vitamina C contribui para o funcionamento normal do sistema imunológico."
+- Vitamina D: "A vitamina D contribui para a absorção e utilização do cálcio e fósforo, para a formação dos ossos e dentes e para o funcionamento do sistema imunológico."
+- Vitamina E: "A vitamina E protege as células dos radicais livres (estresse oxidativo)."
+- Vitaminas do complexo B:
+  B1 (Tiamina): "contribui para o funcionamento do coração e do sistema nervoso."
+  B2 (Riboflavina): "contribui para o funcionamento normal do sistema nervoso e para a manutenção da visão normal."
+  B3 (Niacina): "contribui para o funcionamento do sistema nervoso e para a manutenção da pele e membranas mucosas."
+  B6: "contribui para o funcionamento do sistema imunológico e para a formação normal das células vermelhas do sangue."
+  B12: "contribui para a formação normal dos glóbulos vermelhos do sangue e para o funcionamento do sistema nervoso."
+  Ácido fólico: "contribui para o crescimento adequado dos tecidos durante a gestação."
+  Biotina: "contribui para o metabolismo normal dos macronutrientes."
+  Ácido pantotênico: "contribui para o metabolismo e síntese de hormônios esteróides, vitaminas D e neurotransmissores."
+
+MINERAIS
+- Cálcio: "O cálcio contribui para a manutenção de ossos e dentes saudáveis."
+- Ferro: "O ferro contribui para a formação normal de hemoglobina e glóbulos vermelhos do sangue."
+- Magnésio: "O magnésio contribui para a manutenção normal dos ossos e dentes e para o funcionamento do sistema nervoso e muscular."
+- Zinco: "O zinco contribui para o funcionamento do sistema imunológico e para a manutenção dos cabelos, unhas e pele."
+- Selênio: "O selênio protege as células do estresse oxidativo." Mínimo: 30μg/porção.
+- Iodo: "O iodo contribui para a produção normal de hormônios tireoidianos."
+- Potássio: "O potássio contribui para o funcionamento normal do sistema muscular."
+- Fósforo: "O fósforo contribui para a manutenção de ossos e dentes saudáveis."
+
+OUTROS NUTRIENTES E SUBSTÂNCIAS BIOATIVAS
+- Ômega-3 (EPA/DHA): "O ômega-3 contribui para a manutenção de níveis normais de triglicerídeos no sangue." Mínimo: 0,3g EPA+DHA/porção.
+- Carotenóides (Licopeno): "Possui ação antioxidante que protege as células contra os danos dos radicais livres." Mínimo: 3mg licopeno/porção.
+- Beta-caroteno: "Possui ação antioxidante que protege as células contra os danos dos radicais livres." Mínimo: 3mg/porção.
+- Luteína: "Possui ação antioxidante que protege as células contra os danos dos radicais livres." Mínimo: 3mg/porção.
+- Probióticos: "Contribui para o equilíbrio da flora intestinal. Seu consumo deve estar associado a uma alimentação equilibrada e hábitos de vida saudáveis." Mínimo: 10^8 a 10^9 UFC/porção (depende da cepa).
+- Prebióticos (FOS, inulina): "Contribui para o equilíbrio da flora intestinal." Mínimo: 3g FOS ou 5g inulina/porção.
+- Fitoesteróis: "Os fitoesteróis contribuem para a redução do colesterol." Mínimo: 0,8g/porção.
+- Proteína de soja: "A proteína de soja contribui para a redução do colesterol." Mínimo: 25g proteína de soja/dia.
+
+ALEGAÇÕES PROIBIDAS (qualquer produto alimentar):
+- "Cura", "trata", "previne" qualquer doença → PROIBIDO (confunde alimento com medicamento)
+- "O mais saudável", "o melhor para sua saúde" → PROIBIDO (superlativo não comprovado)
+- "Emagrece", "queima gordura", "reduz peso" → PROIBIDO sem aprovação específica
+- "Aumenta testosterona", "melhora performance sexual" → PROIBIDO
+- Qualquer alegação não listada na lista positiva → PROIBIDO
+
+CRITÉRIOS PARA USO DE ALEGAÇÃO FUNCIONAL:
+1. Substância deve estar na lista positiva
+2. Quantidade mínima declarada deve ser cumprida por porção
+3. Quantidade máxima (se existir) não pode ser ultrapassada
+4. Substância deve estar presente em quantidade tecnologicamente adequada
+5. Alegação deve ser usada no contexto de uma dieta equilibrada
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Alegação presente sem substância na quantidade mínima por porção = NÃO CONFORME
+- Alegação não listada na lista positiva ANVISA = NÃO CONFORME
+- Claim terapêutico em alimento = NÃO CONFORME (grave — pode ser crime sanitário)
+- "Rico em fibras" sem 5g fibra/porção (ou 2,5g para "fonte de fibras") = NÃO CONFORME""".strip()
+},
+
+{
+"chave": "alegacoes_nutricionais_criterios",
+"titulo": "Critérios para Alegações Nutricionais — RDC 429/2020 Anexo III",
+"fonte": "RDC ANVISA 429/2020 Anexo III + RDC 727/2022",
+"orgao": "ANVISA",
+"categoria": "alegacoes_saude",
+"conteudo": """ALEGAÇÕES NUTRICIONAIS — CRITÉRIOS QUANTITATIVOS (RDC 429/2020 ANEXO III)
+
+ALEGAÇÕES DE CONTEÚDO — CRITÉRIOS POR PORÇÃO:
+
+ENERGIA (valor calórico):
+- "Baixo valor energético" ou "Light em calorias": ≤ 40kcal/100g (sólido) ou ≤ 20kcal/100mL (líquido)
+- "Sem valor energético" ou "Zero calorias": ≤ 4kcal/porção
+
+GORDURAS:
+- "Baixo teor de gorduras totais": ≤ 3g/100g ou ≤ 1,5g/100mL
+- "Sem gorduras totais": ≤ 0,5g/porção
+- "Baixo teor de gorduras saturadas": ≤ 1,5g/100g ou ≤ 0,75g/100mL, E gordura saturada ≤ 10% VE
+- "Sem gorduras saturadas": ≤ 0,1g/porção
+- "Zero trans" ou "Sem gorduras trans": ≤ 0,1g/porção
+- "Baixo em colesterol": ≤ 20mg/100g ou ≤ 10mg/100mL, E baixo em gorduras saturadas
+
+AÇÚCAR:
+- "Sem adição de açúcares": não contém açúcares adicionados (sacarose, mel, xaropes, sucos concentrados)
+- "Baixo teor de açúcares": ≤ 5g/100g ou ≤ 2,5g/100mL
+- "Sem açúcares": ≤ 0,5g/porção
+ATENÇÃO: "sem adição de açúcares" ≠ "sem açúcares". Produto pode ter açúcares naturais (frutose da fruta) e ser "sem adição".
+
+SÓDIO:
+- "Baixo teor de sódio": ≤ 120mg/100g ou ≤ 120mg/100mL
+- "Muito baixo teor de sódio": ≤ 40mg/100g
+- "Sem sódio" ou "Sem sal": ≤ 5mg/porção
+- "Não salgar": sem sódio adicionado, mas pode ter sódio natural
+
+FIBRAS:
+- "Fonte de fibras": ≥ 2,5g/porção
+- "Alto teor de fibras" ou "Rico em fibras": ≥ 5g/porção
+
+PROTEÍNAS:
+- "Fonte de proteínas": ≥ 10% da IDR por porção (= 5g proteína/porção para adultos)
+- "Alto teor de proteínas": ≥ 20% da IDR por porção (= 10g proteína/porção)
+
+VITAMINAS E MINERAIS:
+- "Fonte de [vitamina/mineral]": ≥ 15% da IDR por porção
+- "Rico em [vitamina/mineral]": ≥ 30% da IDR por porção
+
+ALEGAÇÕES COMPARATIVAS ("LIGHT" / "REDUZIDO"):
+- Deve comparar com produto convencional da mesma categoria
+- Diferença mínima: 25% menos em calorias ou no nutriente declarado
+- Deve declarar: "X% menos [nutriente] que [produto de referência]"
+- Não pode usar "light" apenas pelo método de preparo (ex: assado vs frito) sem diferença nutricional significativa
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- "Sem adição de açúcares" em produto com mel: ALERTA (mel é açúcar adicionado — NÃO CONFORME)
+- "Light" sem declarar o % de redução e o nutriente = NÃO CONFORME
+- "Rico em fibras" com 2g/porção = NÃO CONFORME (precisa ≥ 5g)
+- "Sem gordura trans" com gordura parcialmente hidrogenada na lista de ingredientes = NÃO CONFORME
+- "Fonte de proteínas" com 3g/porção = NÃO CONFORME (precisa ≥ 5g)""".strip()
+},
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 3 — SUPLEMENTOS — APROFUNDAMENTO DOSES MÁXIMAS
+# ══════════════════════════════════════════════════════════════════════════════
+{
+"chave": "suplementos_doses_maximas_in28",
+"titulo": "IN 28/2018 — Tabela Completa de Doses Máximas por Nutriente em Suplementos",
+"fonte": "IN ANVISA 28/2018 Anexos I-VIII",
+"orgao": "ANVISA",
+"categoria": "suplementos",
+"conteudo": """IN 28/2018 — DOSES MÍNIMAS E MÁXIMAS POR PORÇÃO EM SUPLEMENTOS ALIMENTARES
+
+IMPORTANTE: doses são por PORÇÃO DIÁRIA declarada no rótulo.
+
+ANEXO I — VITAMINAS (mínimo e máximo por porção):
+Vitamina A: mín 75μg RE, máx 600μg RE (cuidado: excesso causa hipervitaminose A)
+Vitamina D: mín 2,5μg, máx 100μg (4000 UI) — limite crítico, excesso é tóxico
+Vitamina E: mín 2,4mg α-TE, máx 268mg α-TE
+Vitamina K: mín 17,5μg, máx 1000μg
+Vitamina C: mín 13,5mg, máx 1000mg
+Vitamina B1 (Tiamina): mín 0,175mg, máx 100mg
+Vitamina B2 (Riboflavina): mín 0,21mg, máx 100mg
+Vitamina B3 (Niacina): mín 2,4mg, máx 35mg (como ácido nicotínico); 100mg (como nicotinamida)
+Vitamina B5 (Ácido pantotênico): mín 0,75mg, máx 200mg
+Vitamina B6: mín 0,21mg, máx 10mg (excesso → neuropatia periférica — ADVERTÊNCIA obrigatória se > 10mg/dia)
+Vitamina B7 (Biotina): mín 7,5μg, máx 300μg
+Vitamina B9 (Ácido fólico): mín 30μg, máx 1000μg (gestantes: atenção especial)
+Vitamina B12: mín 0,375μg, máx 1000μg
+
+ADVERTÊNCIA OBRIGATÓRIA: Vitamina B6 > 10mg/dia: "Altas doses de vitamina B6 podem causar neuropatia periférica. Consulte um médico antes de usar."
+
+ANEXO II — MINERAIS:
+Cálcio: mín 120mg, máx 1500mg
+Fósforo: mín 87,5mg, máx 1250mg
+Magnésio: mín 30mg, máx 350mg
+Ferro: mín 2,1mg, máx 45mg (ADVERTÊNCIA: "Não consumir se não houver deficiência de ferro diagnosticada por médico." para doses > 45mg)
+Zinco: mín 1,35mg, máx 25mg
+Cobre: mín 0,225mg, máx 5mg
+Manganês: mín 0,3mg, máx 11mg
+Cromo: mín 10,5μg, máx 250μg
+Molibdênio: mín 6,75μg, máx 600μg
+Selênio: mín 8,25μg, máx 300μg
+Iodo: mín 22,5μg, máx 600μg
+Flúor: mín 0,55mg, máx 10mg
+Sódio: sem dose mínima; máx limitado pelas regras gerais
+Potássio: mín 470mg, máx 3500mg
+Cloro: mín 550mg, máx 2300mg
+
+ANEXO III — PROTEÍNAS E AMINOÁCIDOS:
+Proteínas: whey, caseína, albumina, soja, ervilha, colágeno — sem dose máxima definida
+Aminoácidos essenciais individuais: BCAA (leucina, isoleucina, valina) — sem dose máxima
+Creatina: 3g/porção máx para uso em suplemento sem prescrição
+Taurina: máx 2g/porção (acima disso é bebida energética)
+Cafeína: máx 400mg/dia total; máx 200mg/porção isolada; se > 150mg/porção: advertência obrigatória
+
+ANEXO IV — FIBRAS:
+Inulina/FOS: sem dose máxima definida
+Psyllium: sem dose máxima definida
+Beta-glucana: mín 1g/porção para alegação funcional
+
+ADVERTÊNCIAS ESPECÍFICAS POR INGREDIENTE:
+- Cafeína > 150mg/porção: "Este produto contém X mg de cafeína por porção. Indivíduos sensíveis à cafeína, crianças, gestantes, nutrizes e idosos não devem consumir."
+- Ferro: advertência de toxicidade em crianças
+- Vitamina D > 25μg (1000 UI)/porção: "Consulte um médico antes de usar."
+- Qualquer suplemento: "Este produto não é um medicamento e não deve ser usado como substituto de uma alimentação variada e equilibrada."
+
+NOTIFICAÇÃO ANVISA (RDC 843/2024 + IN 281/2024):
+Número obrigatório no rótulo: "Notificado na Anvisa sob o nº [número]"
+Prazo encerrado: 01/09/2025. Suplementos sem notificação após essa data = IRREGULARES.
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Vitamina D > 100μg/porção sem prescrição = NÃO CONFORME
+- Ferro > 45mg/porção sem advertência de toxicidade = NÃO CONFORME
+- Vitamina B6 > 10mg/dia sem advertência de neuropatia = NÃO CONFORME
+- Suplemento sem número de notificação ANVISA após 01/09/2025 = NÃO CONFORME
+- Cafeína > 200mg/porção = NÃO CONFORME (limite de suplemento excedido)
+- Ingrediente não listado nos Anexos I-VIII = ingrediente não autorizado = NÃO CONFORME""".strip()
+},
+
+{
+"chave": "suplementos_rotulagem_especifica",
+"titulo": "RDC 243/2018 — Rotulagem Completa Específica de Suplementos Alimentares",
+"fonte": "RDC ANVISA 243/2018 + RDC 786/2023",
+"orgao": "ANVISA",
+"categoria": "suplementos",
+"conteudo": """RDC 243/2018 — ROTULAGEM ESPECÍFICA PARA SUPLEMENTOS ALIMENTARES
+Atualizada pela RDC 786/2023 e RDC 843/2024.
+
+DENOMINAÇÃO OBRIGATÓRIA:
+"Suplemento alimentar" deve constar na denominação do produto, associada ao ingrediente principal.
+Exemplos corretos: "Suplemento alimentar de whey protein", "Suplemento vitamínico", "Suplemento alimentar de magnésio"
+Exemplos incorretos: apenas "Whey Protein" sem "suplemento alimentar", ou "Vitaminas e minerais" sem a denominação
+
+PAINEL PRINCIPAL — INFORMAÇÕES OBRIGATÓRIAS:
+1. Denominação completa (Suplemento alimentar de ___)
+2. Número de notificação ANVISA (após 01/09/2025): "Notificado na Anvisa sob o nº ___"
+3. Marca registrada (se houver)
+4. Quantidade líquida (g, mL, cápsulas, sachês, etc.)
+5. Indicação de sabor (se aplicável)
+
+PAINEL LATERAL / INFORMAÇÃO TÉCNICA — OBRIGATÓRIOS:
+1. Lista de ingredientes (incluindo excipientes, aromatizantes, adoçantes com INS)
+2. Tabela nutricional por porção e %VD
+3. Modo de preparo/uso (como e quando consumir, com ou sem água, etc.)
+4. Advertências específicas por ingrediente (ver IN 28/2018)
+5. Público-alvo: "Destinado a adultos saudáveis" ou especificação (ex: "praticantes de atividade física")
+6. Advertência geral OBRIGATÓRIA: "Este produto não é um medicamento e não deve ser usado como substituto de uma alimentação variada e equilibrada. Seu consumo deve ser orientado por nutricionista ou médico."
+7. Conservação: temperatura, umidade, exposição à luz
+8. Prazo de validade após aberto (quando aplicável)
+9. Lote e data de fabricação
+10. Fabricante/importador com endereço
+
+TABELA NUTRICIONAL PARA SUPLEMENTOS:
+- Declarar TODOS os ingredientes com ação nutricional por porção e por 100g/100mL
+- %VD baseado na IDR correspondente
+- Se o ingrediente não tem IDR definida: declarar a quantidade e "*" com nota "VD não estabelecido"
+- Vitaminas e minerais abaixo de 5% da IDR: não precisam ser declarados (mas podem ser)
+
+ALEGAÇÕES PERMITIDAS EM SUPLEMENTOS:
+Apenas as listadas no Anexo VIII da IN 28/2018.
+Exemplos permitidos:
+- Proteínas: "Contribui para a manutenção e o crescimento da massa muscular."
+- Creatina: "Contribui para o aumento de desempenho em exercícios de alta intensidade e curta duração."
+- Cafeína: "Contribui para aumentar a resistência durante o exercício de resistência prolongado."
+- Vitamina C: "Contribui contra o estresse oxidativo."
+
+PROIBIÇÕES ESPECÍFICAS EM SUPLEMENTOS:
+- Claims de tratamento ou cura de doença
+- Claims de performance além dos aprovados
+- Imagens que sugiram resultados corporais não comprovados
+- Comparação com medicamentos
+- "Melhora a imunidade" sem especificação do mecanismo aprovado
+
+POPULAÇÃO DE RISCO — ADVERTÊNCIAS ADICIONAIS:
+Gestantes e lactantes: "Consulte o médico ou nutricionista antes de utilizar este produto durante a gestação ou amamentação."
+Crianças: "Não indicado para crianças."
+Hipertensos: produtos com sódio acima de 120mg/porção: alertar.
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Ausência de "Suplemento alimentar" na denominação = NÃO CONFORME
+- Ausência do número de notificação após 01/09/2025 = NÃO CONFORME
+- Ausência da advertência geral = NÃO CONFORME
+- Alegação não aprovada = NÃO CONFORME
+- Ausência de público-alvo = NÃO CONFORME
+- Ausência de modo de uso = NÃO CONFORME""".strip()
+},
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 4 — BEBIDAS ALCOÓLICAS — GAPS
+# ══════════════════════════════════════════════════════════════════════════════
+{
+"chave": "lei_14064_2020_bebidas_alcoolicas",
+"titulo": "Lei 14.064/2020 — Advertências Obrigatórias em Bebidas Alcoólicas",
+"fonte": "Lei Federal 14.064/2020",
+"orgao": "ANVISA/MAPA",
+"categoria": "bebidas_alcoolicas",
+"conteudo": """LEI 14.064/2020 — ADVERTÊNCIAS EM BEBIDAS ALCOÓLICAS
+
+OBJETO: Atualiza e unifica as advertências obrigatórias em rótulos de bebidas alcoólicas.
+
+ADVERTÊNCIAS OBRIGATÓRIAS NO RÓTULO (Art. 2°):
+Qualquer bebida alcoólica (teor ≥ 0,5% v/v) deve conter advertência visível:
+
+Texto obrigatório (uma das opções aprovadas, em rodízio):
+1. "VENDA PROIBIDA PARA MENORES DE 18 ANOS"
+2. "QUEM BEBE NÃO DIRIGE"
+3. "EVITE O CONSUMO DE ÁLCOOL DURANTE A GRAVIDEZ"
+4. "O ÁLCOOL PODE SER PREJUDICIAL À SAÚDE"
+5. "BEBA COM MODERAÇÃO"
+
+FORMATO DE EXIBIÇÃO:
+- Caracteres legíveis, com destaque (tipicamente em caixa preta ou fundo contrastante)
+- Tamanho mínimo: proporcional ao painel do rótulo (verificar especificações do Dec. 6871/2009)
+- Posição: painel lateral ou posterior, visível ao consumidor
+- Proibido camuflar, dificultar a leitura ou colocar em área de difícil acesso
+
+SÍMBOLO DE PROIBIÇÃO PARA MENORES:
+Ícone com "18" e símbolo proibido (barra diagonal sobre círculo) = OBRIGATÓRIO
+Posicionado no painel frontal ou lateral visível
+Tamanho mínimo recomendado: 1cm²
+
+PROIBIÇÕES ADICIONAIS (Art. 3° e 4°):
+- Proibido associar bebida alcoólica a esportes, especialmente esportes com automóveis e motos
+- Proibido usar imagens de crianças, adolescentes ou situações que sugiram consumo por menores
+- Proibido associar consumo de álcool à condução de veículos
+- Proibido usar modelos aparentando ser menores de 25 anos em publicidade
+- Proibido claims de benefícios à saúde
+
+RELAÇÃO COM OUTRAS NORMAS:
+- Dec. 6871/2009: rotulagem geral de bebidas (teor alcoólico, volume, fabricante)
+- Port. MAPA 65/2021: especificações cerveja e chope
+- Lei 7678/1988 + Dec. 8198/2014: vinho e derivados da uva
+- RDC 727/2022: rotulagem geral (aplicável como norma base)
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Bebida alcoólica sem advertência de menores = NÃO CONFORME
+- Símbolo "18" ausente = NÃO CONFORME
+- Teor alcoólico não declarado = NÃO CONFORME (Dec. 6871/2009)
+- Imagem de menor de idade na embalagem = NÃO CONFORME
+- Associação com direção de veículos = NÃO CONFORME""".strip()
+},
+
+{
+"chave": "in_mapa_14_2018_bebidas_mistas",
+"titulo": "IN MAPA 14/2018 — Bebidas Mistas, RTDs e Misturadores Alcoólicos",
+"fonte": "IN MAPA 14/2018",
+"orgao": "MAPA",
+"categoria": "bebidas_alcoolicas",
+"conteudo": """IN MAPA 14/2018 — BEBIDAS MISTAS E MISTURAS DE BEBIDAS ALCOÓLICAS
+
+OBJETO: Regulamenta as bebidas mistas (RTD — Ready to Drink) e misturas de bebidas alcoólicas.
+
+DEFINIÇÕES:
+"Bebida mista": produto obtido pela mistura de uma ou mais bebidas alcoólicas com uma ou mais bebidas não alcoólicas, podendo conter outros ingredientes autorizados.
+"RTD" (Ready to Drink): bebida mista pronta para consumo, geralmente com teor alcoólico de 3-8% v/v.
+"Ice": tipo de RTD à base de bebida destilada (vodka ice, smirnoff ice, etc.)
+"Cooler": RTD à base de vinho ou cerveja com suco de frutas.
+
+COMPOSIÇÃO E TEOR:
+- Teor alcoólico deve ser declarado em % v/v
+- Bebidas mistas com base em destilado: reguladas também pelo Decr. 6871/2009
+- Bebidas mistas com base em vinho: reguladas também pela Lei 7678/1988
+
+DENOMINAÇÃO:
+- "Bebida mista" + indicação da(s) bebida(s) base
+- Ex: "Bebida mista à base de vodca e suco de limão"
+- "Ice", "Cooler", "RTD" são denominações aceitas como complemento
+- Proibido denominar de forma que confunda com a bebida base pura (ex: chamar de "vodca" uma bebida mista)
+
+ROTULAGEM OBRIGATÓRIA:
+1. Denominação de venda
+2. Teor alcoólico: "X% vol." ou "X°GL"
+3. Volume líquido
+4. Lista de ingredientes (incluindo TODOS os ingredientes das bebidas que a compõem)
+5. Advertências da Lei 14.064/2020 (menores + dirigir)
+6. Fabricante com endereço
+7. Lote e validade
+8. Alérgenos: cereais com glúten (se base de malte), sulfitos (se base de vinho)
+
+ALÉRGENOS COMUNS EM RTDs:
+- Base de cerveja/malte: "CONTÉM GLÚTEN"
+- Base de vinho: "CONTÉM SULFITOS"
+- Base de destilado + corante caramelo: verificar origem do caramelo
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- RTD sem teor alcoólico declarado = NÃO CONFORME
+- Bebida mista com base de malte sem "CONTÉM GLÚTEN" = NÃO CONFORME
+- Denominação que confunde com bebida pura = NÃO CONFORME
+- Ausência de advertência menores em qualquer RTD = NÃO CONFORME
+- Lista de ingredientes incompleta (não lista todos os componentes de cada bebida base) = NÃO CONFORME
+
+BASE LEGAL: IN MAPA 14/2018, Dec. 6871/2009, Lei 14.064/2020, RDC 727/2022.""".strip()
+},
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOCO 5 — ALIMENTOS INFANTIS COMPLEMENTARES
+# ══════════════════════════════════════════════════════════════════════════════
+{
+"chave": "rdc_222_2002_alimentos_complementares",
+"titulo": "RDC 222/2002 — Alimentos Complementares para Lactentes e Crianças (6-36 meses)",
+"fonte": "RDC ANVISA 222/2002",
+"orgao": "ANVISA",
+"categoria": "alimentos_infantis",
+"conteudo": """RDC 222/2002 — ALIMENTOS COMPLEMENTARES PARA LACTENTES E CRIANÇAS DE PRIMEIRA INFÂNCIA
+
+OBJETO: Regula alimentos destinados a crianças de 6 meses a 3 anos que complementam a alimentação (em adição ao leite materno ou fórmula).
+
+CATEGORIAS:
+1. ALIMENTOS DE TRANSIÇÃO: papinhas de fruta, purês de hortaliças, sopas e mingaus — para 6+ meses
+2. ALIMENTOS ENRIQUECIDOS PARA LACTENTES: cereais, biscoitos, bolachas com vitaminas/minerais adicionados
+3. ALIMENTOS PARA CRIANÇAS DE PRIMEIRA INFÂNCIA (1-3 anos): versões para crianças pequenas
+
+COMPOSIÇÃO MÍNIMA/MÁXIMA:
+- Energia: 60-80 kcal/100g para papinhas; alimentos secos com mais concentração
+- Proteínas: mínimo variável por categoria (vegetais, cereais, carne)
+- Gorduras: sem gordura trans; trans naturais em limites
+- Vitaminas e minerais: conforme tabela da norma (enriquecimento mínimo obrigatório para alimentos secos industrializados)
+- Sódio: limite máximo de 200mg/100kcal (muito baixo — crianças pequenas não devem consumir sódio em excesso)
+- Açúcar adicionado: não recomendado para < 2 anos; se adicionado: declarar claramente
+
+PROIBIÇÕES ESPECÍFICAS:
+- Sacarose e mel para < 12 meses (risco microbiológico do mel + cárie)
+- Aditivos alimentares: lista muito restrita (a maioria dos aditivos comuns é proibida)
+- Corantes artificiais: proibidos
+- Aromatizantes artificiais: proibidos
+- Conservantes: maioria proibida (exceto casos específicos)
+- Adoçantes artificiais: proibidos
+
+ROTULAGEM OBRIGATÓRIA:
+1. Denominação: "Alimento complementar para lactentes" ou "Alimento para crianças de primeira infância"
+2. Faixa etária: "Para maiores de 6 meses" ou "De 1 a 3 anos"
+3. Modo de preparo: detalhado e seguro (higiene de utensílios, temperatura)
+4. Tabela nutricional: por porção para a faixa etária
+5. Informação sobre necessidade de aleitamento materno continuado
+6. Advertência: "Este produto não substitui o leite materno"
+7. Aviso para profissional de saúde: "A introdução de novos alimentos deve ser orientada por médico ou nutricionista"
+
+ALÉRGENOS ESPECIAIS EM INFANTIS:
+- Glúten: introdução gradual após 6 meses, declarar
+- Amendoim: introdução precoce recomendada para prevenção de alergia — mas deve constar no rótulo
+- Ovo: declarar obrigatoriamente
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Papinha industrializada com mel para < 12 meses = NÃO CONFORME (risco de botulismo)
+- Papinha com corante artificial = NÃO CONFORME
+- Papinha com sódio > 200mg/100kcal = NÃO CONFORME
+- Ausência de faixa etária no rótulo = NÃO CONFORME
+- Ausência de modo de preparo detalhado = NÃO CONFORME
+- "Substitui o leite materno" em alimento complementar = NÃO CONFORME
+
+BASE LEGAL: RDC 222/2002, Código Internacional de Comercialização de Substitutos do Leite Materno (OMS/UNICEF), Lei 11.265/2006.""".strip()
+},
+
+{
+"chave": "rdc_269_2005_vrd_criancas",
+"titulo": "RDC 269/2005 — Valor de Referência de Nutrientes para Rotulagem de Alimentos Infantis",
+"fonte": "RDC ANVISA 269/2005",
+"orgao": "ANVISA",
+"categoria": "alimentos_infantis",
+"conteudo": """RDC 269/2005 — VALORES DE REFERÊNCIA DE NUTRIENTES (VRD) POR FAIXA ETÁRIA
+
+OBJETO: Estabelece os valores de referência diários para vitaminas e minerais a serem declarados nos rótulos de alimentos especiais por faixa etária.
+
+FAIXAS ETÁRIAS E VRD (para %VD na tabela nutricional):
+
+LACTENTES (0-12 meses) — VRD:
+Vitamina A: 375μg RE | Vitamina D: 10μg | Vitamina E: 4mg α-TE | Vitamina K: 10μg
+Vitamina C: 35mg | Vitamina B1: 0,3mg | B2: 0,4mg | B3: 4mg | B5: 2mg
+B6: 0,3mg | Ácido fólico: 65μg | B12: 0,5μg | Biotina: 6μg
+Cálcio: 500mg | Ferro: 10mg | Magnésio: 60mg | Zinco: 4mg | Iodo: 90μg
+
+CRIANÇAS DE 1-3 ANOS — VRD:
+Vitamina A: 400μg RE | Vitamina D: 15μg | Vitamina E: 6mg α-TE | Vitamina K: 30μg
+Vitamina C: 40mg | Vitamina B1: 0,5mg | B2: 0,5mg | B3: 6mg | B5: 2mg
+B6: 0,5mg | Ácido fólico: 150μg | B12: 0,9μg | Biotina: 8μg
+Cálcio: 700mg | Ferro: 7mg | Magnésio: 65mg | Zinco: 3mg | Iodo: 90μg
+
+CRIANÇAS DE 4-8 ANOS — VRD:
+Vitamina A: 450μg RE | Vitamina D: 15μg | Vitamina E: 7mg α-TE | Vitamina K: 55μg
+Vitamina C: 45mg | Vitamina B1: 0,6mg | B2: 0,6mg | B3: 8mg | B5: 3mg
+B6: 0,6mg | Ácido fólico: 200μg | B12: 1,2μg
+Cálcio: 1000mg | Ferro: 10mg | Magnésio: 110mg | Zinco: 5mg | Iodo: 90μg
+
+ADULTOS (referência geral) — VRD:
+Vitamina A: 600μg RE | Vitamina D: 15μg | Vitamina E: 10mg α-TE | Vitamina K: 65μg
+Vitamina C: 45mg | B1: 1,2mg | B2: 1,3mg | B3: 16mg | B5: 5mg
+B6: 1,3mg | Ácido fólico: 400μg | B12: 2,4μg | Biotina: 30μg
+Cálcio: 1000mg | Ferro: 14mg | Magnésio: 260mg | Zinco: 7mg | Iodo: 150μg
+
+APLICAÇÃO NA ROTULAGEM:
+Para alimentos destinados a crianças (ex: papinhas, cereais infantis, biscoitos infantis), o %VD da tabela nutricional deve usar os VRD da faixa etária correta, NÃO os valores de adulto.
+Exemplo: biscoito infantil "para crianças de 1-3 anos" com 3mg de ferro/porção = 43% VD (usando VRD infantil de 7mg), não 21% VD (usando VRD adulto de 14mg).
+
+PONTOS CRÍTICOS PARA VALIDAÇÃO:
+- Alimento infantil usando VRD de adulto na tabela nutricional = NÃO CONFORME (subdeclara ou sobredeclara o %VD)
+- Alegação "rico em ferro" em alimento infantil deve usar o critério da faixa etária correta
+- Faixa etária não declarada no rótulo de alimento com composição específica por faixa = NÃO CONFORME
+
+BASE LEGAL: RDC 269/2005, RDC 222/2002, RDC 241/2018.""".strip()
+},
 ]
 
 
