@@ -1,0 +1,23 @@
+{
+  "data": "2026-04-30",
+  "timestamp_utc": "2026-04-30T08:31:29.042877Z",
+  "tabelas_total": 10,
+  "tabelas_ok": 10,
+  "tabelas_erro": 0,
+  "linhas_por_tabela": {
+    "assinaturas": 0,
+    "design_feedback": 0,
+    "kb_documents": 177,
+    "monitor_alertas": 0,
+    "perfis_empresa": 0,
+    "referencias_design": 0,
+    "rotulo_versoes": 0,
+    "tabelas_checkout": 0,
+    "uso_validacoes": 0,
+    "validacoes": 0
+  },
+  "linhas_total": 177,
+  "erros": {},
+  "supabase_url": "https://fojpndxfsjhxhwuoqcoe.supabase.co",
+  "retencao_dias": 30
+}
