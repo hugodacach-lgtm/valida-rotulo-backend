@@ -4389,16 +4389,17 @@ Para CADA campo (1 a 14), use EXATAMENTE este formato compacto:
 Sugestões de correção:
 ⚠ [Repete o item com ressalva] — Norma: [RDC X/ANO Art. Y°]. Texto correto: "[exato]"
 ✗ [Repete o item errado] — Norma: [RDC X/ANO Art. Y°]. Texto correto: "[exato]"
-🎯 PRIORIDADE: [P0 | P1 | P2]
-
-REGRAS DE PRIORIDADE:
-• P0 — Impede comercialização (sem carimbo, denominação errada, alérgenos ausentes, sem tabela)
-• P1 — Não conformidade técnica corrigível (formato de tabela, fabricante incompleto, lupa fora do padrão)
-• P2 — Ressalva opcional (forma incorreta com substância correta)
 
 NÃO escreva "O que está correto:" nem "O que precisa ajuste:". Use apenas os bullets unificados.
-NÃO escreva bloco "CORREÇÕES PRIORITÁRIAS" no final — a prioridade já está em cada campo.
+NÃO escreva bloco "CORREÇÕES PRIORITÁRIAS" no final.
+NÃO escreva linha "🎯 PRIORIDADE" — descontinuado.
 NÃO repita normas em múltiplas linhas — use 1 linha por norma.
+
+REGRA PARA SUB-BULLETS (listas dentro de itens detalhados, ex: tabela nutricional, endereço fabricante):
+• Use ✓ para sub-itens corretos: "  ✓ Logradouro: RUA X"
+• Use ⚠ para sub-itens com ressalva: "  ⚠ Bairro: incompleto"
+• Use ✗ para sub-itens ausentes/errados: "  ✗ CEP: faltando"
+• NÃO use traços "-" nem setas "▸" para sub-itens — sempre o ícone unificado correspondente.
 
 ═══════════════════════════════════════════════
 FIM DO RELATÓRIO — APENAS ESTAS 2 LINHAS:
@@ -4427,7 +4428,7 @@ CHECKLIST UNIVERSAL (aplica a TODOS os produtos — POA e não-POA):
 6. ALÉRGENOS: 14 grupos RDC 727/2022? Formatação (caixa alta + negrito + 2mm mínimo)?
 7. TEXTO DE CORREÇÃO: para cada NÃO CONFORME, o relatório sugere o texto exato de como corrigir?
 8. NORMAS CITADAS: cada não conformidade cita OBRIGATORIAMENTE número + ano + artigo + parágrafo? (ex: RDC 727/2022 Art. 8° §1° — não apenas 'RDC 727/2022'). Citar só o número da norma sem artigo é insuficiente.
-9. PRIORIDADE INLINE: cada campo NÃO CONFORME e COM RESSALVAS tem 🎯 PRIORIDADE marcada (P0/P1/P2)?
+9. SUB-BULLETS: listas dentro de campos (tabela nutricional, fabricante, etc.) usam ✓/⚠/✗ em vez de "-" ou "▸"?
 
 CHECKLIST POA (só se produto for de origem animal):
 10. CARIMBO: SIF/SIE/SIM com jurisdição coerente? Formato oval correto? Número do estabelecimento?
