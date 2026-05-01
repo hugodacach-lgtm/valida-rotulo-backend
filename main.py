@@ -5261,6 +5261,107 @@ def _order_points(pts):
     return rect
 
 
+def _extract_text_from_memorial(file_bytes: bytes, filename: str) -> str:
+    """
+    Extrai texto de arquivos de memorial técnico / receita.
+    Suporta: PDF, DOCX, DOC (limitado), HTML, TXT, RTF.
+    Retorna string vazia se não conseguir extrair.
+    """
+    if not file_bytes or len(file_bytes) == 0:
+        return ""
+    name_lower = (filename or "").lower()
+    ext = name_lower.split(".")[-1] if "." in name_lower else ""
+
+    try:
+        # PDF
+        if ext == "pdf":
+            try:
+                import pypdf
+                from io import BytesIO
+                reader = pypdf.PdfReader(BytesIO(file_bytes))
+                pages = []
+                for page in reader.pages[:50]:  # limite 50 páginas
+                    try:
+                        t = page.extract_text() or ""
+                        if t.strip():
+                            pages.append(t)
+                    except Exception:
+                        continue
+                return "\n\n".join(pages)
+            except ImportError:
+                pass
+            # Fallback: tentar pdfplumber
+            try:
+                import pdfplumber
+                from io import BytesIO
+                with pdfplumber.open(BytesIO(file_bytes)) as pdf:
+                    return "\n\n".join((p.extract_text() or "") for p in pdf.pages[:50])
+            except ImportError:
+                return ""
+
+        # DOCX
+        if ext == "docx":
+            try:
+                import docx
+                from io import BytesIO
+                doc = docx.Document(BytesIO(file_bytes))
+                paras = [p.text for p in doc.paragraphs if p.text.strip()]
+                # Tabelas
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                        if row_text:
+                            paras.append(row_text)
+                return "\n".join(paras)
+            except ImportError:
+                return ""
+
+        # HTML
+        if ext in ("html", "htm"):
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(file_bytes, "html.parser")
+                # Remove scripts/styles
+                for s in soup(["script", "style", "noscript"]):
+                    s.decompose()
+                return soup.get_text(separator="\n", strip=True)
+            except ImportError:
+                # Fallback: regex bem simples
+                import re as _re
+                text = file_bytes.decode("utf-8", errors="ignore")
+                text = _re.sub(r"<script.*?</script>", "", text, flags=_re.DOTALL | _re.IGNORECASE)
+                text = _re.sub(r"<style.*?</style>", "", text, flags=_re.DOTALL | _re.IGNORECASE)
+                text = _re.sub(r"<[^>]+>", " ", text)
+                return _re.sub(r"\s+", " ", text).strip()
+
+        # TXT
+        if ext == "txt":
+            for encoding in ("utf-8", "latin-1", "cp1252"):
+                try:
+                    return file_bytes.decode(encoding)
+                except UnicodeDecodeError:
+                    continue
+            return file_bytes.decode("utf-8", errors="ignore")
+
+        # RTF — extração simples (remove comandos RTF entre {} e \)
+        if ext == "rtf":
+            import re as _re
+            text = file_bytes.decode("utf-8", errors="ignore")
+            # Remove {\* ... } e \cmd
+            text = _re.sub(r"\{\\\*[^}]*\}", "", text)
+            text = _re.sub(r"\\[a-zA-Z]+\d*\s?", " ", text)
+            text = _re.sub(r"[\{\}]", "", text)
+            return _re.sub(r"\s+", " ", text).strip()
+
+        # DOC (formato binário antigo) — não suportado direto, retorna vazio com aviso
+        if ext == "doc":
+            return ""
+
+        return ""
+    except Exception:
+        return ""
+
+
 def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
     """
     Pipeline completo de preprocessing:
@@ -5313,6 +5414,7 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
 async def validar_rotulo(
     imagem: UploadFile = File(...),
     imagens_extras: list[UploadFile] = File(default=[]),
+    memorial_files: list[UploadFile] = File(default=[]),
     obs: str = Form(default=""),
     orgao: str = Form(default=""),
     user_id: str = Form(default=""),
@@ -5452,6 +5554,44 @@ async def validar_rotulo(
             )
     else:
         extra_b64_list = []
+
+    # ─── MEMORIAL / RECEITA TÉCNICA (opcional) ─────────────────────────────
+    # Extrai texto de PDF/DOCX/HTML/TXT/RTF e injeta no obs para Sonnet usar
+    if memorial_files:
+        memorial_text_parts = []
+        MEMORIAL_TOTAL_CHAR_LIMIT = 60000  # ~15k tokens, evita estourar contexto
+        total_chars_used = 0
+        for mf in memorial_files:
+            if total_chars_used >= MEMORIAL_TOTAL_CHAR_LIMIT:
+                break
+            try:
+                mf_bytes = await mf.read()
+                mf_text = _extract_text_from_memorial(mf_bytes, mf.filename or "arquivo")
+                if mf_text and mf_text.strip():
+                    # Trunca texto extraído se passar do limite
+                    remaining = MEMORIAL_TOTAL_CHAR_LIMIT - total_chars_used
+                    if len(mf_text) > remaining:
+                        mf_text = mf_text[:remaining] + "\n[... arquivo truncado por limite de contexto ...]"
+                    memorial_text_parts.append(f"### Arquivo: {mf.filename}\n{mf_text.strip()}")
+                    total_chars_used += len(mf_text)
+            except Exception as _e:
+                # Memorial nunca pode quebrar a validação
+                if SENTRY_DSN:
+                    try:
+                        import sentry_sdk
+                        sentry_sdk.capture_exception(_e)
+                    except Exception:
+                        pass
+                continue
+        if memorial_text_parts:
+            obs = obs + (
+                "\n\n[MEMORIAL TÉCNICO / RECEITA FORNECIDO PELO RT]"
+                "\nO RT anexou o(s) seguinte(s) documento(s) técnico(s) sobre o produto. Use estas informações como REFERÊNCIA AUTORIZADA "
+                "para validar declarações do rótulo (ex: ingredientes, alérgenos, transgênicos, peso, RTIQ aplicável). "
+                "Se o rótulo CONTRADIZER o memorial, sinalize como NÃO CONFORME. "
+                "Se o memorial CONFIRMAR uma declaração ambígua do rótulo, considere CONFORME."
+                "\n\n" + "\n\n---\n\n".join(memorial_text_parts)
+            )
 
     return StreamingResponse(
         stream_validation(image_b64, mime_type, obs, orgao, extra_images=extra_b64_list,
