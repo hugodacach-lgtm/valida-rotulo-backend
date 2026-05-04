@@ -11415,22 +11415,36 @@ async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
         tags_list = [t.strip() for t in tags_list.split(",") if t.strip()]
     categoria_doc = tags_list[0] if tags_list else "geral"
 
+    # Como kb_documents NÃO tem coluna `tags`, embutimos tags + norma no conteúdo
+    # via markdown (footer técnico). Retrieval funciona via campo `categoria` + texto.
+    conteudo_base = doc.get("conteudo") or ""
+    norma_principal = (doc.get("norma_principal") or "").strip()
+    tags_str = ", ".join(tags_list) if tags_list else ""
+    footer_partes = []
+    if norma_principal:
+        footer_partes.append(f"**Norma principal:** {norma_principal}")
+    if tags_str:
+        footer_partes.append(f"**Tags:** {tags_str}")
+    footer_partes.append(f"**Origem:** Feedback aprovado (case {case_id[:16]}) por {rt_senior_email}")
+    conteudo_completo = conteudo_base.rstrip() + "\n\n---\n\n" + "\n".join(footer_partes)
+
     payload = {
         "chave": chave,
         "titulo": (doc.get("titulo") or "")[:200],
-        "conteudo": doc.get("conteudo") or "",
+        "conteudo": conteudo_completo,
         "categoria": categoria_doc,
-        "tags": ",".join(tags_list) if tags_list else "",
-        "fonte": "curadoria_humana",
+        "fonte": f"feedback_aprovado_case_{case_id[:16]}",
         "orgao": "MAPA/ANVISA",
+        "tamanho_chars": len(conteudo_completo),
+        "atualizado_em": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        # Colunas adicionadas no ALTER TABLE para rastreabilidade
         "origem": "feedback_aprovado",
         "case_id_origem": case_id,
         "aprovado_por": rt_senior_email,
         "aprovado_em": _dt.datetime.now(_dt.timezone.utc).isoformat(),
     }
 
-    # Logar payload pra debug (sem o conteudo gigante)
-    print(f"[CURADOR] Salvando doc na KB: chave={chave} categoria={categoria_doc} tags={len(tags_list)}", flush=True)
+    print(f"[CURADOR] Salvando doc na KB: chave={chave} categoria={categoria_doc} chars={len(conteudo_completo)}", flush=True)
 
     url = f"{_SUPABASE_URL}/rest/v1/kb_documents?on_conflict=chave"
     try:
