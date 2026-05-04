@@ -58,7 +58,6 @@ def buscar_pendentes() -> list[dict]:
     url = (
         f"{SUPABASE_URL}/rest/v1/validacoes"
         f"?status_curador=eq.pendente_revisao"
-        f"&feedback=not.is.null"
         f"&created_at=gte.{cutoff}"
         f"&order=created_at.desc"
         f"&limit=100"
@@ -66,7 +65,9 @@ def buscar_pendentes() -> list[dict]:
     with httpx.Client(timeout=30.0) as client:
         r = client.get(url, headers=SUPABASE_HEADERS)
         r.raise_for_status()
-        return r.json() or []
+        rows = r.json() or []
+        # Filtra Python-side: só registros com feedback preenchido
+        return [row for row in rows if row.get("feedback")]
 
 
 # ─── 2. Buscar normas relevantes na KB (contexto pra o RT senior) ──────────
