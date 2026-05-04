@@ -11170,6 +11170,38 @@ NOMES_CAMPOS_CURADOR = {
     14: "Porção Padrão",
 }
 
+# Cache em memória de docs enriquecidos pelo Sonnet
+# Garante que preview e confirmar usem o MESMO doc (Sonnet é não-determinístico)
+# TTL: 1h. Estrutura: { token: (doc, timestamp) }
+_CURADOR_DOC_CACHE: dict = {}
+_CURADOR_CACHE_TTL_SEC = 3600  # 1 hora
+
+
+def _curador_cache_get(token: str) -> dict | None:
+    """Retorna doc cacheado se ainda válido, senão None."""
+    import time as _time
+    entry = _CURADOR_DOC_CACHE.get(token)
+    if not entry:
+        return None
+    doc, ts = entry
+    if _time.time() - ts > _CURADOR_CACHE_TTL_SEC:
+        _CURADOR_DOC_CACHE.pop(token, None)
+        return None
+    return doc
+
+
+def _curador_cache_set(token: str, doc: dict) -> None:
+    """Salva doc no cache. Limpa entradas expiradas pra não vazar memória."""
+    import time as _time
+    now = _time.time()
+    # Limpeza oportunista (1% chance por chamada — evita varredura toda vez)
+    if len(_CURADOR_DOC_CACHE) > 50:
+        expired = [t for t, (_, ts) in _CURADOR_DOC_CACHE.items()
+                   if now - ts > _CURADOR_CACHE_TTL_SEC]
+        for t in expired:
+            _CURADOR_DOC_CACHE.pop(t, None)
+    _CURADOR_DOC_CACHE[token] = (doc, now)
+
 
 async def _curador_buscar_token(token: str) -> dict | None:
     """Busca token na tabela curador_tokens. Retorna None se não existe."""
@@ -11409,11 +11441,16 @@ async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
     import datetime as _dt
     chave = f"feedback_aprovado_{case_id[:16]}_c{campo_num}_{_dt.datetime.now(_dt.timezone.utc).strftime('%Y%m%d%H%M')}"
 
-    # Categoria principal vinda do doc
+    # Categoria principal: prioridade pra categoria do produto original (override)
+    # Senão, usa primeira tag
+    categoria_override = (doc.get("_categoria_override") or "").strip()
     tags_list = doc.get("tags", [])
     if isinstance(tags_list, str):
         tags_list = [t.strip() for t in tags_list.split(",") if t.strip()]
-    categoria_doc = tags_list[0] if tags_list else "geral"
+    if categoria_override:
+        categoria_doc = categoria_override
+    else:
+        categoria_doc = tags_list[0] if tags_list else "geral"
 
     # Como kb_documents NÃO tem coluna `tags`, embutimos tags + norma no conteúdo
     # via markdown (footer técnico). Retrieval funciona via campo `categoria` + texto.
@@ -11644,8 +11681,13 @@ async def curador_aprovar(token: str, confirmar: str = ""):
 
     # ─── ETAPA 1: PREVIEW (sem ?confirmar=1) ───
     if confirmar != "1":
-        # Gera doc enriquecido para preview
-        doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+        # Tenta usar cache primeiro (caso usuário recarregue a página)
+        doc = _curador_cache_get(token)
+        if not doc:
+            # Gera doc enriquecido pela primeira vez
+            doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+            # Cacheia pra próxima etapa (confirmar) usar EXATAMENTE este doc
+            _curador_cache_set(token, doc)
 
         tags_html = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in doc.get("tags", []))
         norma = doc.get("norma_principal", "") or "—"
@@ -11703,8 +11745,21 @@ async def curador_aprovar(token: str, confirmar: str = ""):
             "warn"
         ), status_code=410)
 
-    # Gera doc enriquecido (de novo, pra usar no save)
-    doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+    # Recupera o MESMO doc enriquecido que o user viu no preview
+    # (Sonnet é não-determinístico, regerar daria texto diferente)
+    doc = _curador_cache_get(token)
+    if not doc:
+        # Cache expirou (>1h entre preview e confirmar) ou usuário pulou preview
+        # Re-gera mas avisa no log
+        print(f"[CURADOR] WARN: cache vazio na confirmação, regerando doc (token={token[:8]}...)", flush=True)
+        doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+
+    # Override: categoria do doc na KB usa categoria do PRODUTO original
+    # (não a primeira tag — tag pode ser tema da correção, ex: "CNPJ")
+    categoria_produto = (fb.get("categoria") or "").strip()
+    if categoria_produto:
+        # Mantém tags originais, só forçar a categoria principal
+        doc["_categoria_override"] = categoria_produto
 
     # Salva na KB — retorna (chave, erro)
     chave_doc, erro_save = await _curador_salvar_doc_kb(doc, case_id, campo_num, rt_senior_email)
@@ -11724,6 +11779,9 @@ async def curador_aprovar(token: str, confirmar: str = ""):
 
     # Marca token como usado
     await _curador_marcar_token_usado(token)
+
+    # Limpa cache do doc (já gravou na KB, não precisa mais)
+    _CURADOR_DOC_CACHE.pop(token, None)
 
     # Atualiza status da validação
     await _curador_atualizar_status_validacao(
