@@ -28,7 +28,7 @@ import httpx
 # ─── Config ───────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")  # não usado nesta fase, opcional
 RESEND_API_KEY = os.environ["RESEND_API_KEY"]
 BACKEND_URL = os.environ.get("BACKEND_URL", "https://valida-rotulo-backend.onrender.com").rstrip("/")
 RT_SENIOR_EMAIL = os.environ.get("RT_SENIOR_EMAIL", "gipbosco@gmail.com")
@@ -41,6 +41,13 @@ SUPABASE_HEADERS = {
     "Content-Type": "application/json",
 }
 
+# Headers específicos pra GET (sem Content-Type, evita 400 em algumas versões PostgREST)
+SUPABASE_HEADERS_GET = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Accept": "application/json",
+}
+
 
 def log(msg: str) -> None:
     """Log estruturado pro GitHub Actions."""
@@ -49,45 +56,103 @@ def log(msg: str) -> None:
 
 
 # ─── 1. Buscar feedbacks pendentes ────────────────────────────────────────
+def _query_validacoes_safe(query_string: str) -> list[dict] | None:
+    """
+    Faz query GET na tabela validacoes com headers corretos pro PostgREST.
+    Retorna lista de dicts, ou None se der erro (logado).
+    """
+    url = f"{SUPABASE_URL}/rest/v1/validacoes{query_string}"
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            r = client.get(url, headers=SUPABASE_HEADERS_GET)
+            if r.status_code == 200:
+                return r.json() or []
+            # Log detalhado pro debug
+            log(f"WARN: query falhou status={r.status_code}")
+            log(f"  URL: {url[:200]}")
+            log(f"  Body: {r.text[:500]}")
+            return None
+    except Exception as e:
+        log(f"WARN: exceção na query: {e}")
+        return None
+
+
 def buscar_pendentes() -> list[dict]:
     """
-    Busca todos os feedbacks com status_curador='pendente_revisao'.
-    Limite: feedbacks dos últimos 14 dias (evita acúmulo infinito).
+    Busca feedbacks pendentes de revisão.
+
+    Estratégia em 3 níveis (vai tentando até funcionar):
+      1. Filtro completo: status_curador + janela 30d
+      2. Sem janela 30d: só status_curador
+      3. Sem nenhum filtro PostgREST: pega tudo recente, filtra Python-side
+
+    Filtra Python-side em todos os casos: só registros com `feedback` preenchido.
     """
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
-    url = (
-        f"{SUPABASE_URL}/rest/v1/validacoes"
-        f"?status_curador=eq.pendente_revisao"
-        f"&created_at=gte.{cutoff}"
-        f"&order=created_at.desc"
-        f"&limit=100"
-    )
-    with httpx.Client(timeout=30.0) as client:
-        r = client.get(url, headers=SUPABASE_HEADERS)
-        r.raise_for_status()
-        rows = r.json() or []
-        # Filtra Python-side: só registros com feedback preenchido
-        return [row for row in rows if row.get("feedback")]
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    seen_ids: set[str] = set()
+    todos: list[dict] = []
+
+    # Lista de queries em ordem de preferência (mais específica → mais ampla)
+    queries_to_try = [
+        f"?status_curador=eq.pendente_revisao&created_at=gte.{cutoff}&order=created_at.desc&limit=100",
+        f"?status_curador=eq.pendente_revisao&order=created_at.desc&limit=100",
+        f"?order=created_at.desc&limit=200",  # fallback total: tudo recente
+    ]
+
+    for i, q in enumerate(queries_to_try, start=1):
+        rows = _query_validacoes_safe(q)
+        if rows is None:
+            log(f"  Tentativa {i}/{len(queries_to_try)}: falhou, tentando próxima...")
+            continue
+
+        log(f"  Tentativa {i}/{len(queries_to_try)}: ok ({len(rows)} registros)")
+        for row in rows:
+            cid = row.get("case_id", "")
+            if not cid or cid in seen_ids:
+                continue
+            # Filtro Python-side: precisa ter feedback preenchido
+            if not row.get("feedback"):
+                continue
+            # Se for fallback (sem filtro de status), garantir status pendente
+            if i == 3:
+                status = (row.get("status_curador") or "").lower()
+                if status and status not in ("pendente_revisao", ""):
+                    continue
+            seen_ids.add(cid)
+            todos.append(row)
+        # Se conseguiu rodar (mesmo com 0 resultados), para de tentar
+        break
+
+    log(f"Total de feedbacks pendentes encontrados: {len(todos)}")
+    return todos
 
 
 # ─── 2. Buscar normas relevantes na KB (contexto pra o RT senior) ──────────
 def buscar_normas_relevantes(categoria: str, limit: int = 5) -> list[dict]:
     """
     Busca docs da KB filtrados pela categoria do produto.
-    Contexto opcional pra Giovanna no email.
+    Contexto opcional pra Giovanna no email. Falha silenciosa.
     """
     if not categoria:
         return []
-    # Filtro simplificado: usa ilike no campo tags ou categoria
+    # URL-encode da categoria (evita 400 com espaços/acentos)
+    from urllib.parse import quote
+    cat_safe = quote(categoria, safe="")
     url = (
         f"{SUPABASE_URL}/rest/v1/kb_documents"
-        f"?or=(tags.ilike.*{categoria}*,categoria.ilike.*{categoria}*)"
+        f"?or=(tags.ilike.*{cat_safe}*,categoria.ilike.*{cat_safe}*)"
         f"&limit={limit}"
     )
     with httpx.Client(timeout=20.0) as client:
         try:
-            r = client.get(url, headers=SUPABASE_HEADERS)
-            r.raise_for_status()
+            r = client.get(url, headers=SUPABASE_HEADERS_GET)
+            if r.status_code != 200:
+                # Fallback: query sem filtro `or` (algumas versões PostgREST não aceitam)
+                url2 = f"{SUPABASE_URL}/rest/v1/kb_documents?limit={limit}"
+                r2 = client.get(url2, headers=SUPABASE_HEADERS_GET)
+                if r2.status_code == 200:
+                    return r2.json() or []
+                return []
             return r.json() or []
         except Exception:
             return []
