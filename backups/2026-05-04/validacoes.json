@@ -1,0 +1,15 @@
+[
+  {
+    "case_id": "manual_hugo_rocambole_20260430",
+    "produto": "Rocambole Resfriado de Frango Recheado com Queijo e Presunto",
+    "categoria": "aves_geral",
+    "feedback": "incorreto",
+    "erros_auto": "C1: denominacao incorreta (resfriado vs congelado); C7: instrucoes de conservacao incoerentes; C2 e C3: falsos positivos do agente",
+    "erros_encontrados": "C1 (NaoConforme): denominacao deveria ser CONGELADO nao RESFRIADO (temp -18C a -12C). C7 (NaoConforme): instrucoes incoerentes (mesmo problema do C1). C2 (FalsoPositivo): exigiu INS quando facultativo. C3 (FalsoPositivo): exigiu PESO LIQUIDO quando peso variavel.",
+    "rt_comment": "PRIMEIRO FEEDBACK PRODUCAO POS-MIGRACAO SONNET 4.6 - Hugo Dacach 2026-04-30\n\n=== ORGAO ===\nSIE/RJ - carimbo 1438 - RTIQ IN 6/2001 + RIISPOA\n\n=== CORRECOES CAMPO A CAMPO ===\n\nCAMPO 1 - DENOMINACAO DE VENDA\nAgente: Conforme (1.0pt)\nRT corrige para: Nao Conforme (0pt)\nMotivo: Temperatura declarada (-18C a -12C) e de produto CONGELADO. Denominacao fala em RESFRIADO. Incoerencia tecnica. Deveria ser ROCAMBOLE CONGELADO DE FRANGO. Norma: RDC 727/2022 + IN 6/2001.\n\nCAMPO 2 - LISTA DE INGREDIENTES\nAgente: Com Ressalvas (0.5pt) - exigiu codigos INS\nRT corrige para: Conforme (1.0pt)\nMotivo: FALSO POSITIVO. Declaracao de codigos INS e FACULTATIVA pela RDC 727/2022 Art. 12 paragrafo 1. Pode-se declarar apenas nome do aditivo + funcao tecnologica OU INS, nao precisa as duas coisas.\n\nCAMPO 3 - CONTEUDO LIQUIDO\nAgente: Com Ressalvas (0.5pt) - alegou nomenclatura PESO DA EMBALAGEM incorreta\nRT corrige para: Conforme (1.0pt)\nMotivo: FALSO POSITIVO. Produto de peso variavel. Aceita formato PESO DA EMBALAGEM + DEVE SER PESADO EM PRESENCA DO CONSUMIDOR. Norma: INMETRO Port. 249/2021.\n\nCAMPO 7 - INSTRUCOES DE CONSERVACAO\nAgente: Conforme (1.0pt)\nRT corrige para: Nao Conforme (0pt)\nMotivo: Mesmo problema do C1 - rotulo fala em RESFRIADO mas temperatura e de CONGELADO. Conformidade depende de correcao do C1.\n\n=== ERRO NAO DETECTADO PELO AGENTE ===\n\nFalta INSTRUCAO DE USO OBRIGATORIA para produtos crus de ave/suino (RDC 727/2022). O rotulo NAO contem essa instrucao. Possivel motivo: agente nao conseguiu inferir cozido/cru pela imagem. Em caso de duvida, deve assumir cru e exigir.\nImpacto: -1.0pt no score real.\n\n=== SALDO DO SCORE REAL ===\n\nC1: -1.0 (Conforme -> Nao Conforme)\nC2: +0.5 (Com Ressalvas -> Conforme)\nC3: +0.5 (Com Ressalvas -> Conforme)\nC7: -1.0 (Conforme -> Nao Conforme)\nErro nao detectado (instrucao de uso): -1.0\nSaldo total: -2.0\nScore agente: 11.0/14\nScore real: 9.0/14\nVeredicto real: APROVADO COM RESSALVAS\n\n=== APRENDIZADOS ACIONAVEIS PARA O CURADOR ===\n\n1. Regra de facultatividade dos INS na RDC 727/2022 Art. 12 paragrafo 1\n2. Excecao produtos peso variavel INMETRO 249/2021\n3. Verificacao coerencia denominacao x temperatura conservacao (se temp < 0C, produto e congelado e denominacao deve refletir)\n4. Alerta instrucao de uso obrigatoria produtos crus ave/suino mesmo em duvida cozido/cru.",
+    "score_agente": 11,
+    "score_real": 9,
+    "auto_stored": false,
+    "created_at": "2026-04-30T23:07:14.407027+00:00"
+  }
+]
