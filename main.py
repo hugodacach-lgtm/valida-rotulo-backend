@@ -6220,12 +6220,42 @@ async def store_feedback(request: Request):
         falsos_pos    = body.get("falsos_positivos", "")
         erros_completo = " | ".join(filter(None, [erros_str, erros_nao_det]))
 
+        # Backfill: se frontend não mandou produto/categoria/orgao, busca da validação original
+        # (auto-store do /validar gravou esses dados antes do feedback chegar)
+        produto_in   = (body.get("produto") or "").strip()
+        categoria_in = (body.get("categoria") or "").strip()
+        orgao_in     = (body.get("orgao") or "").strip()
+        if not (produto_in and categoria_in):
+            try:
+                # Busca da validação original (auto_stored) na tabela validacoes
+                async with httpx.AsyncClient(timeout=5.0) as _client_bf:
+                    _r_bf = await _client_bf.get(
+                        f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{body.get('case_id', '')}&select=produto,categoria,orgao&limit=1",
+                        headers={
+                            "apikey": _SUPABASE_KEY,
+                            "Authorization": f"Bearer {_SUPABASE_KEY}",
+                            "Accept": "application/json",
+                        }
+                    )
+                    if _r_bf.status_code == 200:
+                        _rows_bf = _r_bf.json() or []
+                        if _rows_bf:
+                            _orig = _rows_bf[0]
+                            if not produto_in and _orig.get("produto"):
+                                produto_in = _orig["produto"]
+                            if not categoria_in and _orig.get("categoria"):
+                                categoria_in = _orig["categoria"]
+                            if not orgao_in and _orig.get("orgao"):
+                                orgao_in = _orig["orgao"]
+            except Exception:
+                pass  # backfill é best-effort, não pode quebrar feedback
+
         case = {
             "case_id":              body.get("case_id", ""),
-            "produto":              body.get("produto", ""),
-            "categoria":            body.get("categoria", ""),
+            "produto":              produto_in,
+            "categoria":            categoria_in,
             "caminho_np":           body.get("caminho_np", ""),
-            "orgao":                body.get("orgao", ""),
+            "orgao":                orgao_in,
             "feedback":             body.get("feedback", ""),
             "score_agente":         body.get("score_agente"),
             "score_real":           body.get("score_real"),
