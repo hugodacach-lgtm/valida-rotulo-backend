@@ -5003,7 +5003,9 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                 _cases_db.pop(0)
             import datetime as _dt
             supabase_case = {**auto_case, "created_at": _dt.datetime.now().isoformat()}
-            asyncio.ensure_future(_sb_upsert("validacoes", supabase_case))
+            # Remove None values
+            supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
+            asyncio.ensure_future(_sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id"))
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
 
@@ -5951,6 +5953,54 @@ async def _sb_insert(table: str, data: dict) -> bool:
     except Exception:
         return False
 
+
+async def _sb_upsert_v2(table: str, data: dict, conflict_col: str = "case_id") -> bool:
+    """
+    UPSERT robusto: usa on_conflict para fazer UPDATE quando case_id já existe.
+    Loga corpo do erro no Sentry se falhar (visibilidade real).
+    """
+    if not _SUPABASE_ON:
+        return False
+    try:
+        url = f"{_SUPABASE_URL}/rest/v1/{table}?on_conflict={conflict_col}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates,return=minimal",
+                },
+                json=data,
+            )
+            if r.status_code in (200, 201, 204):
+                return True
+            # Falhou — loga corpo da resposta no Sentry
+            err_body = ""
+            try:
+                err_body = r.text[:500]
+            except Exception:
+                pass
+            if SENTRY_DSN:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_message(
+                        f"_sb_upsert_v2 falhou | table={table} | status={r.status_code} | body={err_body} | data_keys={list(data.keys())}",
+                        level="error"
+                    )
+                except Exception:
+                    pass
+            return False
+    except Exception as e:
+        if SENTRY_DSN:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
+            except Exception:
+                pass
+        return False
+
 async def load_cases_from_supabase() -> list[dict]:
     """
     Carrega casos do Supabase para memória no startup.
@@ -6177,16 +6227,18 @@ async def store_feedback(request: Request):
             "feedback":             body.get("feedback", ""),
             "score_agente":         body.get("score_agente"),
             "score_real":           body.get("score_real"),
-            "campos_json":          _json.dumps(campos_raw, ensure_ascii=False),
+            "campos":               campos_raw if isinstance(campos_raw, dict) else {},
             "erros_encontrados":    erros_completo,
             "erros_nao_detectados": erros_nao_det,
             "falsos_positivos":     falsos_pos,
-            "acertos_campos":       ", ".join(acertos_campos),
             "rt_comment":           body.get("rt_comment", ""),
+            "total_discordancias":  body.get("total_discordancias", 0),
+            "versao_form":          body.get("versao_form", ""),
+            "status_curador":       "pendente_revisao",
             "timestamp":            _dt2.datetime.now().isoformat(),
         }
 
-        # Atualiza caso existente ou adiciona novo
+        # Atualiza caso existente ou adiciona novo (memória in-memory)
         existing = next((x for x in _cases_db if x["case_id"] == case["case_id"]), None)
         if existing:
             existing.update(case)
@@ -6195,21 +6247,35 @@ async def store_feedback(request: Request):
             if len(_cases_db) > _MAX_CASES:
                 _cases_db.pop(0)
 
-        # Persiste no Supabase
-        asyncio.ensure_future(_sb_upsert("validacoes", {
-            **case, "created_at": _dt2.datetime.now().isoformat()
-        }))
+        # Persiste no Supabase — UPSERT com conflict resolution em case_id
+        # Use await pra capturar erro e retornar status real ao frontend
+        supabase_case = {**case, "created_at": _dt2.datetime.now().isoformat()}
+        # Remove None values (Supabase rejeita)
+        supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
+        sb_ok = await _sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id")
 
         # Calcula métricas do feedback para retornar ao frontend
         campos_ok  = len(acertos_campos)
         campos_err = len(erros_campos)
         precisao   = round(campos_ok / (campos_ok + campos_err) * 100) if (campos_ok + campos_err) > 0 else None
 
+        # Se Supabase falhou, loga no Sentry pra rastrear (mas não falha pro RT
+        # — feedback fica em memória pelo menos, não perde informação)
+        if not sb_ok and SENTRY_DSN:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"Falha ao gravar feedback no Supabase | case_id={case['case_id']}",
+                    level="error"
+                )
+            except Exception:
+                pass
+
         return JSONResponse({
-            "status":         "ok",
+            "status":         "ok" if sb_ok else "ok_memoria",
             "case_id":        case["case_id"],
             "total_cases":    len(_cases_db),
-            "persistido":     _SUPABASE_ON,
+            "persistido":     sb_ok,
             "campos_corretos": campos_ok,
             "campos_errados":  campos_err,
             "precisao_pct":    precisao,
