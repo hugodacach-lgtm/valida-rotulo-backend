@@ -6,8 +6,10 @@ except ImportError:
     HAS_PYPDF = False
 import httpx
 from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+import html
+from datetime import datetime, timezone, timedelta
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SENTRY — Monitoramento de erros em produção
@@ -11101,6 +11103,663 @@ async def refresh_kb_vegetal():
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXCEPTION HANDLER (garante CORS mesmo em crashes)
+# ═══════════════════════════════════════════════════════════════════════════════
+# CURADOR — Endpoints de aprovação/rejeição de feedbacks (Fase C — Parte 2)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Fluxo:
+#  1. Curador GitHub Action (curador_diario_v2.py) roda 8h Brasília
+#  2. Manda email pra Giovanna com botões "Aprovar" / "Rejeitar"
+#  3. Cada botão tem token único (tabela curador_tokens)
+#  4. Click no link → endpoints abaixo
+#  5. Aprovação: 2 etapas (preview → confirm) — Decisão B
+#  6. Reversão: manual no Supabase (Decisão C — sem endpoint admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+NOMES_CAMPOS_CURADOR = {
+    1:  "Denominação de Venda",
+    2:  "Lista de Ingredientes",
+    3:  "Conteúdo Líquido",
+    4:  "Identificação do Fabricante",
+    5:  "Declaração de Glúten",
+    6:  "Declaração de Lactose",
+    7:  "Instruções de Conservação",
+    8:  "Carimbo de Inspeção",
+    9:  "Tabela Nutricional",
+    10: "Lupa Frontal",
+    11: "Alérgenos",
+    12: "Transgênicos",
+    13: "Lote e Validade",
+    14: "Porção Padrão",
+}
+
+
+async def _curador_buscar_token(token: str) -> dict | None:
+    """Busca token na tabela curador_tokens. Retorna None se não existe."""
+    if not _SUPABASE_ON or not token:
+        return None
+    url = f"{_SUPABASE_URL}/rest/v1/curador_tokens?token=eq.{token}&limit=1"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Accept": "application/json",
+                },
+            )
+            if r.status_code == 200:
+                rows = r.json() or []
+                return rows[0] if rows else None
+    except Exception:
+        pass
+    return None
+
+
+async def _curador_marcar_token_usado(token: str) -> bool:
+    """Marca token como usado (used_at = now)."""
+    if not _SUPABASE_ON or not token:
+        return False
+    import datetime as _dt
+    url = f"{_SUPABASE_URL}/rest/v1/curador_tokens?token=eq.{token}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.patch(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={"used_at": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+            )
+            return r.status_code in (200, 201, 204)
+    except Exception:
+        return False
+
+
+async def _curador_buscar_feedback(case_id: str) -> dict | None:
+    """Busca feedback original na validacoes pelo case_id."""
+    if not _SUPABASE_ON or not case_id:
+        return None
+    url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}&limit=1"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Accept": "application/json",
+                },
+            )
+            if r.status_code == 200:
+                rows = r.json() or []
+                return rows[0] if rows else None
+    except Exception:
+        pass
+    return None
+
+
+async def _curador_atualizar_status_validacao(case_id: str, novo_status: str,
+                                               aprovado_por: str = "",
+                                               doc_kb_gerado: str = "") -> bool:
+    """Atualiza status_curador na linha da validacoes."""
+    if not _SUPABASE_ON or not case_id:
+        return False
+    import datetime as _dt
+    payload = {"status_curador": novo_status}
+    now_iso = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    if novo_status == "aprovado":
+        payload["aprovado_por"] = aprovado_por
+        payload["aprovado_em"] = now_iso
+        if doc_kb_gerado:
+            payload["doc_kb_gerado"] = doc_kb_gerado
+    elif novo_status == "rejeitado":
+        payload["rejeitado_em"] = now_iso
+
+    url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.patch(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json=payload,
+            )
+            return r.status_code in (200, 201, 204)
+    except Exception:
+        return False
+
+
+async def _curador_enriquecer_correcao(feedback: dict, campo_num: int,
+                                        comentario_rt: str) -> dict:
+    """
+    Skill B com guarda-rails: pede pro Sonnet 4.5 transformar a correção do RT
+    em um doc estruturado pra KB. Não permite invenção de fatos.
+
+    Retorna: { "titulo": "...", "conteudo": "...", "tags": [...], "norma_principal": "..." }
+    """
+    if not ANTHROPIC_API_KEY:
+        return {
+            "titulo": f"Correção C{campo_num} — {NOMES_CAMPOS_CURADOR.get(campo_num, '')}",
+            "conteudo": comentario_rt,
+            "tags": [feedback.get("categoria", ""), f"campo_{campo_num}", "feedback_aprovado"],
+            "norma_principal": "",
+        }
+
+    nome_campo = NOMES_CAMPOS_CURADOR.get(campo_num, f"Campo {campo_num}")
+    categoria = feedback.get("categoria", "geral") or "geral"
+    produto_exemplo = feedback.get("produto", "")
+
+    system_prompt = """Você é um curador técnico especializado em rotulagem de alimentos brasileira.
+
+Sua missão: transformar uma correção de RT (Responsável Técnico) em um documento conciso \
+e estruturado para a base de conhecimento de uma IA de validação de rótulos.
+
+REGRAS CRÍTICAS DE GUARDA-RAILS:
+1. NÃO invente fatos. Use APENAS o que o RT escreveu na correção.
+2. NÃO invente artigos/parágrafos de normas. Se o RT cita "RDC 727 Art. 12 §1°", use exatamente essa referência.
+3. Se o RT for vago ("isso está errado"), o doc final deve ser igualmente conservador.
+4. Você PODE reformatar pra ficar técnico/legível, mas NÃO PODE adicionar interpretações novas.
+5. NÃO invente tipos de produto ou cenários que o RT não mencionou.
+
+ESTRUTURA DO DOC GERADO:
+- Título: curto e descritivo (≤ 80 chars)
+- Conteúdo: 2-4 parágrafos. Começa com a regra/exceção, depois exemplo do RT (se houver), \
+depois implicação prática. Cita norma exata.
+- Tags: 3-5 palavras-chave para retrieval
+
+Responda APENAS em JSON válido, sem markdown. Schema:
+{
+  "titulo": "string ≤ 80 chars",
+  "conteudo": "string em markdown, 2-4 parágrafos",
+  "tags": ["tag1", "tag2", "tag3"],
+  "norma_principal": "string — ex: 'RDC 727/2022 Art. 12 §1°' ou '' se não houver"
+}"""
+
+    user_msg = f"""Categoria do produto: {categoria}
+Campo da rotulagem: C{campo_num} — {nome_campo}
+Produto de exemplo (se útil pra contexto): {produto_exemplo or '(não relevante)'}
+
+CORREÇÃO LITERAL DO RT:
+\"\"\"{comentario_rt}\"\"\"
+
+Gere o doc estruturado JSON conforme as regras."""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-5",
+                    "max_tokens": 1500,
+                    "system": system_prompt,
+                    "messages": [{"role": "user", "content": user_msg}],
+                },
+            )
+            if r.status_code != 200:
+                raise Exception(f"Anthropic API: {r.status_code} {r.text[:200]}")
+
+            content = r.json().get("content", [])
+            if not content:
+                raise Exception("Resposta vazia do Sonnet")
+
+            texto = content[0].get("text", "").strip()
+            # Remove cercas markdown se aparecerem
+            if texto.startswith("```"):
+                texto = texto.split("```")[1]
+                if texto.startswith("json"):
+                    texto = texto[4:]
+                texto = texto.strip()
+
+            doc = json.loads(texto)
+
+            # Garantir campos mínimos
+            doc.setdefault("titulo", f"Correção C{campo_num} — {nome_campo}")
+            doc.setdefault("conteudo", comentario_rt)
+            doc.setdefault("tags", [categoria, f"campo_{campo_num}"])
+            doc.setdefault("norma_principal", "")
+
+            # Sempre adiciona tag de origem
+            tags = doc.get("tags", [])
+            if "feedback_aprovado" not in tags:
+                tags.append("feedback_aprovado")
+            doc["tags"] = tags
+
+            return doc
+
+    except Exception as e:
+        if SENTRY_DSN:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"Curador: falha ao enriquecer correção via Sonnet | erro={e}",
+                    level="warning"
+                )
+            except Exception:
+                pass
+        # Fallback: usa correção literal do RT
+        return {
+            "titulo": f"Correção C{campo_num} — {nome_campo}",
+            "conteudo": comentario_rt,
+            "tags": [categoria, f"campo_{campo_num}", "feedback_aprovado"],
+            "norma_principal": "",
+        }
+
+
+async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
+                                  rt_senior_email: str) -> str:
+    """
+    Salva o doc enriquecido em kb_documents.
+    Retorna a chave do doc gerado, ou string vazia se falhou.
+    """
+    if not _SUPABASE_ON:
+        return ""
+    import datetime as _dt
+    chave = f"feedback_aprovado_{case_id[:16]}_c{campo_num}_{_dt.datetime.now(_dt.timezone.utc).strftime('%Y%m%d%H%M')}"
+
+    payload = {
+        "chave": chave,
+        "titulo": doc.get("titulo", "")[:200],
+        "conteudo": doc.get("conteudo", ""),
+        "categoria": doc.get("tags", [""])[0] if doc.get("tags") else "geral",
+        "tags": ",".join(doc.get("tags", [])),
+        "fonte": "curadoria_humana",
+        "orgao": "MAPA/ANVISA",
+        "origem": "feedback_aprovado",
+        "case_id_origem": case_id,
+        "aprovado_por": rt_senior_email,
+        "aprovado_em": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    }
+
+    url = f"{_SUPABASE_URL}/rest/v1/kb_documents?on_conflict=chave"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(
+                url,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates,return=minimal",
+                },
+                json=payload,
+            )
+            if r.status_code in (200, 201, 204):
+                return chave
+            # Log erro detalhado
+            if SENTRY_DSN:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_message(
+                        f"Curador: falha ao salvar doc na KB | status={r.status_code} body={r.text[:300]}",
+                        level="error"
+                    )
+                except Exception:
+                    pass
+            return ""
+    except Exception as e:
+        if SENTRY_DSN:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
+            except Exception:
+                pass
+        return ""
+
+
+def _render_curador_html(title: str, body: str, status_class: str = "ok") -> str:
+    """
+    Página HTML simples de resposta do curador.
+    status_class: 'ok' | 'error' | 'preview'
+    """
+    color = {
+        "ok":      "#166534",
+        "error":   "#992f2a",
+        "preview": "#9c5a0e",
+        "warn":    "#9c5a0e",
+    }.get(status_class, "#166534")
+
+    bg_soft = {
+        "ok":      "#E8F0EA",
+        "error":   "#F0DDDB",
+        "preview": "#F5EBD8",
+        "warn":    "#F5EBD8",
+    }.get(status_class, "#E8F0EA")
+
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title} · InspectIA Curadoria</title>
+<style>
+  body {{ margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0ede3; color: #0f2a20; padding: 40px 16px; }}
+  .container {{ max-width: 640px; margin: 0 auto; }}
+  .header {{ background: #0F2A20; color: #fff; padding: 18px 24px; border-radius: 10px 10px 0 0; font-size: 14px; font-weight: 600; }}
+  .header small {{ display: block; color: #a8a4a0; font-size: 11px; margin-top: 4px; font-weight: 400; }}
+  .card {{ background: #fff; border: 1px solid #e2ded2; border-top: none; border-radius: 0 0 10px 10px; padding: 28px 24px; }}
+  h1 {{ color: {color}; font-size: 22px; margin: 0 0 16px; }}
+  .status-bar {{ background: {bg_soft}; border-left: 4px solid {color}; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }}
+  .doc-preview {{ background: #fbfaf6; border: 1px solid #e2ded2; border-radius: 8px; padding: 18px 20px; margin: 16px 0; }}
+  .doc-preview h3 {{ font-size: 11px; color: #6b6757; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px; font-weight: 600; }}
+  .doc-preview .titulo {{ font-size: 15px; font-weight: 600; color: #091a14; margin-bottom: 10px; }}
+  .doc-preview .conteudo {{ font-size: 13px; color: #0f2a20; line-height: 1.6; white-space: pre-wrap; }}
+  .doc-preview .tags {{ margin-top: 12px; }}
+  .doc-preview .tag {{ display: inline-block; background: #e8f0ea; color: #166534; font-size: 10px; padding: 3px 8px; border-radius: 10px; margin-right: 4px; }}
+  .actions {{ margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; }}
+  .btn {{ display: inline-block; padding: 11px 22px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; font-family: inherit; }}
+  .btn-primary {{ background: #166534; color: #fff; }}
+  .btn-primary:hover {{ background: #0E4A26; }}
+  .btn-secondary {{ background: #fff; color: #0f2a20; border: 1px solid #d9d2be; }}
+  .btn-secondary:hover {{ background: #fbfaf6; }}
+  .footer {{ text-align: center; color: #6b6757; font-size: 11px; margin-top: 24px; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">📋 InspectIA · Curadoria<small>Revisão de feedback de RT</small></div>
+  <div class="card">
+    <h1>{title}</h1>
+    {body}
+  </div>
+  <div class="footer">InspectIA · Validador de Rótulos com IA · {datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y %H:%M")} BRT</div>
+</div>
+</body>
+</html>"""
+
+
+@app.get("/curador/aprovar/{token}")
+async def curador_aprovar(token: str, confirmar: str = ""):
+    """
+    Aprovação em 2 etapas (Decisão B):
+      1. Click do email → mostra preview do doc enriquecido
+      2. User clica "Confirmar e salvar na KB" → salva
+    """
+    from datetime import datetime as _dtcls, timezone as _tz, timedelta as _td
+
+    # 1. Valida token
+    tok = await _curador_buscar_token(token)
+    if not tok:
+        return HTMLResponse(_render_curador_html(
+            "Token inválido",
+            "<div class='status-bar'>Este link de aprovação não existe ou já foi processado.</div>"
+            "<p style='font-size:13px;color:#6b6757'>Se você acabou de clicar em um email do InspectIA e está vendo esta mensagem, "
+            "provavelmente o link já foi usado ou foi aprovado/rejeitado em outra sessão. Tudo certo, não há ação adicional necessária.</p>",
+            "error"
+        ), status_code=404)
+
+    if tok.get("acao") != "aprovar":
+        return HTMLResponse(_render_curador_html(
+            "Token de tipo errado",
+            f"<div class='status-bar'>Este token é para ação '{tok.get('acao')}', não 'aprovar'.</div>",
+            "error"
+        ), status_code=400)
+
+    if tok.get("used_at"):
+        return HTMLResponse(_render_curador_html(
+            "Token já usado",
+            f"<div class='status-bar'>Esta correção já foi processada em {tok.get('used_at', '?')}.</div>",
+            "warn"
+        ), status_code=410)
+
+    # Verifica expiração
+    expires_at = tok.get("expires_at")
+    if expires_at:
+        try:
+            exp_dt = _dtcls.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if exp_dt < _dtcls.now(_tz.utc):
+                return HTMLResponse(_render_curador_html(
+                    "Token expirado",
+                    f"<div class='status-bar'>Este link expirou em {expires_at[:10]}. "
+                    "O feedback voltará na próxima rodada do curador (manhã seguinte).</div>",
+                    "warn"
+                ), status_code=410)
+        except Exception:
+            pass
+
+    case_id = tok.get("case_id", "")
+    campo_num = tok.get("campo_num", 0)
+    rt_senior_email = tok.get("rt_senior_email", "")
+
+    # 2. Busca feedback original
+    fb = await _curador_buscar_feedback(case_id)
+    if not fb:
+        return HTMLResponse(_render_curador_html(
+            "Feedback não encontrado",
+            f"<div class='status-bar'>O feedback original (case_id={case_id[:24]}) não existe mais na base.</div>",
+            "error"
+        ), status_code=404)
+
+    # Extrai comentário do RT pra esse campo específico
+    campos = fb.get("campos") or {}
+    if isinstance(campos, str):
+        try:
+            campos = json.loads(campos)
+        except Exception:
+            campos = {}
+    campo_dados = campos.get(str(campo_num)) or campos.get(campo_num) or {}
+    comentario_rt = (campo_dados.get("comentario") or "").strip()
+
+    if not comentario_rt:
+        return HTMLResponse(_render_curador_html(
+            "Sem correção para aprovar",
+            f"<div class='status-bar'>O Campo {campo_num} não tem comentário do RT — nada para virar conhecimento.</div>",
+            "warn"
+        ), status_code=400)
+
+    nome_campo = NOMES_CAMPOS_CURADOR.get(campo_num, f"Campo {campo_num}")
+
+    # ─── ETAPA 1: PREVIEW (sem ?confirmar=1) ───
+    if confirmar != "1":
+        # Gera doc enriquecido para preview
+        doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+
+        tags_html = "".join(f'<span class="tag">{html.escape(t)}</span>' for t in doc.get("tags", []))
+        norma = doc.get("norma_principal", "") or "—"
+        produto = fb.get("produto", "—")
+
+        body = f"""
+        <div class='status-bar'>Revisão antes de salvar na KB · Campo {campo_num} — {html.escape(nome_campo)}</div>
+
+        <p style='font-size:13px;color:#6b6757;margin-bottom:18px;line-height:1.6'>
+          Você está prestes a salvar este aprendizado na base de conhecimento da IA.<br>
+          Confira o conteúdo abaixo. Se algo estiver impreciso, clique em <strong>Cancelar</strong> e edite manualmente o feedback no Supabase.
+        </p>
+
+        <div class='doc-preview'>
+          <h3>📄 Doc que será salvo na KB</h3>
+          <div class='titulo'>{html.escape(doc.get("titulo", ""))}</div>
+          <div class='conteudo'>{html.escape(doc.get("conteudo", ""))}</div>
+          <div class='tags'>{tags_html}</div>
+        </div>
+
+        <div class='doc-preview' style='background:#f5ebd8;border-color:#ddc18b'>
+          <h3>👤 Correção literal do RT</h3>
+          <div style='font-size:13px;color:#0f2a20;line-height:1.6;font-style:italic'>"{html.escape(comentario_rt)}"</div>
+        </div>
+
+        <div style='font-size:11px;color:#6b6757;margin-top:12px'>
+          <div><strong>Produto de origem:</strong> {html.escape(str(produto))}</div>
+          <div><strong>Norma principal identificada:</strong> {html.escape(norma)}</div>
+          <div><strong>case_id:</strong> <code style='font-size:10px'>{html.escape(case_id[:24])}</code></div>
+        </div>
+
+        <div class='actions'>
+          <a href='/curador/aprovar/{token}?confirmar=1' class='btn btn-primary'>✓ Confirmar e salvar na KB</a>
+          <a href='/curador/rejeitar/{token.replace(token, "")}' onclick='return false' class='btn btn-secondary' style='opacity:0.5;cursor:not-allowed' title='Use o link de Rejeitar do email'>Cancelar</a>
+        </div>
+        <p style='font-size:11px;color:#a8a4a0;margin-top:14px'>
+          Para rejeitar esta correção em vez de aprovar, volte ao email e clique em "✗ Rejeitar".
+        </p>
+        """
+
+        return HTMLResponse(_render_curador_html(
+            f"Aprovar Campo {campo_num}",
+            body,
+            "preview"
+        ))
+
+    # ─── ETAPA 2: CONFIRMAÇÃO (com ?confirmar=1) ───
+
+    # Re-verifica que token ainda não foi usado (race condition)
+    tok_check = await _curador_buscar_token(token)
+    if not tok_check or tok_check.get("used_at"):
+        return HTMLResponse(_render_curador_html(
+            "Token já foi usado",
+            "<div class='status-bar'>Outra aba ou click já processou esta correção.</div>",
+            "warn"
+        ), status_code=410)
+
+    # Gera doc enriquecido (de novo, pra usar no save)
+    doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
+
+    # Salva na KB
+    chave_doc = await _curador_salvar_doc_kb(doc, case_id, campo_num, rt_senior_email)
+
+    if not chave_doc:
+        return HTMLResponse(_render_curador_html(
+            "Erro ao salvar",
+            "<div class='status-bar'>Não foi possível salvar o doc na KB. Tente novamente em alguns minutos. "
+            "Se persistir, entre em contato com o admin.</div>",
+            "error"
+        ), status_code=500)
+
+    # Marca token como usado
+    await _curador_marcar_token_usado(token)
+
+    # Atualiza status da validação
+    await _curador_atualizar_status_validacao(
+        case_id=case_id,
+        novo_status="aprovado",
+        aprovado_por=rt_senior_email,
+        doc_kb_gerado=chave_doc,
+    )
+
+    # Limpa cache da KB pra próxima validação carregar o doc novo
+    try:
+        global _KB_CACHE_BY_CATEGORY, _KB_CACHE_TIMESTAMP
+        _KB_CACHE_BY_CATEGORY = {}
+        _KB_CACHE_TIMESTAMP = 0
+    except Exception:
+        pass
+
+    body = f"""
+    <div class='status-bar'>✓ Correção aprovada e salva na base de conhecimento</div>
+    <p style='font-size:13px;color:#0f2a20;line-height:1.7'>
+      Obrigada, <strong>Giovanna</strong>! O aprendizado foi incorporado.
+    </p>
+    <div class='doc-preview'>
+      <h3>📚 Doc salvo na KB</h3>
+      <div class='titulo'>{html.escape(doc.get("titulo", ""))}</div>
+      <div style='font-size:11px;color:#6b6757;margin-top:8px'>
+        Chave: <code>{html.escape(chave_doc)}</code>
+      </div>
+    </div>
+    <p style='font-size:12px;color:#6b6757;margin-top:18px;line-height:1.6'>
+      Próximas validações de produtos da categoria <strong>{html.escape(fb.get('categoria') or 'similar')}</strong> automaticamente
+      consultarão este conhecimento. A IA vai aprender com sua correção.
+    </p>
+    <p style='font-size:11px;color:#a8a4a0;margin-top:18px'>
+      Para reverter (raro), o admin pode deletar a linha com chave <code>{html.escape(chave_doc)}</code> diretamente na tabela <code>kb_documents</code> do Supabase.
+    </p>
+    """
+
+    return HTMLResponse(_render_curador_html(
+        f"Aprovado · Campo {campo_num}",
+        body,
+        "ok"
+    ))
+
+
+@app.get("/curador/rejeitar/{token}")
+async def curador_rejeitar(token: str):
+    """
+    Rejeição em 1 click (mais simples — descartar não precisa preview).
+    """
+    from datetime import datetime as _dtcls, timezone as _tz
+
+    tok = await _curador_buscar_token(token)
+    if not tok:
+        return HTMLResponse(_render_curador_html(
+            "Token inválido",
+            "<div class='status-bar'>Este link de rejeição não existe ou já foi processado.</div>",
+            "error"
+        ), status_code=404)
+
+    if tok.get("acao") != "rejeitar":
+        return HTMLResponse(_render_curador_html(
+            "Token de tipo errado",
+            f"<div class='status-bar'>Este token é para ação '{tok.get('acao')}', não 'rejeitar'.</div>",
+            "error"
+        ), status_code=400)
+
+    if tok.get("used_at"):
+        return HTMLResponse(_render_curador_html(
+            "Já processado",
+            f"<div class='status-bar'>Esta correção já foi rejeitada em {tok.get('used_at', '?')}.</div>",
+            "warn"
+        ), status_code=410)
+
+    # Verifica expiração
+    expires_at = tok.get("expires_at")
+    if expires_at:
+        try:
+            exp_dt = _dtcls.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if exp_dt < _dtcls.now(_tz.utc):
+                return HTMLResponse(_render_curador_html(
+                    "Token expirado",
+                    f"<div class='status-bar'>Este link expirou em {expires_at[:10]}.</div>",
+                    "warn"
+                ), status_code=410)
+        except Exception:
+            pass
+
+    case_id = tok.get("case_id", "")
+    campo_num = tok.get("campo_num", 0)
+
+    # Marca token usado
+    await _curador_marcar_token_usado(token)
+
+    # Atualiza status da validação
+    await _curador_atualizar_status_validacao(case_id, "rejeitado")
+
+    nome_campo = NOMES_CAMPOS_CURADOR.get(campo_num, f"Campo {campo_num}")
+
+    body = f"""
+    <div class='status-bar'>✗ Correção rejeitada</div>
+    <p style='font-size:13px;color:#0f2a20;line-height:1.7'>
+      A correção do Campo {campo_num} ({html.escape(nome_campo)}) foi descartada.
+      <strong>Nada será adicionado à KB.</strong>
+    </p>
+    <p style='font-size:12px;color:#6b6757;margin-top:14px;line-height:1.6'>
+      O agente continuará validando rótulos como antes. Se houver outras correções neste mesmo feedback,
+      você pode aprovar/rejeitar separadamente pelo email original.
+    </p>
+    <p style='font-size:11px;color:#a8a4a0;margin-top:18px'>
+      case_id: <code>{html.escape(case_id[:24])}</code>
+    </p>
+    """
+
+    return HTMLResponse(_render_curador_html(
+        f"Rejeitado · Campo {campo_num}",
+        body,
+        "ok"
+    ))
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 from fastapi import Request as _Request
 
