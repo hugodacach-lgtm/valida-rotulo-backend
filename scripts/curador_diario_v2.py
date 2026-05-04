@@ -88,7 +88,8 @@ def buscar_pendentes() -> list[dict]:
 
     Filtra Python-side em todos os casos: só registros com `feedback` preenchido.
     """
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    # Usa formato Z (UTC) em vez de +00:00 — evita ser interpretado como espaço em URL
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat().replace("+00:00", "Z")
     seen_ids: set[str] = set()
     todos: list[dict] = []
 
@@ -387,8 +388,15 @@ def html_escape(s: Any) -> str:
 
 
 # ─── 6. Enviar email via Resend ───────────────────────────────────────────
-def enviar_email(to: str, subject: str, html: str, cc: list[str] | None = None) -> bool:
-    """Envia email via Resend API."""
+def enviar_email(to: str, subject: str, html: str, cc: list[str] | None = None,
+                 _is_retry: bool = False) -> bool:
+    """
+    Envia email via Resend API.
+
+    Workaround Resend sandbox: se der 403 (domínio não verificado), faz retry
+    enviando SÓ pro ADMIN_EMAIL, com aviso no topo do email.
+    Permite testar fluxo completo enquanto domínio próprio não está configurado.
+    """
     payload = {
         "from": "InspectIA Curadoria <onboarding@resend.dev>",
         "to": [to],
@@ -410,9 +418,24 @@ def enviar_email(to: str, subject: str, html: str, cc: list[str] | None = None) 
         if r.status_code in (200, 201, 202):
             log(f"Email enviado para {to} (id={r.json().get('id', '—')})")
             return True
-        else:
-            log(f"ERRO ao enviar email: status={r.status_code} body={r.text[:300]}")
-            return False
+
+        body_txt = r.text[:500]
+        log(f"ERRO ao enviar email: status={r.status_code} body={body_txt[:300]}")
+
+        # Workaround sandbox Resend: se 403 + domain not verified, retry só pro admin
+        if (not _is_retry
+            and r.status_code == 403
+            and "verify a domain" in body_txt
+            and to != ADMIN_EMAIL):
+            log("⚠ Resend em modo sandbox — enviando SÓ pro admin como fallback")
+            aviso = f"""<div style="background:#F5EBD8;border:2px solid #9c5a0e;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#0f2a20;">
+<strong>⚠ Modo sandbox Resend</strong><br>
+Este email seria enviado para <strong>{to}</strong>, mas o domínio próprio ainda não está verificado no Resend.<br>
+Por enquanto, todo o conteúdo está vindo só pra você (admin). Para enviar pra outros destinatários, configure um domínio em <a href="https://resend.com/domains">resend.com/domains</a>.
+</div>"""
+            html_with_warn = aviso + html
+            return enviar_email(ADMIN_EMAIL, f"[SANDBOX] {subject}", html_with_warn, cc=None, _is_retry=True)
+        return False
 
 
 # ─── 7. Marcar feedbacks como já-emailed (evita reenviar) ─────────────────
