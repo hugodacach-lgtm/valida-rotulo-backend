@@ -21,6 +21,7 @@ try:
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     from sentry_sdk.integrations.httpx import HttpxIntegration
     _SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+    SENTRY_DSN = _SENTRY_DSN  # alias compat — algumas funções usam sem underscore
     if _SENTRY_DSN:
         sentry_sdk.init(
             dsn=_SENTRY_DSN,
@@ -32,6 +33,12 @@ try:
         )
 except ImportError:
     pass  # sentry-sdk não instalado — sem monitoramento, sem crash
+
+# Garantia: SENTRY_DSN sempre definido no escopo global (mesmo se sentry_sdk falhou)
+if "SENTRY_DSN" not in dir():
+    SENTRY_DSN = ""
+if "_SENTRY_DSN" not in dir():
+    _SENTRY_DSN = ""
 
 app = FastAPI(title="ValidaRótulo IA v7 — Cobertura Universal: POA + Vegetais + Bebidas + Suplementos")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -11390,22 +11397,30 @@ Gere o doc estruturado JSON conforme as regras."""
 
 
 async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
-                                  rt_senior_email: str) -> str:
+                                  rt_senior_email: str) -> tuple[str, str]:
     """
     Salva o doc enriquecido em kb_documents.
-    Retorna a chave do doc gerado, ou string vazia se falhou.
+    Retorna (chave_gerada, erro). Se sucesso: ("chave_xyz", "").
+    Se falha: ("", "mensagem de erro detalhada").
     """
     if not _SUPABASE_ON:
-        return ""
+        return ("", "Supabase não configurado")
+
     import datetime as _dt
     chave = f"feedback_aprovado_{case_id[:16]}_c{campo_num}_{_dt.datetime.now(_dt.timezone.utc).strftime('%Y%m%d%H%M')}"
 
+    # Categoria principal vinda do doc
+    tags_list = doc.get("tags", [])
+    if isinstance(tags_list, str):
+        tags_list = [t.strip() for t in tags_list.split(",") if t.strip()]
+    categoria_doc = tags_list[0] if tags_list else "geral"
+
     payload = {
         "chave": chave,
-        "titulo": doc.get("titulo", "")[:200],
-        "conteudo": doc.get("conteudo", ""),
-        "categoria": doc.get("tags", [""])[0] if doc.get("tags") else "geral",
-        "tags": ",".join(doc.get("tags", [])),
+        "titulo": (doc.get("titulo") or "")[:200],
+        "conteudo": doc.get("conteudo") or "",
+        "categoria": categoria_doc,
+        "tags": ",".join(tags_list) if tags_list else "",
         "fonte": "curadoria_humana",
         "orgao": "MAPA/ANVISA",
         "origem": "feedback_aprovado",
@@ -11413,6 +11428,9 @@ async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
         "aprovado_por": rt_senior_email,
         "aprovado_em": _dt.datetime.now(_dt.timezone.utc).isoformat(),
     }
+
+    # Logar payload pra debug (sem o conteudo gigante)
+    print(f"[CURADOR] Salvando doc na KB: chave={chave} categoria={categoria_doc} tags={len(tags_list)}", flush=True)
 
     url = f"{_SUPABASE_URL}/rest/v1/kb_documents?on_conflict=chave"
     try:
@@ -11428,26 +11446,44 @@ async def _curador_salvar_doc_kb(doc: dict, case_id: str, campo_num: int,
                 json=payload,
             )
             if r.status_code in (200, 201, 204):
-                return chave
-            # Log erro detalhado
-            if SENTRY_DSN:
-                try:
+                print(f"[CURADOR] ✓ Doc salvo: {chave}", flush=True)
+                return (chave, "")
+
+            # Falha — extrai mensagem do PostgREST pra UI
+            err_msg = f"Supabase {r.status_code}"
+            try:
+                err_body = r.json()
+                if isinstance(err_body, dict):
+                    err_msg = err_body.get("message") or err_body.get("hint") or err_msg
+                    if err_body.get("details"):
+                        err_msg += f" — {err_body['details']}"
+            except Exception:
+                err_msg = f"Supabase {r.status_code}: {r.text[:200]}"
+
+            print(f"[CURADOR] ✗ Falha ao salvar: {err_msg}", flush=True)
+
+            # Log opcional no Sentry (com try/except robusto)
+            try:
+                if globals().get("SENTRY_DSN"):
                     import sentry_sdk
                     sentry_sdk.capture_message(
-                        f"Curador: falha ao salvar doc na KB | status={r.status_code} body={r.text[:300]}",
+                        f"Curador: falha save KB | status={r.status_code} body={r.text[:300]}",
                         level="error"
                     )
-                except Exception:
-                    pass
-            return ""
-    except Exception as e:
-        if SENTRY_DSN:
-            try:
-                import sentry_sdk
-                sentry_sdk.capture_exception(e)
             except Exception:
                 pass
-        return ""
+
+            return ("", err_msg)
+    except Exception as e:
+        err_msg = f"Exceção ao salvar: {type(e).__name__}: {str(e)[:200]}"
+        print(f"[CURADOR] ✗ {err_msg}", flush=True)
+        try:
+            if globals().get("SENTRY_DSN"):
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
+        except Exception:
+            pass
+        return ("", err_msg)
 
 
 def _render_curador_html(title: str, body: str, status_class: str = "ok") -> str:
@@ -11656,14 +11692,19 @@ async def curador_aprovar(token: str, confirmar: str = ""):
     # Gera doc enriquecido (de novo, pra usar no save)
     doc = await _curador_enriquecer_correcao(fb, campo_num, comentario_rt)
 
-    # Salva na KB
-    chave_doc = await _curador_salvar_doc_kb(doc, case_id, campo_num, rt_senior_email)
+    # Salva na KB — retorna (chave, erro)
+    chave_doc, erro_save = await _curador_salvar_doc_kb(doc, case_id, campo_num, rt_senior_email)
 
     if not chave_doc:
+        # Mostra erro detalhado pro RT senior poder reportar
         return HTMLResponse(_render_curador_html(
             "Erro ao salvar",
-            "<div class='status-bar'>Não foi possível salvar o doc na KB. Tente novamente em alguns minutos. "
-            "Se persistir, entre em contato com o admin.</div>",
+            f"<div class='status-bar'>Não foi possível salvar o doc na KB.</div>"
+            f"<p style='font-size:13px;color:#0f2a20;margin:14px 0;line-height:1.6'>"
+            f"<strong>Erro técnico:</strong> {html.escape(erro_save or 'sem detalhes')}</p>"
+            f"<p style='font-size:12px;color:#6b6757'>"
+            f"O token <strong>NÃO</strong> foi consumido — você pode tentar novamente clicando no link do email. "
+            f"Se persistir, mande este erro para o Hugo (hugodacach@gmail.com).</p>",
             "error"
         ), status_code=500)
 
