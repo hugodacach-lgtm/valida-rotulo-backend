@@ -1,0 +1,38 @@
+name: Curador Diário Email — InspectIA
+
+on:
+  schedule:
+    # 11:00 UTC = 08:00 Brasília (BRT/UTC-3)
+    # Roda todos os dias
+    - cron: '0 11 * * *'
+  workflow_dispatch:  # Permite trigger manual via GitHub UI (útil pra testar)
+
+jobs:
+  curador-diario:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx anthropic resend
+
+      - name: Run curador diário
+        env:
+          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:       ${{ secrets.SUPABASE_KEY }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY:     ${{ secrets.RESEND_API_KEY }}
+          BACKEND_URL:        ${{ secrets.BACKEND_URL }}
+          RT_SENIOR_EMAIL:    ${{ secrets.RT_SENIOR_EMAIL }}
+          ADMIN_EMAIL:        ${{ secrets.ADMIN_EMAIL }}
+        run: python scripts/curador_diario_v2.py
