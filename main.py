@@ -4365,6 +4365,22 @@ Comece DIRETAMENTE com o título "PASSO 1 — IDENTIFICAÇÃO DO PRODUTO" e siga
 REGRAS GERAIS:
 • Ao final do relatório, você DEVE escrever uma linha "SCORE: X.X/14 | N conformes + N com ressalvas + N não conformes" e uma linha "VEREDICTO: [APROVADO | APROVADO COM RESSALVAS | REPROVADO]". Essas linhas são PARSEADAS pelo sistema — não as omita.
 • Score 3 níveis: ✅ CONFORME (1.0pt) | ⚠️ COM RESSALVAS (0.5pt) | ❌ NÃO CONFORME (0pt).
+
+🔢 REGRA MATEMÁTICA OBRIGATÓRIA — VERIFIQUE ANTES DE ESCREVER O SCORE FINAL:
+ANTES de escrever a linha "SCORE: X.X/14...", FAÇA EXPLICITAMENTE em sua mente esta soma:
+1. CONTE quantos campos (de C1 a C14) você marcou como ✅ CONFORME → chame esse número de CONFORMES
+2. CONTE quantos campos você marcou como ⚠️ COM RESSALVAS → chame esse número de RESSALVAS
+3. CONTE quantos campos você marcou como ❌ NÃO CONFORME ou ⚠️ AUSENTE → chame esse número de NAO_CONFORMES
+4. VALIDAÇÃO: CONFORMES + RESSALVAS + NAO_CONFORMES DEVE = 14. Se não bater, REVISE sua contagem.
+5. SCORE = CONFORMES × 1.0 + RESSALVAS × 0.5 + NAO_CONFORMES × 0
+6. Escreva: "SCORE: [SCORE calculado]/14 | [CONFORMES] conformes + [RESSALVAS] com ressalvas + [NAO_CONFORMES] não conformes"
+
+EXEMPLO CORRETO: Se você marcou 9 ✅, 1 ⚠️, 4 ❌, então:
+SCORE = 9 × 1.0 + 1 × 0.5 + 4 × 0 = 9.5/14
+Linha: "SCORE: 9.5/14 | 9 conformes + 1 com ressalvas + 4 não conformes"
+
+⚠️ PROIBIDO escrever números na linha SCORE diferentes do que você marcou nos campos individuais. O sistema VERIFICA e contradição quebra a confiança do RT no relatório.
+
 • APROVADO: score ≥ 13.0/14 sem não conformidade crítica.
 • APROVADO COM RESSALVAS: score 8.0–12.5/14, corrigíveis.
 • REPROVADO: score < 8.0/14 OU sem carimbo/registro/denominação/alérgenos/tabela nutricional.
@@ -6410,6 +6426,7 @@ async def export_feedback(format: str = "json"):
 async def gerar_relatorio_pdf(request: Request):
     """
     Gera PDF formal do relatório para entrega ao cliente.
+    Layout fiel à UI: identidade InspectIA, score panel, cards de campo coloridos.
     Body JSON: { produto, relatorio, score, veredicto, nome_rt, crm_rt, case_id }
     """
     try:
@@ -6417,157 +6434,559 @@ async def gerar_relatorio_pdf(request: Request):
         from reportlab.lib.units import mm
         from reportlab.lib import colors
         from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
-                                        Table, TableStyle, HRFlowable)
+                                        Table, TableStyle, HRFlowable, KeepTogether,
+                                        PageBreak, Flowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-        import io as _io, datetime as _dt
+        import io as _io, datetime as _dt, re as _re
 
         body = await request.json()
         produto   = body.get("produto", "Produto não identificado")
         relatorio = body.get("relatorio", "")
         score     = body.get("score")
-        veredicto = (body.get("veredicto") or "NÃO DEFINIDO").upper()
+        veredicto = (body.get("veredicto") or "").upper().strip()
         nome_rt   = body.get("nome_rt", "")
         crm_rt    = body.get("crm_rt", "")
         case_id   = body.get("case_id", "")
         data_str  = _dt.datetime.now().strftime("%d/%m/%Y às %H:%M")
 
+        # ── PALETA INSPECTIA ────────────────────────────────────────────
+        COR_PRIMARIA  = colors.HexColor("#0F2A20")  # verde escuro identidade
+        COR_ACENTO    = colors.HexColor("#166534")  # verde da marca
+        COR_BONE      = colors.HexColor("#FBFAF6")  # bone (fundo neutro)
+        COR_BORDA     = colors.HexColor("#E2DED2")
+        COR_BORDA_F   = colors.HexColor("#D9D2BE")
+        COR_TEXTO     = colors.HexColor("#091a14")
+        COR_MUTED     = colors.HexColor("#6B6757")
+
+        COR_PASS_BG   = colors.HexColor("#E8F0EA")
+        COR_PASS_FG   = colors.HexColor("#166534")
+        COR_WARN_BG   = colors.HexColor("#F5EBD8")
+        COR_WARN_FG   = colors.HexColor("#9c5a0e")
+        COR_FAIL_BG   = colors.HexColor("#F0DDDB")
+        COR_FAIL_FG   = colors.HexColor("#992f2a")
+
+        COR_AVISO_BG  = colors.HexColor("#FFF8E1")
+        COR_AVISO_BD  = colors.HexColor("#F5C772")
+        COR_AVISO_FG  = colors.HexColor("#6B4A00")
+
+        # ── DOC ─────────────────────────────────────────────────────────
         buf = _io.BytesIO()
         doc = SimpleDocTemplate(buf, pagesize=A4,
-                                leftMargin=20*mm, rightMargin=20*mm,
-                                topMargin=18*mm, bottomMargin=18*mm)
+                                leftMargin=15*mm, rightMargin=15*mm,
+                                topMargin=14*mm, bottomMargin=14*mm,
+                                title=f"Relatório InspectIA — {produto[:40]}",
+                                author="InspectIA")
+        W = A4[0] - 30*mm
         styles = getSampleStyleSheet()
-        W = A4[0] - 40*mm
 
-        COR_PRIMARIA  = colors.HexColor("#7c3aed")
-        COR_APROVADO  = colors.HexColor("#166534")
-        COR_REPROVADO = colors.HexColor("#991b1b")
-        COR_RESSALVAS = colors.HexColor("#92400e")
-        COR_FUNDO     = colors.HexColor("#f5f3ff")
-        COR_DISCLAIMER= colors.HexColor("#fffbeb")
+        # Estilos comuns
+        st_logo = ParagraphStyle("logo", fontSize=15, fontName="Helvetica-Bold",
+                                 textColor=colors.white, leading=18)
+        st_logo_sub = ParagraphStyle("logosub", fontSize=8, fontName="Helvetica",
+                                     textColor=colors.HexColor("#bcd4c2"), leading=10,
+                                     letterSpacing=0.6)
+        st_meta = ParagraphStyle("meta", fontSize=8, fontName="Helvetica",
+                                 textColor=COR_MUTED, leading=11)
+        st_produto_label = ParagraphStyle("plbl", fontSize=8, fontName="Helvetica-Bold",
+                                          textColor=COR_MUTED, leading=10,
+                                          letterSpacing=0.8)
+        st_produto = ParagraphStyle("p", fontSize=14, fontName="Helvetica-Bold",
+                                    textColor=COR_TEXTO, leading=18)
 
-        st_label = ParagraphStyle("label", fontSize=7, fontName="Helvetica-Bold",
-                                  textColor=colors.HexColor("#6b7280"), spaceAfter=1)
-        st_disc  = ParagraphStyle("disc", fontSize=8, fontName="Helvetica",
-                                  textColor=colors.HexColor("#92400e"), leading=12)
-        st_center= ParagraphStyle("center", fontSize=9, fontName="Helvetica",
-                                  alignment=TA_CENTER)
+        st_passo_num = ParagraphStyle("psn", fontSize=8, fontName="Helvetica-Bold",
+                                      textColor=COR_ACENTO, leading=10,
+                                      letterSpacing=0.6)
+        st_passo_titulo = ParagraphStyle("pst", fontSize=11, fontName="Helvetica-Bold",
+                                         textColor=COR_TEXTO, leading=14,
+                                         letterSpacing=0.4)
 
-        cor_v = (COR_APROVADO if "APROVADO" in veredicto and "RESSALVAS" not in veredicto
-                 else COR_REPROVADO if "REPROVADO" in veredicto else COR_RESSALVAS)
+        st_campo_num = ParagraphStyle("cn", fontSize=8, fontName="Helvetica-Bold",
+                                      textColor=COR_TEXTO, leading=10)
+        st_campo_titulo = ParagraphStyle("ct", fontSize=10, fontName="Helvetica-Bold",
+                                         textColor=COR_TEXTO, leading=13)
+        st_campo_status = ParagraphStyle("csc", fontSize=8, fontName="Helvetica-Bold",
+                                         leading=10, alignment=TA_RIGHT)
+
+        st_body = ParagraphStyle("b", fontSize=9.5, fontName="Helvetica",
+                                 textColor=COR_TEXTO, leading=13)
+        st_body_bold = ParagraphStyle("bb", fontSize=9.5, fontName="Helvetica-Bold",
+                                      textColor=COR_TEXTO, leading=13)
+        st_check = ParagraphStyle("ck", fontSize=9, fontName="Helvetica",
+                                  textColor=COR_TEXTO, leading=12,
+                                  leftIndent=12, spaceBefore=1, spaceAfter=1)
+        st_aviso = ParagraphStyle("av", fontSize=8.5, fontName="Helvetica",
+                                  textColor=COR_AVISO_FG, leading=11)
+
+        st_assinatura_label = ParagraphStyle("asl", fontSize=8, fontName="Helvetica-Bold",
+                                             textColor=COR_MUTED, leading=10,
+                                             letterSpacing=0.6)
+        st_assinatura_value = ParagraphStyle("asv", fontSize=10, fontName="Helvetica",
+                                             textColor=COR_TEXTO, leading=13)
+
+        # ── HELPERS ─────────────────────────────────────────────────────
+        def html_escape(s):
+            return (s.replace("&", "&amp;").replace("<", "&lt;")
+                     .replace(">", "&gt;").replace("\u200b", ""))
+
+        def md_to_html(s):
+            """Converte markdown simples (**bold**) para HTML do reportlab."""
+            s = html_escape(s)
+            # **bold** → <b>bold</b>
+            s = _re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', s)
+            return s
 
         story = []
 
-        # Cabeçalho
-        hdr = Table([[
-            Paragraph("<b>ValidaRótulo IA</b>", ParagraphStyle("h", fontSize=14,
-                      fontName="Helvetica-Bold", textColor=COR_PRIMARIA)),
-            Paragraph(f"<b>RELATÓRIO DE VALIDAÇÃO</b><br/>"
-                      f"<font size=8 color='#6b7280'>Emitido em {data_str}</font>",
-                      ParagraphStyle("hr", fontSize=11, fontName="Helvetica-Bold",
-                                     alignment=TA_RIGHT))
-        ]], colWidths=[W*0.5, W*0.5])
-        hdr.setStyle(TableStyle([
+        # ── HEADER COM LOGO ─────────────────────────────────────────────
+        header_tb = Table([[
+            Paragraph("<b>InspectIA</b>", st_logo),
+            Paragraph(f"Validador de Rótulos · Emitido em {data_str}", st_logo_sub)
+        ]], colWidths=[W*0.35, W*0.65])
+        header_tb.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), COR_PRIMARIA),
             ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-            ("LINEBELOW", (0,0), (-1,0), 1.5, COR_PRIMARIA),
-            ("BOTTOMPADDING", (0,0), (-1,0), 8),
+            ("LEFTPADDING", (0,0), (-1,-1), 14),
+            ("RIGHTPADDING", (0,0), (-1,-1), 14),
+            ("TOPPADDING", (0,0), (-1,-1), 12),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 12),
+            ("ALIGN", (1,0), (1,0), "RIGHT"),
         ]))
-        story.append(hdr)
+        story.append(header_tb)
         story.append(Spacer(1, 6*mm))
 
-        story.append(Paragraph(produto, ParagraphStyle("titulo", fontSize=16,
-                     fontName="Helvetica-Bold", textColor=COR_PRIMARIA, spaceAfter=2)))
+        # ── PRODUTO ─────────────────────────────────────────────────────
+        story.append(Paragraph("PRODUTO ANALISADO", st_produto_label))
+        story.append(Spacer(1, 1.5*mm))
+        story.append(Paragraph(html_escape(produto), st_produto))
         if case_id:
-            story.append(Paragraph(f"ID: {case_id}",
-                         ParagraphStyle("sub", fontSize=9, fontName="Helvetica",
-                                        textColor=colors.HexColor("#6b7280"), spaceAfter=6)))
+            story.append(Spacer(1, 1*mm))
+            story.append(Paragraph(f"ID: {html_escape(case_id[:16])}", st_meta))
+        story.append(Spacer(1, 5*mm))
+
+        # ── PARSE: extrair campos do relatório ──────────────────────────
+        # Conta campos por status pra montar score correto
+        passC = warnC = failC = 0
+        # Acha todos os campos no markdown
+        # Padrão: linhas começando com CAMPO N — ... seguido de status
+        campo_pattern = _re.compile(
+            r'^[\*#\s]{0,6}CAMPO\s+(\d+)\s*[—–\-]\s*([^:\*\n]+?)\**\s*:\s*\**\s*'
+            r'(✅[^(\n]*|⚠️[^(\n]*|❌[^(\n]*|🔍[^(\n]*|N[ÃA]O\s+VERIFIC[ÁA]VEL[^(\n]*)?',
+            _re.IGNORECASE | _re.MULTILINE
+        )
+        for m in campo_pattern.finditer(relatorio):
+            status = m.group(3) or ""
+            if "✅" in status or "CONFORME" in status.upper() and "NÃO" not in status.upper():
+                passC += 1
+            elif "❌" in status or "NÃO CONFORME" in status.upper():
+                failC += 1
+            elif "⚠" in status or "RESSALVA" in status.upper() or "AUSENTE" in status.upper():
+                warnC += 1
+            elif "🔍" in status or "VERIFIC" in status.upper():
+                warnC += 1
+
+        # Score recalculado
+        if passC + warnC + failC > 0:
+            score_calc = passC + (warnC * 0.5)
+        else:
+            score_calc = score if isinstance(score, (int, float)) else 0
+
+        # Veredicto recalculado
+        if score_calc >= 13:
+            veredicto_calc = "APROVADO"
+            ver_bg, ver_fg = COR_PASS_BG, COR_PASS_FG
+        elif score_calc >= 8:
+            veredicto_calc = "APROVADO COM RESSALVAS"
+            ver_bg, ver_fg = COR_WARN_BG, COR_WARN_FG
+        else:
+            veredicto_calc = "REPROVADO"
+            ver_bg, ver_fg = COR_FAIL_BG, COR_FAIL_FG
+
+        # ── SCORE PANEL ─────────────────────────────────────────────────
+        score_str = f"{score_calc:.1f}".rstrip("0").rstrip(".") + "/14"
+        # Barra de progresso visual
+        pct = min(1.0, score_calc / 14)
+
+        score_big = ParagraphStyle("sb", fontSize=28, fontName="Helvetica-Bold",
+                                   textColor=COR_TEXTO, leading=32)
+        ver_pill_st = ParagraphStyle("vp", fontSize=10, fontName="Helvetica-Bold",
+                                     textColor=ver_fg, leading=13, alignment=TA_CENTER)
+
+        # Linha 1 do score: número grande + veredicto pill
+        score_top = Table([[
+            Paragraph(score_str, score_big),
+            Paragraph(html_escape(veredicto_calc), ver_pill_st)
+        ]], colWidths=[W*0.55, W*0.45])
+        score_top.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("LEFTPADDING", (0,0), (-1,-1), 0),
+            ("RIGHTPADDING", (0,0), (-1,-1), 0),
+            ("BACKGROUND", (1,0), (1,0), ver_bg),
+            ("TOPPADDING", (1,0), (1,0), 8),
+            ("BOTTOMPADDING", (1,0), (1,0), 8),
+            ("ROUNDEDCORNERS", [4, 4, 4, 4]) if False else ("BOX", (1,0), (1,0), 0.5, ver_bg),
+        ]))
+
+        # Linha 2: contadores
+        cont_label_st = lambda fg: ParagraphStyle("cl", fontSize=7, fontName="Helvetica-Bold",
+                                                   textColor=fg, leading=10, letterSpacing=0.6,
+                                                   alignment=TA_LEFT)
+        cont_num_st = lambda fg: ParagraphStyle("cn", fontSize=18, fontName="Helvetica-Bold",
+                                                 textColor=fg, leading=22, alignment=TA_LEFT)
+
+        contadores_tb = Table([[
+            Table([
+                [Paragraph(str(passC), cont_num_st(COR_PASS_FG))],
+                [Paragraph("✓ CONFORMES", cont_label_st(COR_PASS_FG))],
+            ], colWidths=[W*0.31], style=[
+                ("BACKGROUND", (0,0), (-1,-1), COR_PASS_BG),
+                ("LEFTPADDING", (0,0), (-1,-1), 10),
+                ("RIGHTPADDING", (0,0), (-1,-1), 10),
+                ("TOPPADDING", (0,0), (0,0), 8),
+                ("BOTTOMPADDING", (0,1), (0,1), 8),
+                ("BOX", (0,0), (-1,-1), 0.5, COR_PASS_FG),
+            ]),
+            Table([
+                [Paragraph(str(warnC), cont_num_st(COR_WARN_FG))],
+                [Paragraph("⚠ COM RESSALVAS", cont_label_st(COR_WARN_FG))],
+            ], colWidths=[W*0.31], style=[
+                ("BACKGROUND", (0,0), (-1,-1), COR_WARN_BG),
+                ("LEFTPADDING", (0,0), (-1,-1), 10),
+                ("RIGHTPADDING", (0,0), (-1,-1), 10),
+                ("TOPPADDING", (0,0), (0,0), 8),
+                ("BOTTOMPADDING", (0,1), (0,1), 8),
+                ("BOX", (0,0), (-1,-1), 0.5, COR_WARN_FG),
+            ]),
+            Table([
+                [Paragraph(str(failC), cont_num_st(COR_FAIL_FG))],
+                [Paragraph("✕ NÃO CONFORMES", cont_label_st(COR_FAIL_FG))],
+            ], colWidths=[W*0.31], style=[
+                ("BACKGROUND", (0,0), (-1,-1), COR_FAIL_BG),
+                ("LEFTPADDING", (0,0), (-1,-1), 10),
+                ("RIGHTPADDING", (0,0), (-1,-1), 10),
+                ("TOPPADDING", (0,0), (0,0), 8),
+                ("BOTTOMPADDING", (0,1), (0,1), 8),
+                ("BOX", (0,0), (-1,-1), 0.5, COR_FAIL_FG),
+            ]),
+        ]], colWidths=[W*0.33, W*0.33, W*0.33])
+        contadores_tb.setStyle(TableStyle([
+            ("LEFTPADDING", (0,0), (-1,-1), 0),
+            ("RIGHTPADDING", (0,0), (-1,-1), 0),
+            ("TOPPADDING", (0,0), (-1,-1), 0),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ]))
+
+        story.append(score_top)
+        story.append(Spacer(1, 4*mm))
+        story.append(contadores_tb)
+        story.append(Spacer(1, 6*mm))
+
+        # ── PARSE EM PASSOS ─────────────────────────────────────────────
+        # Quebra o relatório em passos identificados por "PASSO N — TÍTULO"
+        passo_split_re = _re.compile(
+            r'^[\*#\s]{0,6}PASSO\s+(\d+)\s*[—–\-]\s*(.+?)[\*\s]*$',
+            _re.IGNORECASE | _re.MULTILINE
+        )
+
+        # Encontra começos de passo
+        passos = []
+        for m in passo_split_re.finditer(relatorio):
+            passos.append({
+                "num": int(m.group(1)),
+                "titulo": m.group(2).replace("*", "").strip(),
+                "start": m.end(),
+                "header_start": m.start(),
+            })
+
+        # Adiciona o fim de cada passo (= start do próximo, ou fim do texto)
+        for i, p in enumerate(passos):
+            p["end"] = passos[i+1]["header_start"] if i+1 < len(passos) else len(relatorio)
+            p["body"] = relatorio[p["start"]:p["end"]].strip()
+
+        # ── HELPERS DE RENDER ───────────────────────────────────────────
+        def render_passo_header(num, titulo, body_flowables):
+            """Card do passo com header colorido + body como flowables soltos."""
+            # Header: tabelinha com PASSO N + título
+            header_tb = Table([[
+                Paragraph(f"<b>PASSO {num}</b>", st_passo_num),
+                Paragraph(html_escape(titulo), st_passo_titulo)
+            ]], colWidths=[26*mm, W - 26*mm])
+            header_tb.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,-1), COR_BONE),
+                ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                ("LEFTPADDING", (0,0), (-1,-1), 12),
+                ("RIGHTPADDING", (0,0), (-1,-1), 12),
+                ("TOPPADDING", (0,0), (-1,-1), 9),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 9),
+                ("LINEABOVE", (0,0), (-1,-1), 0.8, COR_ACENTO),
+                ("LINEBELOW", (0,0), (-1,-1), 0.5, COR_BORDA_F),
+                ("LINEAFTER", (0,0), (0,0), 0.5, COR_BORDA_F),
+            ]))
+
+            # Retorna header + body flowables soltos (sem envolver em Table — evita LayoutError)
+            result = [header_tb, Spacer(1, 3*mm)]
+            result.extend(body_flowables)
+            result.append(Spacer(1, 5*mm))
+            return result
+
+        def parse_passo_body(body_text, passo_num):
+            """Converte texto do body do passo em flowables."""
+            flowables = []
+            lines = body_text.split("\n")
+
+            # CAMPO collector (pra Passo 3)
+            current_campo = None
+            campo_buffer = []
+
+            def flush_campo():
+                if current_campo is None:
+                    return
+                # Renderiza card de campo
+                num, nome, status_raw = current_campo
+                if "✅" in status_raw:
+                    bg, fg, label = COR_PASS_BG, COR_PASS_FG, "✓ Conforme"
+                elif "❌" in status_raw or "NÃO CONFORME" in status_raw.upper():
+                    bg, fg, label = COR_FAIL_BG, COR_FAIL_FG, "✕ Não Conforme"
+                elif "⚠" in status_raw or "RESSALVA" in status_raw.upper() or "AUSENTE" in status_raw.upper():
+                    bg, fg, label = COR_WARN_BG, COR_WARN_FG, "⚠ Com Ressalvas"
+                else:
+                    bg, fg, label = COR_BONE, COR_MUTED, "—"
+
+                campo_header_tb = Table([[
+                    Paragraph(f"<b>C{num}</b>", st_campo_num),
+                    Paragraph(html_escape(nome.strip()), st_campo_titulo),
+                    Paragraph(f"<font color='{fg.hexval()}'>{label}</font>",
+                             ParagraphStyle("ci", fontSize=8, fontName="Helvetica-Bold",
+                                           leading=10, alignment=TA_RIGHT))
+                ]], colWidths=[15*mm, W - 15*mm - 30*mm, 30*mm])
+                campo_header_tb.setStyle(TableStyle([
+                    ("BACKGROUND", (0,0), (-1,-1), bg),
+                    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                    ("LEFTPADDING", (0,0), (-1,-1), 8),
+                    ("RIGHTPADDING", (0,0), (-1,-1), 8),
+                    ("TOPPADDING", (0,0), (-1,-1), 6),
+                    ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+                ]))
+
+                # Campo body (do buffer)
+                campo_body_items = []
+                for ln in campo_buffer:
+                    ln_clean = ln.strip()
+                    if not ln_clean:
+                        continue
+                    # Bullets ✓ / ✗ / ⚠
+                    bullet_m = _re.match(r'^[\s]*([✓✗❌✅⚠️⚠])\s+(.+)$', ln_clean)
+                    if bullet_m:
+                        sym = bullet_m.group(1)
+                        rest = bullet_m.group(2)
+                        # Cor do símbolo
+                        if sym in ("✓", "✅"):
+                            sym_color = COR_PASS_FG.hexval()
+                        elif sym in ("✗", "❌"):
+                            sym_color = COR_FAIL_FG.hexval()
+                        else:
+                            sym_color = COR_WARN_FG.hexval()
+                        campo_body_items.append(Paragraph(
+                            f"<font color='{sym_color}'><b>{sym}</b></font> {md_to_html(rest)}",
+                            st_check
+                        ))
+                    elif ln_clean.startswith("**Sugestões"):
+                        campo_body_items.append(Spacer(1, 2*mm))
+                        campo_body_items.append(Paragraph(md_to_html(ln_clean), st_body_bold))
+                    else:
+                        campo_body_items.append(Paragraph(md_to_html(ln_clean), st_body))
+
+                if campo_body_items:
+                    # Header sempre junto com primeira linha do body
+                    flowables.append(KeepTogether([campo_header_tb,
+                                                    Spacer(1, 1*mm),
+                                                    campo_body_items[0]]))
+                    # Restante das linhas (podem quebrar página naturalmente)
+                    for item in campo_body_items[1:]:
+                        flowables.append(item)
+                    flowables.append(Spacer(1, 4*mm))
+                else:
+                    flowables.append(campo_header_tb)
+                    flowables.append(Spacer(1, 4*mm))
+
+            for line in lines:
+                line = line.rstrip()
+                stripped = line.strip()
+                if not stripped or _re.match(r'^[─━=-]+$', stripped):
+                    continue
+
+                # Detecta CAMPO header
+                campo_m = _re.match(
+                    r'^[\*#\s]{0,6}CAMPO\s+(\d+)\s*[—–\-]\s*([^:\*\n]+?)\**\s*:\s*\**\s*(.*?)\**\s*$',
+                    stripped
+                )
+                if campo_m:
+                    flush_campo()
+                    current_campo = (campo_m.group(1), campo_m.group(2), campo_m.group(3))
+                    campo_buffer = []
+                    continue
+
+                # Aviso legal
+                if stripped.startswith(">") and ("aviso" in stripped.lower() or "⚠" in stripped):
+                    # Pula — vamos renderizar separado
+                    continue
+
+                # SCORE/VEREDICTO no Passo 4 — pula (já mostrados no topo)
+                if _re.match(r'^\*?\*?SCORE\s*:', stripped, _re.IGNORECASE):
+                    continue
+                if _re.match(r'^\*?\*?VEREDICTO\s*:', stripped, _re.IGNORECASE):
+                    continue
+
+                # Header ### TÍTULO
+                if _re.match(r'^#{2,4}\s+', stripped):
+                    titulo = _re.sub(r'^#+\s*', '', stripped).rstrip(":#").strip()
+                    if current_campo:
+                        campo_buffer.append(stripped)
+                    else:
+                        flowables.append(Spacer(1, 2*mm))
+                        flowables.append(Paragraph(
+                            f"<b>{md_to_html(titulo)}</b>",
+                            ParagraphStyle("h", fontSize=10, fontName="Helvetica-Bold",
+                                          textColor=COR_TEXTO, leading=13)
+                        ))
+                        flowables.append(Spacer(1, 1*mm))
+                    continue
+
+                # Item numerado (Passo 4)
+                num_item_m = _re.match(
+                    r'^(\d+)[.\)]\s*\*{0,2}([^*:]+)\*{0,2}\s*:\s*(.+)$', stripped
+                )
+                if num_item_m and not current_campo and passo_num == 4:
+                    num = num_item_m.group(1)
+                    titulo = num_item_m.group(2).strip()
+                    desc = num_item_m.group(3).replace("**", "").strip()
+                    item_tb = Table([[
+                        Paragraph(f"<b>{num}</b>",
+                                 ParagraphStyle("nn", fontSize=10, fontName="Helvetica-Bold",
+                                               textColor=colors.white, leading=14, alignment=TA_CENTER)),
+                        Paragraph(f"<b>{md_to_html(titulo)}:</b> {md_to_html(desc)}", st_body)
+                    ]], colWidths=[10*mm, W - 10*mm - 8*mm])
+
+                    # Cor do número baseada em criticidade
+                    is_critical = bool(_re.search(r'cr[ií]tic|eliminat[óo]rio|reprovad', titulo + " " + desc, _re.IGNORECASE))
+                    is_priority = bool(_re.search(r'prioridade|m[áa]xima|urgente', titulo, _re.IGNORECASE))
+                    if is_critical:
+                        num_bg, item_bg, item_border = COR_FAIL_FG, colors.HexColor("#FBEEEC"), COR_FAIL_FG
+                    elif is_priority:
+                        num_bg, item_bg, item_border = COR_WARN_FG, colors.HexColor("#FBF1E0"), COR_WARN_FG
+                    else:
+                        num_bg, item_bg, item_border = COR_MUTED, COR_BONE, COR_BORDA_F
+
+                    item_tb.setStyle(TableStyle([
+                        ("BACKGROUND", (0,0), (0,0), num_bg),
+                        ("BACKGROUND", (1,0), (1,0), item_bg),
+                        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                        ("ALIGN", (0,0), (0,0), "CENTER"),
+                        ("LEFTPADDING", (0,0), (-1,-1), 6),
+                        ("RIGHTPADDING", (0,0), (-1,-1), 6),
+                        ("TOPPADDING", (0,0), (-1,-1), 6),
+                        ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+                        ("LINEBEFORE", (1,0), (1,0), 1.5, item_border),
+                    ]))
+                    flowables.append(item_tb)
+                    flowables.append(Spacer(1, 2*mm))
+                    continue
+
+                # Bullet
+                bullet_m = _re.match(r'^[•·▸\-]\s+(.+)$', stripped)
+                if bullet_m and not current_campo:
+                    inner = bullet_m.group(1)
+                    flowables.append(Paragraph(
+                        f"<font color='{COR_PASS_FG.hexval()}'><b>✓</b></font> {md_to_html(inner)}",
+                        st_check
+                    ))
+                    continue
+
+                # Linha LABEL: valor
+                label_m = _re.match(
+                    r'^\*{0,2}([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s\-]*?)\*{0,2}\s*:\s*\*{0,2}\s*(.*?)\*{0,2}\s*$',
+                    stripped
+                )
+                if label_m and not current_campo:
+                    label = label_m.group(1).strip()
+                    value = label_m.group(2).strip()
+                    flowables.append(Paragraph(
+                        f"<font color='{COR_PASS_FG.hexval()}'><b>✓</b></font> "
+                        f"<b>{html_escape(label)}:</b> {md_to_html(value)}",
+                        st_check
+                    ))
+                    continue
+
+                # Linha normal
+                if current_campo:
+                    campo_buffer.append(stripped)
+                else:
+                    flowables.append(Paragraph(md_to_html(stripped), st_body))
+
+            flush_campo()
+            return flowables
+
+        # ── RENDER PASSOS ───────────────────────────────────────────────
+        if passos:
+            for p in passos:
+                p_flowables = parse_passo_body(p["body"], p["num"])
+                if p_flowables:
+                    story.extend(render_passo_header(p["num"], p["titulo"], p_flowables))
+        else:
+            # Fallback: sem passos detectados, renderiza linha a linha
+            for ln in relatorio.split("\n"):
+                ln = ln.strip()
+                if ln:
+                    story.append(Paragraph(md_to_html(ln), st_body))
+
+        # ── AVISO LEGAL ─────────────────────────────────────────────────
+        story.append(Spacer(1, 4*mm))
+        aviso_text = (
+            "<b>Aviso legal:</b> Este relatório é gerado por inteligência artificial e tem caráter auxiliar. "
+            "Não substitui a análise e aprovação de Responsável Técnico habilitado. "
+            "A conformidade regulatória final é de responsabilidade exclusiva do RT inscrito no órgão competente."
+        )
+        aviso_tb = Table([[
+            Paragraph("⚠", ParagraphStyle("av_icon", fontSize=14,
+                                          textColor=COR_AVISO_FG, alignment=TA_CENTER)),
+            Paragraph(aviso_text, st_aviso)
+        ]], colWidths=[8*mm, W - 8*mm])
+        aviso_tb.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), COR_AVISO_BG),
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ("LEFTPADDING", (0,0), (-1,-1), 8),
+            ("RIGHTPADDING", (0,0), (-1,-1), 10),
+            ("TOPPADDING", (0,0), (-1,-1), 8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("BOX", (0,0), (-1,-1), 0.8, COR_AVISO_BD),
+        ]))
+        story.append(aviso_tb)
+
+        # ── ASSINATURA RT ───────────────────────────────────────────────
+        story.append(Spacer(1, 8*mm))
+        story.append(HRFlowable(width=W, thickness=0.5, color=COR_BORDA_F))
+        story.append(Spacer(1, 4*mm))
+        story.append(Paragraph("RESPONSÁVEL TÉCNICO", st_assinatura_label))
         story.append(Spacer(1, 3*mm))
 
-        score_str = f"{score}/14" if score is not None else "—"
-        vd = Table([[
-            Paragraph(f"<b>VEREDICTO: {veredicto}</b>",
-                      ParagraphStyle("v", fontSize=12, fontName="Helvetica-Bold",
-                                     textColor=cor_v)),
-            Paragraph(f"<b>Score: {score_str}</b>",
-                      ParagraphStyle("s", fontSize=12, fontName="Helvetica-Bold",
-                                     textColor=colors.HexColor("#374151"),
-                                     alignment=TA_RIGHT))
-        ]], colWidths=[W*0.65, W*0.35])
-        vd.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), COR_FUNDO),
-            ("TOPPADDING", (0,0), (-1,0), 10),
-            ("BOTTOMPADDING", (0,0), (-1,0), 10),
-            ("LEFTPADDING", (0,0), (0,0), 12),
-            ("RIGHTPADDING", (-1,0), (-1,0), 12),
-            ("VALIGN", (0,0), (-1,0), "MIDDLE"),
+        nome_show = nome_rt if nome_rt else "_______________________________________"
+        crm_show = crm_rt if crm_rt else "_______________"
+        assin_tb = Table([[
+            Paragraph(f"Nome: {html_escape(nome_show)}", st_assinatura_value),
+            Paragraph(f"Registro: {html_escape(crm_show)}", st_assinatura_value),
+        ]], colWidths=[W*0.6, W*0.4])
+        assin_tb.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ("LEFTPADDING", (0,0), (-1,-1), 0),
+            ("RIGHTPADDING", (0,0), (-1,-1), 0),
         ]))
-        story.append(vd)
-        story.append(Spacer(1, 5*mm))
-
-        story.append(Paragraph("RELATÓRIO DETALHADO", st_label))
-        story.append(HRFlowable(width=W, thickness=0.5,
-                                color=colors.HexColor("#e5e7eb")))
+        story.append(assin_tb)
         story.append(Spacer(1, 2*mm))
+        story.append(Paragraph(f"Data da análise: {data_str}", st_meta))
 
-        for linha in relatorio.split("\n")[:150]:
-            linha = linha.strip()
-            if not linha or linha in ("---", "___"):
-                story.append(Spacer(1, 2*mm)); continue
-            cor_linha = colors.black
-            if "❌" in linha or "NÃO CONFORME" in linha: cor_linha = COR_REPROVADO
-            elif "✅" in linha or "CONFORME" in linha.upper(): cor_linha = COR_APROVADO
-            elif "⚠️" in linha: cor_linha = COR_RESSALVAS
-            safe = (linha.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
-            st = ParagraphStyle("l", fontSize=8.5, fontName="Helvetica",
-                                leading=13, textColor=cor_linha,
-                                leftIndent=6 if linha.startswith(" ") else 0)
-            try: story.append(Paragraph(safe, st))
-            except Exception: story.append(Paragraph(safe[:200], st))
-
-        story.append(Spacer(1, 6*mm))
-        story.append(HRFlowable(width=W, thickness=1, color=COR_PRIMARIA))
-        story.append(Spacer(1, 4*mm))
-        story.append(Paragraph("RESPONSÁVEL TÉCNICO", st_label))
-        story.append(Spacer(1, 2*mm))
-
-        assin = Table([[
-            Paragraph(nome_rt or "_" * 40,
-                      ParagraphStyle("rtnome", fontSize=10, fontName="Helvetica-Bold",
-                                     textColor=colors.HexColor("#111827"))),
-            Paragraph("", st_center),
-            Paragraph(f"Registro: {crm_rt}" if crm_rt else "Registro: ______________",
-                      ParagraphStyle("rtcrm", fontSize=9, fontName="Helvetica",
-                                     textColor=colors.HexColor("#374151")))
-        ]], colWidths=[W*0.45, W*0.1, W*0.45])
-        assin.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "BOTTOM"),
-            ("LINEABOVE", (0,0), (0,0), 0.8, colors.HexColor("#374151")),
-            ("LINEABOVE", (2,0), (2,0), 0.8, colors.HexColor("#374151")),
-            ("TOPPADDING", (0,0), (-1,0), 24),
-        ]))
-        story.append(assin)
-        story.append(Spacer(1, 2*mm))
-        story.append(Paragraph(f"Data: {data_str}",
-                     ParagraphStyle("data", fontSize=8, fontName="Helvetica",
-                                    textColor=colors.HexColor("#9ca3af"))))
-        story.append(Spacer(1, 5*mm))
-
-        disc = Table([[
-            Paragraph("⚠️ <b>Aviso legal:</b> Este relatório tem caráter auxiliar e é gerado com "
-                      "apoio de inteligência artificial. Não substitui análise de RT habilitado. "
-                      "Responsabilidade final é do RT inscrito no órgão competente. "
-                      "ValidaRótulo IA.", st_disc)
-        ]], colWidths=[W])
-        disc.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,-1), COR_DISCLAIMER),
-            ("TOPPADDING", (0,0), (-1,-1), 8), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
-            ("LEFTPADDING", (0,0), (-1,-1), 10), ("RIGHTPADDING", (0,0), (-1,-1), 10),
-            ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#fcd34d")),
-        ]))
-        story.append(disc)
-
+        # Build
         doc.build(story)
-        filename = f"relatorio_{produto[:30].replace(' ','_')}_{_dt.datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"InspectIA_relatorio_{produto[:30].replace(' ','_')}_{_dt.datetime.now().strftime('%Y%m%d')}.pdf"
         from fastapi.responses import Response as _Resp
         return _Resp(content=buf.getvalue(), media_type="application/pdf",
                      headers={"Content-Disposition": f'attachment; filename="{filename}"',
