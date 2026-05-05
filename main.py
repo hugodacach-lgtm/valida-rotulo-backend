@@ -9994,13 +9994,52 @@ async def auth_login(request: Request):
     })
 
     if result.get("error") or "error_code" in result or not result.get("access_token"):
-        msg = result.get("error", {}).get("message") or result.get("msg") or "Email ou senha incorretos."
-        if "invalid" in msg.lower() or "credentials" in msg.lower():
-            msg = "Email ou senha incorretos."
-        if "confirm" in msg.lower() or "email" in msg.lower() and "verif" in msg.lower():
-            msg = "Confirme seu email antes de fazer login."
-        return JSONResponse({"error": msg}, status_code=401,
-                            headers={"Access-Control-Allow-Origin": "*"})
+        # Extração robusta da mensagem (Supabase varia: error pode ser dict OU string,
+        # e em versões diferentes usa msg / error_description / error_code)
+        err_obj = result.get("error")
+        if isinstance(err_obj, dict):
+            raw_msg = err_obj.get("message", "") or err_obj.get("description", "")
+        elif isinstance(err_obj, str):
+            raw_msg = err_obj
+        else:
+            raw_msg = ""
+        raw_msg = (raw_msg
+                   or result.get("msg", "")
+                   or result.get("error_description", "")
+                   or result.get("error_code", "")
+                   or "")
+        raw_lower = raw_msg.lower()
+
+        # Email não confirmado (várias variações possíveis do Supabase / GoTrue)
+        if ("not_confirmed" in raw_lower
+                or "not confirmed" in raw_lower
+                or "email_not_confirmed" in raw_lower
+                or ("confirm" in raw_lower and "email" in raw_lower)):
+            return JSONResponse({
+                "error": "Confirme seu email antes de entrar. Verifique sua caixa de entrada (e a pasta de spam).",
+                "code": "email_not_confirmed"
+            }, status_code=403, headers={"Access-Control-Allow-Origin": "*"})
+
+        # Rate limit
+        if "rate" in raw_lower or "too many" in raw_lower or "limit" in raw_lower:
+            return JSONResponse({
+                "error": "Muitas tentativas seguidas. Aguarde alguns segundos e tente de novo.",
+                "code": "rate_limited"
+            }, status_code=429, headers={"Access-Control-Allow-Origin": "*"})
+
+        # Credenciais inválidas (Supabase não diferencia email errado de senha errada por design)
+        if ("invalid" in raw_lower or "credentials" in raw_lower
+                or "invalid_grant" in raw_lower or "wrong" in raw_lower):
+            return JSONResponse({
+                "error": "Email ou senha incorretos. Se acabou de criar a conta, confirme o email primeiro.",
+                "code": "invalid_credentials"
+            }, status_code=401, headers={"Access-Control-Allow-Origin": "*"})
+
+        # Genérico — devolve o que vier do Supabase pra ajudar diagnóstico
+        return JSONResponse({
+            "error": raw_msg or "Não foi possível entrar. Tente novamente em alguns minutos.",
+            "code": "unknown"
+        }, status_code=401, headers={"Access-Control-Allow-Origin": "*"})
 
     user_data = result.get("user", {})
     meta = user_data.get("user_metadata", {})
