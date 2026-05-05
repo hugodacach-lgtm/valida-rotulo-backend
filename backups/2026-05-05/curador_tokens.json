@@ -1,0 +1,122 @@
+[
+  {
+    "token": "74b7795b35a1a11c5c91324fe038fb9c",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:53:46.182082+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:53:46.78435+00:00"
+  },
+  {
+    "token": "7a5519afaa74bb8f96743fd5fa1b3803",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:53:46.182082+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:53:46.78435+00:00"
+  },
+  {
+    "token": "8be1d18b9b6becde49be5d576d4022a9",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:53:46.182082+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:53:46.78435+00:00"
+  },
+  {
+    "token": "31805ec35a8a42f3483e7bae2d64691f",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:53:46.182082+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:53:46.78435+00:00"
+  },
+  {
+    "token": "9a9783c682928fcb32e520b13f3e6e6e",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:54:35.916093+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:54:36.630609+00:00"
+  },
+  {
+    "token": "7d3412a8a4596354318ad290eaec423f",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:54:35.916093+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:54:36.630609+00:00"
+  },
+  {
+    "token": "46c05e5552119375e03662088499987f",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:54:35.916093+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:54:36.630609+00:00"
+  },
+  {
+    "token": "296617e003022794a1b769f6cb8999f2",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T17:54:35.916093+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T17:54:36.630609+00:00"
+  },
+  {
+    "token": "dc2a36ec04c2aa48975068199fe87d73",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T18:02:26.243021+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T18:02:26.674286+00:00"
+  },
+  {
+    "token": "6d9357ccb41a12c1bbc2988e110c56f5",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T18:02:26.243021+00:00",
+    "used_at": null,
+    "created_at": "2026-05-04T18:02:26.674286+00:00"
+  },
+  {
+    "token": "cfc78950de7c3d5176f49f73056a00c9",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 8,
+    "acao": "rejeitar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T18:02:26.243021+00:00",
+    "used_at": "2026-05-04T18:03:57.250685+00:00",
+    "created_at": "2026-05-04T18:02:26.674286+00:00"
+  },
+  {
+    "token": "48fe62c30dbad15ddc332cf66ddee586",
+    "case_id": "d8f0ece5e6dc",
+    "campo_num": 4,
+    "acao": "aprovar",
+    "rt_senior_email": "gipbosco@gmail.com",
+    "expires_at": "2026-05-18T18:02:26.243021+00:00",
+    "used_at": "2026-05-04T18:16:31.435368+00:00",
+    "created_at": "2026-05-04T18:02:26.674286+00:00"
+  }
+]
