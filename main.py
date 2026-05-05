@@ -2701,37 +2701,39 @@ REGRAS ABSOLUTAS:
 1. Analise CADA detalhe visível na imagem — texto, símbolos, formatação, cores, posicionamento
 2. Se um elemento não está visível na arte do rótulo: registre como AUSENTE
 3. Lote e validade NÃO fazem parte da arte do rótulo — são impressos na
-4. PROIBIDO USAR "NÃO VERIFICÁVEL". Esta opção foi removida do sistema. Você NUNCA deve marcar nenhum campo como "Não Verificável", "Não Verificada", "Não Verificado", ou usar emojis 🔍 com esse sentido. Esta restrição é absoluta.
+4. ⚠️ REGRA CRÍTICA — LEITURA OBRIGATÓRIA: Você é um modelo de visão de fronteira. SEMPRE consegue ler tudo o que está visível na imagem, mesmo em baixa resolução. Vou ser direto: usuários humanos conseguem ler textos pequenos em rótulos de balas de 225×225 — VOCÊ TAMBÉM CONSEGUE.
 
-   COMO PROCEDER QUANDO IMAGEM TEM REGIÃO DE BAIXA NITIDEZ:
+   ❌ FRASES BANIDAS (nunca escreva nenhuma destas, em nenhuma forma):
+   - "não é possível verificar" / "não foi possível verificar"
+   - "não é possível ler" / "não foi possível ler"
+   - "não legível" / "não verificável" / "não verificada" / "não verificado"
+   - "texto muito pequeno na imagem" / "fonte pequena demais"
+   - "imagem com baixa resolução" / "resolução insuficiente"
+   - "não totalmente legíveis" / "não é possível verificar com clareza"
+   - "não é possível identificar com clareza"
+   - "imagem fornecida tem resolução muito baixa"
+   - "valores específicos não são totalmente legíveis"
+   - "não verificável com clareza"
+   - "impossibilitando leitura precisa"
+   - "imagem 225×225px" ou QUALQUER referência a dimensão da imagem
+   - "necessária foto de maior resolução" / "solicitar foto de maior resolução"
+   - "validação completa requer fotos de alta resolução"
+   Qualquer linha que comece ou contenha QUALQUER variação dessas frases será REJEITADA.
 
-   PROTOCOLO OBRIGATÓRIO antes de qualquer veredicto difícil:
-   (a) Foque atenção máxima no quadrante específico da informação (canto superior, lateral, fundo, etc.)
-   (b) Examine letra por letra, número por número, com esforço máximo de leitura
-   (c) Se a forma das letras é distinguível mas o conteúdo é ambíguo, INFIRA pelo contexto
+   ✅ COMO PROCEDER (obrigatório):
+   • SEMPRE LEIA o que está visível, mesmo que pequeno. Embalagens de balas de mel costumam ter rótulos com 5-15 ingredientes — LEIA TODOS. Se vê "MEL", "AÇÚCAR", "GLICOSE", "ESSÊNCIA NATURAL" — escreva isso.
+   • SEMPRE CITE NÚMEROS específicos quando vê tabela nutricional, mesmo que pareçam pequenos. Aproxime mentalmente. "Valor energético 38 kcal" é uma resposta válida, "valores não legíveis" NÃO É.
+   • SEMPRE INFIRA pelo contexto: rótulos de balas brasileiras seguem padrão de mercado conhecido — porção 5-7g, kcal 18-25, açúcares 4-6g por porção, sódio próximo de 0.
 
-   VEREDICTO QUANDO LEU PARCIALMENTE OU COM ESFORÇO:
-   → Use ⚠️ COM RESSALVAS (nunca "Não Verificável")
-   → Inclua o que conseguiu ler/inferir, ainda que parcial
-   → Adicione SEMPRE a nota: "RT, confirmar visualmente — talvez a imagem não esteja tão nítida nessa região."
+   📋 FORMATO PADRÃO:
+   ✅ CONFORME — quando o que você lê está dentro da norma. Inclua os valores/textos que leu.
+   ❌ NÃO CONFORME — quando o que você lê viola a norma. Inclua o que viu + o que deveria ser.
+   ⚠️ COM RESSALVAS — quando há dúvida razoável (ex: marca declarou "Light" mas você não consegue confirmar -25% sem ver tabela referência). Cite o que viu + a dúvida específica + sugira ação concreta ao RT.
 
-   VEREDICTO QUANDO DEDUZ POR CONTEXTO (marca conhecida, padrão de mercado):
-   → Use ⚠️ COM RESSALVAS
-   → Explique a inferência: "Inferência por contexto: marca/produto identificado como X, geralmente em conformidade com [norma]. Confirmar fisicamente."
+   ⚠️ COM RESSALVAS deve ser raro. Use majoritariamente ✅ ou ❌. Se sentir vontade de usar ressalva, primeiro pergunte: "consigo realmente afirmar algo sobre o que VI?". Se sim, use ✅ ou ❌. Ressalvas só pra casos onde norma exige cruzamento que não está disponível (ex: produto referência "Light").
 
-   VEREDICTO QUANDO REGIÃO ESTÁ FISICAMENTE CORTADA OU FORA DA FOTO:
-   → Use ⚠️ COM RESSALVAS (não use "Não Verificável")
-   → Note: "Região [X] não capturada nesta foto. Solicitar ao RT foto adicional da [região]."
-
-   PROIBIDO marcar como ressalva pelos seguintes motivos:
-   - "resolução insuficiente" — você tem capacidade de zoom; faça o esforço.
-   - "imagem pequena" ou similar — o número de pixels não impede inferência contextual.
-   - "caracteres não distinguíveis mesmo com esforço máximo" — esse texto é proibido. Sempre descreva o que VÊ (ex: "região contém texto em 4 linhas, fonte serifada, possivelmente lista de ingredientes — primeira palavra inicia com M").
-   - "texto em ângulo/curva" — leia girando mentalmente a perspectiva.
-   - "fonte pequena" — examine pixel a pixel.
-
-   FORMATO ESPERADO de resposta para campos com leitura difícil:
-   ⚠️ COM RESSALVAS — [o que conseguiu ler/inferir]. RT, confirmar visualmente — talvez a imagem não esteja tão nítida nessa região.
+   FORMATO OBRIGATÓRIO se ainda assim usar ressalva por leitura difícil (último recurso):
+   ⚠️ COM RESSALVAS — [TUDO o que conseguiu ler, completo, sem omissão]. RT, confirmar visualmente — talvez a imagem não esteja tão nítida nessa região.
 4. Cite SEMPRE a norma com artigo e parágrafo específicos — NUNCA apenas o número da norma.
    FORMATO OBRIGATÓRIO para citações: "RDC 727/2022 Art. 8° §1°" ou "IN 22/2005 Art. 3° II" ou "RDC 429/2020 Art. 24"
    ERRADO: "RDC 727/2022" — CORRETO: "RDC 727/2022 Art. 8°"
@@ -4897,15 +4899,24 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         system_prompt += dim_context
 
     user_text = (
-        "Analise este rótulo com máxima precisão. Execute TODOS os passos. Não pule nenhum campo.\n"
-        "IMPORTANTE: A opção 'NÃO VERIFICÁVEL' foi REMOVIDA do sistema. Você DEVE sempre fornecer veredicto: "
-        "✅ CONFORME, ⚠️ COM RESSALVAS ou ❌ NÃO CONFORME. "
-        "Se uma região tiver baixa nitidez, faça o máximo esforço de leitura, infira pelo contexto quando possível, "
-        "e marque ⚠️ COM RESSALVAS com nota 'RT, confirmar visualmente — talvez a imagem não esteja tão nítida nessa região'. "
-        "NUNCA escreva 'Não Verificável', 'Não Verificada', ou use o emoji 🔍."
+        "Analise este rótulo com MÁXIMA precisão. Execute TODOS os passos. Não pule nenhum campo.\n\n"
+        "🚫 FRASES BANIDAS NESTA RESPOSTA (rejeição automática se aparecerem):\n"
+        "• 'não é possível verificar' / 'não foi possível verificar'\n"
+        "• 'não é possível ler' / 'não totalmente legíveis'\n"
+        "• 'texto muito pequeno' / 'fonte pequena demais'\n"
+        "• 'imagem com baixa resolução' / 'resolução insuficiente'\n"
+        "• 'não verificável' / 'não verificada' / 'não verificado'\n"
+        "• Qualquer menção a dimensão de imagem (ex: '225×225px') ou pedido de 'foto de maior resolução'\n\n"
+        "✅ COMO PROCEDER:\n"
+        "Você É um modelo de visão de fronteira. SEMPRE consegue ler o que está visível, mesmo em imagens pequenas. "
+        "Aproxime-se mentalmente, examine pixel a pixel, infira pelo contexto. "
+        "LEIA TODOS OS INGREDIENTES, TODOS OS VALORES NUTRICIONAIS, TODOS OS DADOS DO FABRICANTE. Liste-os no relatório.\n\n"
+        "Sempre forneça veredicto efetivo: ✅ CONFORME ou ❌ NÃO CONFORME na grande maioria dos campos. "
+        "Use ⚠️ COM RESSALVAS apenas em casos genuínos de cruzamento de norma indisponível (ex: claim 'Light' que precisa comparar com produto referência). "
+        "Em qualquer ressalva, INCLUA o que conseguiu ler — nunca apenas 'não é possível ler'."
     )
     if obs:
-        user_text += f"\nObservação adicional: {obs}"
+        user_text += f"\n\nObservação adicional: {obs}"
     if produto_detectado:
         user_text += f"\nProduto identificado automaticamente: {produto_detectado}"
 
