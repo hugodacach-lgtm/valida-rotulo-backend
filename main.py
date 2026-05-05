@@ -10087,16 +10087,102 @@ async def auth_me(request: Request):
 
 @app.post("/auth/reset-password")
 async def auth_reset_password(request: Request):
-    """Envia email de reset de senha."""
+    """Envia email de reset de senha. O link aponta pra reset-password.html."""
     body = await request.json()
     email = (body.get("email") or "").strip().lower()
     if not email:
         return JSONResponse({"error": "Email obrigatório."},
                             status_code=400, headers={"Access-Control-Allow-Origin": "*"})
-    redirect = body.get("redirect_url", "https://cosmic-llama-9576a5.netlify.app")
-    result = await _auth_post("/recover", {"email": email})
+    # IMPORTANTE: redirect_to precisa estar nas Redirect URLs do Supabase
+    # (já está coberto pelo wildcard https://cosmic-llama-9576a5.netlify.app/**)
+    redirect_to = (body.get("redirect_url")
+                   or "https://cosmic-llama-9576a5.netlify.app/reset-password.html")
+    # Supabase moderno aceita redirect_to no body; também passamos via query como fallback
+    safe_redirect = redirect_to.replace(" ", "%20")
+    result = await _auth_post(f"/recover?redirect_to={safe_redirect}", {
+        "email": email,
+        "redirect_to": redirect_to,
+    })
+    # Sempre retornar sucesso (não vazar se email existe ou não)
     return JSONResponse({"ok": True, "message": "Se o email existir, você receberá um link de redefinição."},
                         headers={"Access-Control-Allow-Origin": "*"})
+
+
+@app.post("/auth/update-password")
+async def auth_update_password(request: Request):
+    """Atualiza senha do usuário usando o access_token recebido via email de recovery."""
+    body = await request.json()
+    access_token = (body.get("access_token") or "").strip()
+    new_password = body.get("password") or ""
+
+    if not access_token:
+        return JSONResponse({"error": "Token de recuperação ausente. Peça um novo link."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+    if not new_password or len(new_password) < 6:
+        return JSONResponse({"error": "Nova senha deve ter pelo menos 6 caracteres."},
+                            status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+    # PUT /auth/v1/user com Bearer token + body {password: "..."}
+    headers = {
+        "apikey": _SUPA_ANON,
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {access_token}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as cl:
+            r = await cl.put(f"{_SUPA_AUTH}/user",
+                             json={"password": new_password},
+                             headers=headers)
+            try:
+                result = r.json()
+            except Exception:
+                result = {}
+            status = r.status_code
+    except Exception as e:
+        return JSONResponse({"error": "Erro de conexão. Tente novamente em alguns segundos."},
+                            status_code=500, headers={"Access-Control-Allow-Origin": "*"})
+
+    if status >= 400 or result.get("error") or "error_code" in result:
+        err_obj = result.get("error")
+        if isinstance(err_obj, dict):
+            raw_msg = err_obj.get("message", "") or err_obj.get("description", "")
+        elif isinstance(err_obj, str):
+            raw_msg = err_obj
+        else:
+            raw_msg = ""
+        raw_msg = (raw_msg
+                   or result.get("msg", "")
+                   or result.get("error_description", "")
+                   or "")
+        raw_lower = raw_msg.lower()
+
+        if "expired" in raw_lower or ("invalid" in raw_lower and ("token" in raw_lower or "jwt" in raw_lower)):
+            return JSONResponse({
+                "error": "O link de recuperação expirou ou já foi usado. Peça um novo na tela de login.",
+                "code": "token_expired"
+            }, status_code=401, headers={"Access-Control-Allow-Origin": "*"})
+
+        if "weak" in raw_lower or "short" in raw_lower or ("password" in raw_lower and "length" in raw_lower):
+            return JSONResponse({
+                "error": "Senha muito curta ou fraca. Use ao menos 6 caracteres.",
+                "code": "weak_password"
+            }, status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        if "same" in raw_lower:
+            return JSONResponse({
+                "error": "A nova senha precisa ser diferente da anterior.",
+                "code": "same_password"
+            }, status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+        return JSONResponse({
+            "error": raw_msg or "Não foi possível atualizar a senha.",
+            "code": "unknown"
+        }, status_code=400, headers={"Access-Control-Allow-Origin": "*"})
+
+    return JSONResponse({
+        "ok": True,
+        "message": "Senha atualizada com sucesso. Faça login com a nova senha."
+    }, headers={"Access-Control-Allow-Origin": "*"})
 
 @app.on_event("startup")
 async def startup_load():
