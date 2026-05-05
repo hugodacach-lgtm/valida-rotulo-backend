@@ -5108,7 +5108,9 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             # Quando upload completar, atualiza o registro com a imagem_url.
             async def _upload_e_atualizar():
                 try:
+                    print(f"[storage] _upload_e_atualizar START case={case_id[:16]}", flush=True)
                     if not contents:
+                        print(f"[storage] _upload_e_atualizar SKIP: contents vazio case={case_id[:16]}", flush=True)
                         return
                     img_url = await _sb_upload_rotulo(
                         contents,
@@ -5116,11 +5118,29 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                         getattr(imagem, "content_type", None) or "image/jpeg"
                     )
                     if img_url:
-                        await _sb_upsert_v2(
-                            "validacoes",
-                            {"case_id": case_id, "imagem_url": img_url},
-                            conflict_col="case_id"
-                        )
+                        print(f"[storage] _upload_e_atualizar: upload OK, fazendo PATCH no DB case={case_id[:16]}", flush=True)
+                        # Usa PATCH direto em vez de upsert (mais simples — só atualiza imagem_url)
+                        try:
+                            async with httpx.AsyncClient(timeout=10.0) as cl:
+                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
+                                pr = await cl.patch(
+                                    patch_url,
+                                    json={"imagem_url": img_url},
+                                    headers={
+                                        "apikey": _SUPABASE_KEY,
+                                        "Authorization": f"Bearer {_SUPABASE_KEY}",
+                                        "Content-Type": "application/json",
+                                        "Prefer": "return=minimal",
+                                    },
+                                )
+                                if pr.status_code in (200, 201, 204):
+                                    print(f"[storage] DB PATCH OK case={case_id[:16]}", flush=True)
+                                else:
+                                    print(f"[storage] DB PATCH FALHOU case={case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
+                        except Exception as patch_e:
+                            print(f"[storage] DB PATCH EXCEÇÃO case={case_id[:16]}: {patch_e}", flush=True)
+                    else:
+                        print(f"[storage] _upload_e_atualizar: upload retornou vazio case={case_id[:16]}", flush=True)
                 except Exception as e:
                     print(f"[storage] _upload_e_atualizar erro case={case_id[:16]}: {e}", flush=True)
 
@@ -6040,7 +6060,14 @@ async def _sb_upload_rotulo(contents: bytes, case_id: str, content_type: str = "
     Bucket precisa existir e estar configurado como Public.
     Coluna validacoes.imagem_url precisa existir.
     """
-    if not _SUPABASE_ON or not contents or not case_id:
+    if not _SUPABASE_ON:
+        print(f"[storage] upload SKIPPED: supabase off", flush=True)
+        return ""
+    if not contents:
+        print(f"[storage] upload SKIPPED: contents vazio (case={case_id[:16]})", flush=True)
+        return ""
+    if not case_id:
+        print(f"[storage] upload SKIPPED: case_id vazio", flush=True)
         return ""
 
     # Determina extensão pelo content-type (default jpg)
@@ -6058,8 +6085,10 @@ async def _sb_upload_rotulo(contents: bytes, case_id: str, content_type: str = "
     upload_url = f"{_SUPABASE_URL}/storage/v1/object/rotulos/{file_name}"
     public_url = f"{_SUPABASE_URL}/storage/v1/object/public/rotulos/{file_name}"
 
+    print(f"[storage] uploading case={case_id[:16]} size={len(contents)}b ext={ext} ct={content_type}", flush=True)
+
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             r = await client.post(
                 upload_url,
                 content=contents,
@@ -6071,12 +6100,13 @@ async def _sb_upload_rotulo(contents: bytes, case_id: str, content_type: str = "
                 },
             )
             if r.status_code in (200, 201):
+                print(f"[storage] upload OK case={case_id[:16]} url={public_url}", flush=True)
                 return public_url
             # Logar pra debug — falha aqui não é crítica (sistema continua sem foto)
-            print(f"[storage] upload falhou case={case_id[:16]} status={r.status_code} body={r.text[:200]}", flush=True)
+            print(f"[storage] upload FALHOU case={case_id[:16]} status={r.status_code} body={r.text[:300]}", flush=True)
             return ""
     except Exception as e:
-        print(f"[storage] upload exceção case={case_id[:16]} err={str(e)[:200]}", flush=True)
+        print(f"[storage] upload EXCEÇÃO case={case_id[:16]} err={str(e)[:300]}", flush=True)
         return ""
 
 
