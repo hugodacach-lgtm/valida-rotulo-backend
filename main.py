@@ -5091,6 +5091,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             "timestamp":    __import__("datetime").datetime.now().isoformat(),
             "auto_stored":  True,
             "relatorio_completo": relatorio[:8000],  # salva para comparativo
+            "imagem_url":   "",  # preenchido em background pelo upload Storage (abaixo)
         }
         existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
         if not existing:
@@ -5102,6 +5103,28 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             # Remove None values
             supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
             asyncio.ensure_future(_sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id"))
+
+            # Upload da imagem do rótulo pro Storage (fire-and-forget, não bloqueia resposta)
+            # Quando upload completar, atualiza o registro com a imagem_url.
+            async def _upload_e_atualizar():
+                try:
+                    if not contents:
+                        return
+                    img_url = await _sb_upload_rotulo(
+                        contents,
+                        case_id,
+                        getattr(imagem, "content_type", None) or "image/jpeg"
+                    )
+                    if img_url:
+                        await _sb_upsert_v2(
+                            "validacoes",
+                            {"case_id": case_id, "imagem_url": img_url},
+                            conflict_col="case_id"
+                        )
+                except Exception as e:
+                    print(f"[storage] _upload_e_atualizar erro case={case_id[:16]}: {e}", flush=True)
+
+            asyncio.ensure_future(_upload_e_atualizar())
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
 
@@ -6008,6 +6031,54 @@ async def _sb_get(table: str, filters: dict = None, limit: int = 500) -> list[di
             return r.json() if r.status_code == 200 else []
     except Exception:
         return []
+
+async def _sb_upload_rotulo(contents: bytes, case_id: str, content_type: str = "image/jpeg") -> str:
+    """
+    Faz upload da imagem do rótulo pro bucket 'rotulos' no Supabase Storage.
+    Retorna URL pública (string vazia se falhar — não bloqueia validação).
+
+    Bucket precisa existir e estar configurado como Public.
+    Coluna validacoes.imagem_url precisa existir.
+    """
+    if not _SUPABASE_ON or not contents or not case_id:
+        return ""
+
+    # Determina extensão pelo content-type (default jpg)
+    ct = (content_type or "").lower()
+    if "png" in ct:
+        ext = "png"
+    elif "webp" in ct:
+        ext = "webp"
+    elif "pdf" in ct:
+        ext = "pdf"
+    else:
+        ext = "jpg"
+
+    file_name = f"{case_id}.{ext}"
+    upload_url = f"{_SUPABASE_URL}/storage/v1/object/rotulos/{file_name}"
+    public_url = f"{_SUPABASE_URL}/storage/v1/object/public/rotulos/{file_name}"
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(
+                upload_url,
+                content=contents,
+                headers={
+                    "apikey": _SUPABASE_KEY,
+                    "Authorization": f"Bearer {_SUPABASE_KEY}",
+                    "Content-Type": content_type or "image/jpeg",
+                    "x-upsert": "true",  # sobrescreve se já existir (evita conflito em retry)
+                },
+            )
+            if r.status_code in (200, 201):
+                return public_url
+            # Logar pra debug — falha aqui não é crítica (sistema continua sem foto)
+            print(f"[storage] upload falhou case={case_id[:16]} status={r.status_code} body={r.text[:200]}", flush=True)
+            return ""
+    except Exception as e:
+        print(f"[storage] upload exceção case={case_id[:16]} err={str(e)[:200]}", flush=True)
+        return ""
+
 
 async def _sb_upsert(table: str, data: dict, conflict_col: str = "") -> bool:
     """
@@ -12227,6 +12298,129 @@ def _render_curador_html(title: str, body: str, status_class: str = "ok") -> str
 </div>
 </body>
 </html>"""
+
+
+@app.get("/curador/relatorio/{case_id}")
+async def curador_ver_relatorio(case_id: str):
+    """
+    Página HTML que mostra o relatório completo de uma validação.
+    Linkada do email diário do curador — permite Giovanna ver o contexto
+    completo da análise sem precisar reabrir a plataforma.
+    """
+    if not _SUPABASE_ON:
+        return HTMLResponse(_render_curador_html(
+            "Indisponível",
+            "<div class='status-bar'>Sistema offline temporariamente.</div>",
+            "fail"
+        ), status_code=503)
+
+    import html as _html_mod
+    import re as _re
+
+    # Busca o caso
+    url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}&limit=1"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as cl:
+            r = await cl.get(url, headers={
+                "apikey": _SUPABASE_KEY,
+                "Authorization": f"Bearer {_SUPABASE_KEY}",
+            })
+            data = r.json() if r.status_code == 200 else []
+    except Exception:
+        data = []
+
+    if not data:
+        return HTMLResponse(_render_curador_html(
+            "Caso não encontrado",
+            f"<div class='status-bar'>Validação <code>{case_id[:24]}</code> não encontrada.</div>",
+            "fail"
+        ), status_code=404)
+
+    caso = data[0]
+    produto = (caso.get("produto") or "—").strip() or "—"
+    categoria = (caso.get("categoria") or caso.get("caminho_np") or "—").strip() or "—"
+    orgao = (caso.get("orgao") or "—").strip() or "—"
+    score_agente = caso.get("score_agente")
+    score_real = caso.get("score_real")
+    imagem_url = (caso.get("imagem_url") or "").strip()
+    relatorio = (caso.get("relatorio_completo") or "").strip()
+    feedback_rt = (caso.get("feedback") or "").strip()
+    rt_comment = (caso.get("rt_comment") or "").strip()
+    created_at = (caso.get("created_at") or caso.get("timestamp") or "").strip()
+
+    if not relatorio:
+        relatorio_html = "<em style='color:#6b6757;'>Relatório completo não foi salvo para esta validação.</em>"
+    else:
+        # Conversão markdown-like → HTML simples
+        # Preserva quebras de linha; renderiza **bold**, # headers
+        rel_esc = _html_mod.escape(relatorio)
+        # Headers (## ou ###)
+        rel_esc = _re.sub(r'^### (.+)$', r'<h3 style="color:#0F2A20;margin:18px 0 8px;font-size:14px;">\1</h3>', rel_esc, flags=_re.MULTILINE)
+        rel_esc = _re.sub(r'^## (.+)$', r'<h2 style="color:#0F2A20;margin:22px 0 10px;font-size:16px;border-bottom:1px solid #e2ded2;padding-bottom:6px;">\1</h2>', rel_esc, flags=_re.MULTILINE)
+        rel_esc = _re.sub(r'^# (.+)$', r'<h1 style="color:#091A14;margin:24px 0 12px;font-size:20px;">\1</h1>', rel_esc, flags=_re.MULTILINE)
+        # CAMPO X — destaque visual
+        rel_esc = _re.sub(r'^(CAMPO \d+[^\n]*)$', r'<div style="background:#F0EDE3;padding:8px 12px;margin:14px 0 6px;border-left:3px solid #166534;font-weight:600;color:#091A14;">\1</div>', rel_esc, flags=_re.MULTILINE)
+        # Bold **texto**
+        rel_esc = _re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', rel_esc)
+        # Status colorido
+        rel_esc = rel_esc.replace("CONFORME", '<span style="color:#166534;font-weight:600;">CONFORME</span>') \
+                         .replace("NÃO <span style=\"color:#166534;font-weight:600;\">CONFORME</span>", '<span style="color:#992F2A;font-weight:600;">NÃO CONFORME</span>') \
+                         .replace("COM RESSALVAS", '<span style="color:#9C5A0E;font-weight:600;">COM RESSALVAS</span>')
+        # Newlines → <br>
+        rel_esc = rel_esc.replace("\n", "<br>\n")
+        relatorio_html = f'<div style="font-family:Geist,system-ui,sans-serif;font-size:13px;line-height:1.7;color:#0F2A20;">{rel_esc}</div>'
+
+    # Score box
+    score_box = ""
+    if score_agente is not None:
+        score_box = f"<strong>Score IA:</strong> {score_agente}/14"
+        if score_real is not None and score_real != score_agente:
+            score_box += f" → <strong>Score após RT:</strong> {score_real}/14"
+
+    # Imagem
+    img_block = ""
+    if imagem_url:
+        img_block = f'''<div style="margin:16px 0;text-align:center;">
+            <a href="{imagem_url}" target="_blank" rel="noopener">
+                <img src="{imagem_url}" alt="Rótulo" style="max-width:100%;max-height:420px;border:1px solid #E2DED2;border-radius:8px;box-shadow:0 1px 3px rgba(15,42,32,0.08);">
+            </a>
+            <div style="font-size:11px;color:#6b6757;margin-top:6px;">Clique para abrir em tamanho real</div>
+        </div>'''
+    else:
+        img_block = '<div style="background:#F0EDE3;border:1px dashed #D9D2BE;border-radius:8px;padding:32px;text-align:center;color:#6b6757;font-size:12px;margin:16px 0;">Foto do rótulo não disponível para esta validação</div>'
+
+    # Feedback do RT (se houver)
+    fb_block = ""
+    if feedback_rt or rt_comment:
+        fb_text = rt_comment or feedback_rt
+        fb_block = f'''<div style="background:#F5EBD8;border-left:3px solid #9C5A0E;padding:14px 18px;margin:20px 0;border-radius:4px;">
+            <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;">💬 Comentário geral do RT</div>
+            <div style="font-size:13px;color:#0f2a20;line-height:1.6;">{_html_mod.escape(fb_text)}</div>
+        </div>'''
+
+    body_html = f'''
+<div style="background:#fff;border:1px solid #e2ded2;border-radius:10px;padding:24px;max-width:760px;margin:0 auto;">
+    <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Relatório completo · case {case_id[:24]}</div>
+    <h1 style="font-size:22px;color:#091a14;margin:8px 0 4px;">{_html_mod.escape(produto)}</h1>
+    <div style="font-size:13px;color:#6b6757;">{_html_mod.escape(categoria)} · {_html_mod.escape(orgao)}</div>
+    <div style="font-size:13px;color:#0f2a20;margin-top:8px;">{score_box}</div>
+
+    {img_block}
+
+    {fb_block}
+
+    <hr style="border:none;border-top:1px solid #e2ded2;margin:24px 0;">
+
+    <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:12px;">📋 Análise técnica completa</div>
+    {relatorio_html}
+</div>
+'''
+
+    return HTMLResponse(_render_curador_html(
+        f"Relatório · {produto[:60]}",
+        body_html,
+        "ok"
+    ))
 
 
 @app.get("/curador/aprovar/{token}")
