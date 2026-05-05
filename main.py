@@ -4362,8 +4362,55 @@ NÃO repita PRODUTO, ÓRGÃO, SCORE numérico ou VEREDICTO no início — esses 
 
 Comece DIRETAMENTE com o título "PASSO 1 — IDENTIFICAÇÃO DO PRODUTO" e siga com o conteúdo dos passos.
 
+🔴🔴🔴 ESTRUTURA RÍGIDA E OBRIGATÓRIA DO PASSO 4 — VOCÊ DEVE COPIAR EXATAMENTE 🔴🔴🔴
+
+O Passo 4 SEMPRE terá EXATAMENTE 3 seções nesta ordem (sem exceção, sem variação, sem improvisação):
+
+  SEÇÃO 1 — "CONFORMIDADES DETECTADAS:"
+  SEÇÃO 2 — "NÃO CONFORMIDADES CRÍTICAS:"
+  SEÇÃO 3 — "RESSALVAS:"
+
+Não importa se o produto tem zero não conformidades ou zero ressalvas — você DEVE escrever as 3 seções (com a frase "Nenhuma identificada nesta análise." se não houver itens). NUNCA omita nenhuma das 3 seções. NUNCA crie outras seções. NUNCA renomeie elas.
+
+🚫 SEÇÕES PROIBIDAS — não crie nenhuma destas:
+  - "PONTOS FORTES" (use "CONFORMIDADES DETECTADAS")
+  - "NÃO CONFORMIDADES CRÍTICAS" pode existir, mas NÃO crie "RESSALVAS IMPORTANTES" (use só "RESSALVAS")
+  - "RECOMENDAÇÕES AO RT" — proibido
+  - "PRIORIDADE DE CORREÇÃO" — proibido
+  - "OBSERVAÇÕES CRÍTICAS" — proibido
+  - "PRÓXIMOS PASSOS" — proibido
+  - Qualquer outra seção que não seja as 3 acima — proibido
+
+EXEMPLO OBRIGATÓRIO — copie ESTA estrutura literalmente, mudando apenas o conteúdo:
+
+```
+# PASSO 4 — RELATÓRIO FINAL
+
+CONFORMIDADES DETECTADAS:
+✓ Denominação clara e específica conforme RTIQ
+✓ Lista de ingredientes completa com aditivos identificados (INS + função)
+✓ Carimbo SIF presente e legível
+
+NÃO CONFORMIDADES CRÍTICAS:
+✗ Endereço do fabricante INCOMPLETO — falta CEP obrigatório (RDC 727/2022 Art. 8°)
+✗ Declaração de ALÉRGENOS AUSENTE — produto contém leite e soja (RDC 727/2022 Art. 14-16)
+
+RESSALVAS:
+⚠ Tabela nutricional com valores próximos ao limite — RT confirmar análise laboratorial
+⚠ Lupa "ALTO EM SÓDIO" no painel principal recomendada (sódio 700mg/100g ≥ 600mg)
+
+> ⚠️ Aviso legal: Este relatório é gerado por inteligência artificial e tem caráter auxiliar. Não substitui a análise e aprovação de Responsável Técnico habilitado. A conformidade regulatória final é de responsabilidade exclusiva do RT inscrito no órgão competente.
+```
+
+⚠️ COMPLETUDE OBRIGATÓRIA:
+- Em "CONFORMIDADES DETECTADAS" liste TODOS os campos C1–C14 marcados como ✅ (use 1 linha por item, comece com ✓).
+- Em "NÃO CONFORMIDADES CRÍTICAS" liste TODOS os campos marcados como ❌ (1 linha por item, comece com ✗, cite a norma violada).
+- Em "RESSALVAS" liste TODOS os campos marcados como ⚠️ (1 linha por item, comece com ⚠).
+- Se uma seção não tem itens, escreva exatamente: "Nenhuma identificada nesta análise."
+- NUNCA trunque o relatório. Você tem orçamento de tokens suficiente — escreva tudo.
+
 REGRAS GERAIS:
-• Ao final do relatório, você DEVE escrever uma linha "SCORE: X.X/14 | N conformes + N com ressalvas + N não conformes" e uma linha "VEREDICTO: [APROVADO | APROVADO COM RESSALVAS | REPROVADO]". Essas linhas são PARSEADAS pelo sistema — não as omita.
+• Logo no início do relatório (antes do PASSO 1), você DEVE escrever uma linha "SCORE: X.X/14 | N conformes + N com ressalvas + N não conformes" e uma linha "VEREDICTO: [APROVADO | APROVADO COM RESSALVAS | REPROVADO]". Essas linhas são PARSEADAS pelo sistema. Escreva APENAS uma vez, no início.
 • Score 3 níveis: ✅ CONFORME (1.0pt) | ⚠️ COM RESSALVAS (0.5pt) | ❌ NÃO CONFORME (0pt).
 
 🔢 REGRA MATEMÁTICA OBRIGATÓRIA — VERIFIQUE ANTES DE ESCREVER O SCORE FINAL:
@@ -4941,7 +4988,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
     payload = {
         "model": ANTHROPIC_MODEL,
-        "max_tokens": 8192,
+        "max_tokens": 16384,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -5699,7 +5746,7 @@ async def avaliar_rotulo(
 
     payload = {
         "model": ANTHROPIC_MODEL,
-        "max_tokens": 8192,
+        "max_tokens": 16384,
         "temperature": 0,
         "stream": True,
         "system": system_prompt,
@@ -7792,7 +7839,7 @@ Campos gerados: {json.dumps(campos, ensure_ascii=False)[:3000]}"""
                              "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
                     json={"model": ANTHROPIC_MODEL,
-                          "max_tokens": 8192, "stream": True,
+                          "max_tokens": 16384, "stream": True,
                           "system": val_system,
                           "messages": [{"role": "user", "content": val_msg}]}
                 ) as resp2:
