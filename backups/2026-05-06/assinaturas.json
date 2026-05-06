@@ -1,0 +1,35 @@
+[
+  {
+    "user_id": "bdd0a4e8-bdc1-4407-b5eb-c883fd53e8a4",
+    "plano": "trial",
+    "status": "trial",
+    "trial_ends_at": "2026-05-14T17:04:36.322494+00:00",
+    "stripe_sub_id": "",
+    "stripe_cust_id": "",
+    "email": "",
+    "nome": "",
+    "updated_at": "2026-04-30T17:04:36.322509+00:00"
+  },
+  {
+    "user_id": "7458d67c-80ce-4ce4-8dad-1b73b2f2a0e0",
+    "plano": "trial",
+    "status": "trial",
+    "trial_ends_at": "2026-05-14T17:11:15.126844+00:00",
+    "stripe_sub_id": "",
+    "stripe_cust_id": "",
+    "email": "",
+    "nome": "",
+    "updated_at": "2026-04-30T17:11:15.126857+00:00"
+  },
+  {
+    "user_id": "88f67e79-e5a6-4337-972b-623f90a7360b",
+    "plano": "trial",
+    "status": "trial",
+    "trial_ends_at": "2026-05-19T18:24:44.416474+00:00",
+    "stripe_sub_id": "",
+    "stripe_cust_id": "",
+    "email": "",
+    "nome": "",
+    "updated_at": "2026-05-05T18:24:44.416496+00:00"
+  }
+]

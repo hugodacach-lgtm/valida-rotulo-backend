@@ -1,0 +1,24 @@
+{
+  "data": "2026-05-06",
+  "timestamp_utc": "2026-05-06T08:36:12.524775Z",
+  "tabelas_total": 11,
+  "tabelas_ok": 11,
+  "tabelas_erro": 0,
+  "linhas_por_tabela": {
+    "assinaturas": 3,
+    "curador_tokens": 12,
+    "design_feedback": 0,
+    "kb_documents": 201,
+    "monitor_alertas": 0,
+    "perfis_empresa": 0,
+    "referencias_design": 0,
+    "rotulo_versoes": 0,
+    "tabelas_checkout": 0,
+    "uso_validacoes": 0,
+    "validacoes": 3
+  },
+  "linhas_total": 219,
+  "erros": {},
+  "supabase_url": "https://fojpndxfsjhxhwuoqcoe.supabase.co",
+  "retencao_dias": 30
+}

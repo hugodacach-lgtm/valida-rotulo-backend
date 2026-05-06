@@ -1,0 +1,146 @@
+[
+  {
+    "case_id": "manual_hugo_rocambole_20260430",
+    "produto": "Rocambole Resfriado de Frango Recheado com Queijo e Presunto",
+    "categoria": "aves_geral",
+    "feedback": "incorreto",
+    "erros_auto": "C1: denominacao incorreta (resfriado vs congelado); C7: instrucoes de conservacao incoerentes; C2 e C3: falsos positivos do agente",
+    "erros_encontrados": "C1 (NaoConforme): denominacao deveria ser CONGELADO nao RESFRIADO (temp -18C a -12C). C7 (NaoConforme): instrucoes incoerentes (mesmo problema do C1). C2 (FalsoPositivo): exigiu INS quando facultativo. C3 (FalsoPositivo): exigiu PESO LIQUIDO quando peso variavel.",
+    "rt_comment": "PRIMEIRO FEEDBACK PRODUCAO POS-MIGRACAO SONNET 4.6 - Hugo Dacach 2026-04-30\n\n=== ORGAO ===\nSIE/RJ - carimbo 1438 - RTIQ IN 6/2001 + RIISPOA\n\n=== CORRECOES CAMPO A CAMPO ===\n\nCAMPO 1 - DENOMINACAO DE VENDA\nAgente: Conforme (1.0pt)\nRT corrige para: Nao Conforme (0pt)\nMotivo: Temperatura declarada (-18C a -12C) e de produto CONGELADO. Denominacao fala em RESFRIADO. Incoerencia tecnica. Deveria ser ROCAMBOLE CONGELADO DE FRANGO. Norma: RDC 727/2022 + IN 6/2001.\n\nCAMPO 2 - LISTA DE INGREDIENTES\nAgente: Com Ressalvas (0.5pt) - exigiu codigos INS\nRT corrige para: Conforme (1.0pt)\nMotivo: FALSO POSITIVO. Declaracao de codigos INS e FACULTATIVA pela RDC 727/2022 Art. 12 paragrafo 1. Pode-se declarar apenas nome do aditivo + funcao tecnologica OU INS, nao precisa as duas coisas.\n\nCAMPO 3 - CONTEUDO LIQUIDO\nAgente: Com Ressalvas (0.5pt) - alegou nomenclatura PESO DA EMBALAGEM incorreta\nRT corrige para: Conforme (1.0pt)\nMotivo: FALSO POSITIVO. Produto de peso variavel. Aceita formato PESO DA EMBALAGEM + DEVE SER PESADO EM PRESENCA DO CONSUMIDOR. Norma: INMETRO Port. 249/2021.\n\nCAMPO 7 - INSTRUCOES DE CONSERVACAO\nAgente: Conforme (1.0pt)\nRT corrige para: Nao Conforme (0pt)\nMotivo: Mesmo problema do C1 - rotulo fala em RESFRIADO mas temperatura e de CONGELADO. Conformidade depende de correcao do C1.\n\n=== ERRO NAO DETECTADO PELO AGENTE ===\n\nFalta INSTRUCAO DE USO OBRIGATORIA para produtos crus de ave/suino (RDC 727/2022). O rotulo NAO contem essa instrucao. Possivel motivo: agente nao conseguiu inferir cozido/cru pela imagem. Em caso de duvida, deve assumir cru e exigir.\nImpacto: -1.0pt no score real.\n\n=== SALDO DO SCORE REAL ===\n\nC1: -1.0 (Conforme -> Nao Conforme)\nC2: +0.5 (Com Ressalvas -> Conforme)\nC3: +0.5 (Com Ressalvas -> Conforme)\nC7: -1.0 (Conforme -> Nao Conforme)\nErro nao detectado (instrucao de uso): -1.0\nSaldo total: -2.0\nScore agente: 11.0/14\nScore real: 9.0/14\nVeredicto real: APROVADO COM RESSALVAS\n\n=== APRENDIZADOS ACIONAVEIS PARA O CURADOR ===\n\n1. Regra de facultatividade dos INS na RDC 727/2022 Art. 12 paragrafo 1\n2. Excecao produtos peso variavel INMETRO 249/2021\n3. Verificacao coerencia denominacao x temperatura conservacao (se temp < 0C, produto e congelado e denominacao deve refletir)\n4. Alerta instrucao de uso obrigatoria produtos crus ave/suino mesmo em duvida cozido/cru.",
+    "score_agente": 11,
+    "score_real": 9,
+    "auto_stored": false,
+    "created_at": "2026-04-30T23:07:14.407027+00:00",
+    "campos": null,
+    "caminho_np": null,
+    "orgao": null,
+    "erros_nao_detectados": null,
+    "falsos_positivos": null,
+    "ressalvas_auto": null,
+    "relatorio_completo": null,
+    "timestamp": null,
+    "total_discordancias": 0,
+    "versao_form": null,
+    "status_curador": "aprovado_sem_correcoes",
+    "aprovado_por": null,
+    "aprovado_em": null,
+    "rejeitado_em": null,
+    "doc_kb_gerado": null,
+    "imagem_url": null
+  },
+  {
+    "case_id": "e7b0d7ce4f55",
+    "produto": "**PRODUTO:** Peito de Frango Cozido e Defumado",
+    "categoria": "",
+    "feedback": null,
+    "erros_auto": "",
+    "erros_encontrados": "",
+    "rt_comment": null,
+    "score_agente": null,
+    "score_real": null,
+    "auto_stored": true,
+    "created_at": "2026-05-05T12:54:25.558207+00:00",
+    "campos": null,
+    "caminho_np": "",
+    "orgao": null,
+    "erros_nao_detectados": null,
+    "falsos_positivos": null,
+    "ressalvas_auto": "C9: ; C13: ",
+    "relatorio_completo": "# VALIDAÇÃO COMPLETA DE RÓTULO — ValidaRótulo IA\n\n## PASSO 1 — IDENTIFICAÇÃO DO PRODUTO\n\n**PRODUTO:** Peito de Frango Cozido e Defumado  \n**TIPO:** POA (Produto de Origem Animal)  \n**ESPÉCIE:** Aves (frango)  \n**CATEGORIA:** Produto cárneo processado — cozido e defumado  \n**ÓRGÃO:** SIF (Serviço de Inspeção Federal) — carimbo visível \"SIF 4296\"  \n**RTIQ:** IN 20/2000 (produtos cárneos processados) + RIISPOA\n\n---\n\n## PASSO 2 — LEGISLAÇÕES APLICÁVEIS\n\n▸ RDC 727/2022 (ANVISA) — rotulagem geral  \n▸ RDC 429/2020 + IN 75/2020 (ANVISA) — rotulagem nutricional  \n▸ INMETRO Port. 249/2021 — conteúdo líquido  \n▸ Lei 10.674/2003 — declaração de glúten  \n▸ RDC 715/2022 — declaração de lactose  \n▸ IN 20/2000 (MAPA) — produtos cárneos processados  \n▸ RIISPOA (Decreto 9.013/2017) — inspeção POA  \n▸ Decreto 4.680/2003 — transgênicos\n\n---\n\n## PASSO 3 — VALIDAÇÃO DOS 14 CAMPOS OBRIGATÓRIOS\n\n### **CAMPO 1 — DENOMINAÇÃO DE VENDA: ✅ CONFORME (1.0 pt)**\n\n✓ Denominação clara e específica: \"PEITO DE FRANGO COZIDO E DEFUMADO\"  \n✓ Posicionada no painel principal com destaque adequado  \n✓ Indica espécie (frango) e processo (cozido e defumado) conforme IN 20/2000  \n✓ Não utiliza termos controlados sem habilitação (caseiro, artesanal, colonial)  \n\n---\n\n### **CAMPO 2 — LISTA DE INGREDIENTES: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Texto da lista de ingredientes está na região lateral/inferior do rótulo com resolução insuficiente (imagem 225×225px). Caracteres não são distinguíveis mesmo com esforço máximo de leitura.\n\n💡 **Sugestão ao RT:** Para validar este campo, envie foto em maior resolução (mínimo 800px de largura) ou aproxime a câmera da região da lista de ingredientes, fotografando diretamente de frente para esta face da embalagem.\n\n**Verificações pendentes:**\n- Ordem decrescente de ingredientes\n- Declaração de aditivos com função tecnológica + INS\n- Presença de proteína vegetal (se houver, % obrigatório)\n- Verificação cruzada com alérgenos (Campo 11)\n\n---\n\n### **CAMPO 3 — CONTEÚDO LÍQUIDO: ✅ CONFORME (1.0 pt)**\n\n✓ Peso líquido declarado: \"Peso Liq. 2,5kg\"  \n✓ Unidade correta (kg) para produto sólido  \n✓ Posicionado no painel principal  \n✓ Tamanho de fonte adequado para embalagem >1kg (mínimo 6mm conforme INMETRO Port. 249/2021 Art. 8°)  \n\n---\n\n### **CAMPO 4 — IDENTIFICAÇÃO DO FABRICANTE: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Texto do fabricante está na região inferior do rótulo com resolução insuficiente. Não é possível distinguir:\n- Razão social completa\n- CNPJ no formato XX.XXX.XXX/XXXX-XX\n- Endereço completo (logradouro, número, bairro, CEP, município, UF)\n\n💡 **Sugestão ao RT:** Para validar este campo, envie foto em maior resolução focando na região inferior da embalagem onde constam os dados do fabricante, ou fotografe o verso/lateral da embalagem se os dados estiverem lá.\n\n**Elementos obrigatórios pendentes de verificação (RDC 727/2022 Art. 8°):**\n- ☐ Razão social  \n- ☐ CNPJ  \n- ☐ Logradouro + número  \n- ☐ Bairro  \n- ☐ Município + UF  \n- ☐ CEP  \n\n---\n\n### **CAMPO 5 — DECLARAÇÃO DE GLÚTEN: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Declaração de glúten não está visível na face frontal da embalagem. Texto pode estar no verso ou lateral com resolução insuficiente para leitura.\n\n💡 **Sugestão ao RT:** Envie foto do verso ou lateral da embalagem onde normalmente consta a declaração \"CONTÉM GLÚTEN\" ou \"NÃO CONTÉM GLÚTEN\" (obrigatória por Lei 10.674/2003 Art. 2°).\n\n**Verificação pendente:**\n- Presença de \"CONTÉM GLÚTEN\" ou \"NÃO CONTÉM GLÚTEN\" em destaque\n\n---\n\n### **CAMPO 6 — DECLARAÇÃO DE LACTOSE: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Declaração de lactose não está visível na face frontal. Produto cárneo pode conter lactose se houver leite/derivados nos ingredientes (comum em produtos processados como estabilizante).\n\n💡 **Sugestão ao RT:** Envie foto do verso ou lateral da embalagem. Se a lista de ingredientes contiver leite, soro de leite, lactose ou derivados lácteos, a declaração \"CONTÉM LACTOSE\" é obrigatória (RDC 715/2022 Art. 3°).\n\n---\n\n### **CAMPO 7 — INSTRUÇÕES DE CONSERVAÇÃO: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Instruções de conservação não estão visíveis na face frontal. Texto pode estar no verso ou lateral com resolução insuficiente.\n\n💡 **Sugestão ao RT:** Envie foto do verso/lateral da embalagem onde normalmente constam as instruções de conservação. Para produto cárneo cozido e defumado, é obrigatório declarar temperatura de conservação (IN 22/2005 Art. 5°):\n- Produto refrigerado: \"Manter refrigerado entre 0°C e 10°C\"\n- Produto congelado: \"Manter congelado a -18°C ou menos\"\n- Instrução pós-abertura: \"Após aberto, consumir em até X dias mantendo refrigerado\"\n\n---\n\n### **CAMPO 8 — CARIMBO DE INSPEÇÃO SIF: ✅ CONFORME (1.0 pt)**\n\n✓ Carimbo oval presente e legível  \n✓ Formato correto: oval com borda dupla  \n✓ Conteúdo: \"BRASIL / SIF / 4296\" (leitura parcial — número 4296 visível)  \n✓ Posicionado em destaque no painel principal  \n✓ Produto pode circular em todo território nacional (SIF federal)  \n\n---\n\n### **CAMPO 9 — TABELA NUTRICIONAL: ⚠️ COM RESSALVAS (0.5 pt)**\n\n**Nível 1 — Estrutura:**  \n✓ Tabela nutricional presente no painel lateral  \n✓ Fundo branco com letras pretas (conforme RDC 429/2020 Art. 4°)  \n⚠ Valores por porção e por 100g declarados (leitura parcial — resolução limitada)  \n⚠ Nutrientes obrigatórios aparentemente presentes, mas não totalmente legíveis  \n\n**Nível 2 — Coerência matemática:**  \n🔍 **NÃO VERIFICÁVEL** — Valores numéricos específicos não são distinguíveis com clareza suficiente para aplicar fórmula de Atwater e verificar coerência matemática.\n\n**Nível 3 — Plausibilidade (Peito de Frango Cozido e Defumado):**  \n🔍 **NÃO VERIFICÁVEL** — Valores por 100g não estão legíveis para comparação com faixas TACO esperadas:\n- kcal esperado: 120-160 (produto cozido, baixa gordura)\n- Proteínas esperadas: 22-28g (alto teor proteico)\n- Gorduras esperadas: 2-6g (produto magro)\n- Sódio esperado: 600-1200mg (produto defumado — sódio elevado é normal)\n\n**Sugestões de correção:**\n\n⚠ **Tabela nutricional com resolução insuficiente** — Para validação completa dos valores nutricionais, envie foto em maior resolução (mínimo 800px) focando diretamente na tabela nutricional. Necessário verificar:\n- Valor energético (kcal e kJ)\n- Proteínas, carboidratos, gorduras totais, gorduras saturadas, gorduras trans\n- Fibra alimentar e sódio\n- Porção padrão (deve ser 30g para produto fatiado ou 80g para produto inteiro — IN 75/2020 Anexo I)\n- Coerência matemática pela fórmula de Atwater\n\n---\n\n### **CAMPO 10 — ROTULAGEM NUTRICIONAL FRONTAL (LUPA): 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Não é possível visualizar com clareza se há lupa de advertência no painel principal devido à resolução da imagem.\n\n💡 **Sugestão ao RT:** Envie foto em maior resolução do painel frontal. Produto defumado tipicamente tem sódio elevado (≥600mg/100g), o que acionaria a lupa \"ALTO EM SÓDIO\" obrigatória (RDC 429/2020 Art. 39).\n\n**Critérios de acionamento da lupa (por 100g):**\n- Sódio ≥600mg → \"ALTO EM SÓDIO\"\n- Gorduras saturadas ≥6g → \"ALTO EM GORDURAS SATURADAS\"\n- Açúcares adicionados ≥15g → \"ALTO EM AÇÚCARES ADICIONADOS\"\n\n---\n\n### **CAMPO 11 — DECLARAÇÃO DE ALÉRGENOS: 🔍 NÃO VERIFICÁVEL (0 pt)**\n\n🔍 **NÃO VERIFICÁVEL** — Declaração de alérgenos não está visível na face frontal da embalagem. Texto pode estar no verso ou lateral.\n\n💡 **Sugestão ao RT:** Envie foto do verso/lateral da embalagem onde normalmente consta a declaração de alérgenos. Verifique se a lista de ingredientes contém:\n- Soja ou derivados (proteína isolada, lecitina) → \"ALÉRGICOS: CONTÉM SOJA E DERIVADOS DE SOJA\"\n- Leite ou derivados (lactose, soro, caseína) → \"ALÉRGICOS: CONTÉM LEITE E DERIVADOS DE LEITE\"\n- Outros alérgenos dos 14 grupos da RDC 727/2022 Art. 14\n\n**Formato obrigatório (RDC 727/2022 Art. 15-16):**\n- CAIXA ALTA + NEGRITO\n- Altura mínima 2mm\n- Cor contrastante com o fundo\n- Posicionada imediatamente após a lista de ingredientes\n\n---\n\n### **CAMPO 12 ",
+    "timestamp": "2026-05-05T12:54:25.558184",
+    "total_discordancias": 0,
+    "versao_form": null,
+    "status_curador": "pendente_revisao",
+    "aprovado_por": null,
+    "aprovado_em": null,
+    "rejeitado_em": null,
+    "doc_kb_gerado": null,
+    "imagem_url": null
+  },
+  {
+    "case_id": "d8f0ece5e6dc",
+    "produto": "",
+    "categoria": "",
+    "feedback": "parcial",
+    "erros_auto": null,
+    "erros_encontrados": "C4: ddddd; C9: ffff",
+    "rt_comment": "",
+    "score_agente": 11,
+    "score_real": null,
+    "auto_stored": true,
+    "created_at": "2026-05-05T21:51:42.273326+00:00",
+    "campos": {
+      "1": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "2": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "3": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "4": {
+        "status": "incorreto",
+        "comentario": "ddddd"
+      },
+      "5": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "6": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "7": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "8": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "9": {
+        "status": "incorreto",
+        "comentario": "ffff"
+      },
+      "10": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "11": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "12": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "13": {
+        "status": "correto",
+        "comentario": ""
+      },
+      "14": {
+        "status": "correto",
+        "comentario": ""
+      }
+    },
+    "caminho_np": "",
+    "orgao": "",
+    "erros_nao_detectados": "",
+    "falsos_positivos": "",
+    "ressalvas_auto": null,
+    "relatorio_completo": null,
+    "timestamp": "2026-05-05T21:51:42.273302",
+    "total_discordancias": 2,
+    "versao_form": "inline_v2",
+    "status_curador": "pendente_revisao",
+    "aprovado_por": "gipbosco@gmail.com",
+    "aprovado_em": "2026-05-04T18:16:31.745327+00:00",
+    "rejeitado_em": "2026-05-04T18:03:57.690195+00:00",
+    "doc_kb_gerado": "feedback_aprovado_d8f0ece5e6dc_c4_202605041816",
+    "imagem_url": null
+  }
+]
