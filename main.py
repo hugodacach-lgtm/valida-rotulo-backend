@@ -6405,12 +6405,14 @@ async def _sb_upsert_v2(table: str, data: dict, conflict_col: str = "case_id") -
             )
             if r.status_code in (200, 201, 204):
                 return True
-            # Falhou — loga corpo da resposta no Sentry
+            # Falhou — loga corpo da resposta
             err_body = ""
             try:
                 err_body = r.text[:500]
             except Exception:
                 pass
+            # Log visível no Render (sempre, independente de Sentry)
+            print(f"[supabase] UPSERT falhou | table={table} | status={r.status_code} | body={err_body} | keys={list(data.keys())}", flush=True)
             if SENTRY_DSN:
                 try:
                     import sentry_sdk
