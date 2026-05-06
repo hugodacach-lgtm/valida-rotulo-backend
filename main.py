@@ -5258,6 +5258,9 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             "imagem_url":   "",  # preenchido em background pelo upload Storage (abaixo)
         }
         existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
+        # Log de checkpoint ZERO — confirma que chegamos até aqui
+        print(f"[storage] CHECKPOINT 0: chegou no auto_case case={case_id[:16]} existing={'sim' if existing else 'nao'} image_b64_len={len(image_b64) if image_b64 else 0}", flush=True)
+
         if not existing:
             _cases_db.append(auto_case)
             if len(_cases_db) > _MAX_CASES:
@@ -5268,48 +5271,49 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
             asyncio.ensure_future(_sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id"))
 
-            # Upload da imagem do rótulo pro Storage (await direto pra garantir execução).
-            # IMPORTANTE: estamos dentro de stream_validation que recebe image_b64 (string base64),
-            # NÃO contents (bytes). Decodificamos image_b64 pra bytes aqui.
-            try:
-                print(f"[storage] CHECKPOINT 1: dispatching upload for case={case_id[:16]}", flush=True)
-                if not image_b64:
-                    print(f"[storage] SKIP: image_b64 vazio case={case_id[:16]}", flush=True)
-                else:
-                    import base64 as _b64_storage
-                    try:
-                        img_bytes = _b64_storage.b64decode(image_b64)
-                    except Exception as decode_e:
-                        print(f"[storage] SKIP: falha ao decodificar base64 case={case_id[:16]}: {decode_e}", flush=True)
-                        img_bytes = b""
-                    if img_bytes:
-                        print(f"[storage] CHECKPOINT 2: calling _sb_upload_rotulo size={len(img_bytes)}b ct={mime_type}", flush=True)
-                        img_url = await _sb_upload_rotulo(img_bytes, case_id, mime_type or "image/jpeg")
-                        if img_url:
-                            print(f"[storage] CHECKPOINT 3: upload OK, fazendo PATCH no DB case={case_id[:16]}", flush=True)
-                            try:
-                                async with httpx.AsyncClient(timeout=10.0) as cl:
-                                    patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
-                                    pr = await cl.patch(
-                                        patch_url,
-                                        json={"imagem_url": img_url},
-                                        headers={
-                                            "apikey": _SUPABASE_KEY,
-                                            "Authorization": f"Bearer {_SUPABASE_KEY}",
-                                            "Content-Type": "application/json",
-                                            "Prefer": "return=minimal",
-                                        },
-                                    )
-                                    if pr.status_code in (200, 201, 204):
-                                        print(f"[storage] CHECKPOINT 4: DB PATCH OK case={case_id[:16]}", flush=True)
-                                    else:
-                                        print(f"[storage] DB PATCH FALHOU case={case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
-                            except Exception as patch_e:
-                                print(f"[storage] DB PATCH EXCEÇÃO case={case_id[:16]}: {patch_e}", flush=True)
-                        else:
-                            print(f"[storage] upload retornou vazio case={case_id[:16]}", flush=True)
-            except Exception as e:
-                print(f"[storage] erro geral case={case_id[:16]}: {e}", flush=True)
+        # Upload da imagem do rótulo pro Storage — FORA do if not existing
+        # Sempre tenta fazer upload + PATCH (PATCH é idempotente, não tem dano).
+        # Antes estava aninhado dentro do if not existing, então em segunda validação
+        # da mesma imagem (case_id repetido), pulava silenciosamente.
+        try:
+            print(f"[storage] CHECKPOINT 1: dispatching upload for case={case_id[:16]}", flush=True)
+            if not image_b64:
+                print(f"[storage] SKIP: image_b64 vazio case={case_id[:16]}", flush=True)
+            else:
+                import base64 as _b64_storage
+                try:
+                    img_bytes = _b64_storage.b64decode(image_b64)
+                except Exception as decode_e:
+                    print(f"[storage] SKIP: falha ao decodificar base64 case={case_id[:16]}: {decode_e}", flush=True)
+                    img_bytes = b""
+                if img_bytes:
+                    print(f"[storage] CHECKPOINT 2: calling _sb_upload_rotulo size={len(img_bytes)}b ct={mime_type}", flush=True)
+                    img_url = await _sb_upload_rotulo(img_bytes, case_id, mime_type or "image/jpeg")
+                    if img_url:
+                        print(f"[storage] CHECKPOINT 3: upload OK, fazendo PATCH no DB case={case_id[:16]}", flush=True)
+                        try:
+                            async with httpx.AsyncClient(timeout=10.0) as cl:
+                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
+                                pr = await cl.patch(
+                                    patch_url,
+                                    json={"imagem_url": img_url},
+                                    headers={
+                                        "apikey": _SUPABASE_KEY,
+                                        "Authorization": f"Bearer {_SUPABASE_KEY}",
+                                        "Content-Type": "application/json",
+                                        "Prefer": "return=minimal",
+                                    },
+                                )
+                                if pr.status_code in (200, 201, 204):
+                                    print(f"[storage] CHECKPOINT 4: DB PATCH OK case={case_id[:16]}", flush=True)
+                                else:
+                                    print(f"[storage] DB PATCH FALHOU case={case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
+                        except Exception as patch_e:
+                            print(f"[storage] DB PATCH EXCEÇÃO case={case_id[:16]}: {patch_e}", flush=True)
+                    else:
+                        print(f"[storage] upload retornou vazio case={case_id[:16]}", flush=True)
+        except Exception as e:
+            print(f"[storage] erro geral case={case_id[:16]}: {e}", flush=True)
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
 
@@ -6636,6 +6640,17 @@ async def store_feedback(request: Request):
     try:
         body = await request.json()
         import datetime as _dt2, json as _json
+
+        # GUARD: case_id é obrigatório — sem ele não tem como linkar feedback à validação
+        # original (curador não acha → email nunca chega → sistema quebra silenciosamente)
+        case_id_check = (body.get("case_id") or "").strip()
+        if not case_id_check:
+            print(f"[feedback] REJEITADO: case_id vazio | body keys: {list(body.keys())}", flush=True)
+            return JSONResponse({
+                "ok": False,
+                "error": "case_id é obrigatório",
+                "msg": "Aguarde o relatório terminar antes de enviar feedback.",
+            }, status_code=400, headers={"Access-Control-Allow-Origin": "*"})
 
         campos_raw = body.get("campos", {})
         # Serializa campos para string legível (few-shot vai ler isso)
