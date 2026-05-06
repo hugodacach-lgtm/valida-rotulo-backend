@@ -11974,11 +11974,12 @@ def sentry_test():
         return JSONResponse({"ok": False, "msg": "Sentry não configurado — adicione SENTRY_DSN no Render."})
 
 
-@app.get("/health/readiness")
+@app.api_route("/health/readiness", methods=["GET", "HEAD"])
 def health_readiness():
     """
     T1 fix — Endpoint de readiness: mostra o estado real do sistema pós-startup.
     Útil para diagnosticar se o warmup foi concluído e quantas normas estão em cache.
+    Aceita HEAD pra compatibilidade com UptimeRobot free tier.
     """
     return JSONResponse({
         "startup_completo": _startup_ready,
@@ -11993,7 +11994,7 @@ def health_readiness():
     }, headers={"Access-Control-Allow-Origin": "*"})
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def health():
     return {
         "status": "ok",
