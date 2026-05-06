@@ -12874,6 +12874,7 @@ function parseRelatorio(text) {{
 
   let inPasso = false;
   let passoBuffer = '';
+  let camposBuffer = '';  // acumula cards C1-C14 pra entrar dentro do Passo 3
   let passoNum = 0;
   let passoTitle = '';
 
@@ -12910,7 +12911,8 @@ function parseRelatorio(text) {{
       }}
     }});
 
-    html += `
+    // Acumula no buffer de campos (vai entrar dentro do Passo 3 quando ele fechar)
+    camposBuffer += `
 <div class="campo-card campo-card-${{cls}}">
   <div class="campo-header">
     <span class="campo-tag">C${{campoNum}}</span>
@@ -12950,11 +12952,12 @@ function parseRelatorio(text) {{
     <span class="passo-title">${{escHtml(passoTitle)}}</span>
     <span class="passo-toggle">▾</span>
   </div>
-  <div class="passo-body">${{bodyHtml}}</div>
+  <div class="passo-body">${{bodyHtml}}${{camposBuffer}}</div>
 </div>`;
 
     inPasso = false;
     passoBuffer = '';
+    camposBuffer = '';  // zera após anexar ao passo
   }}
 
   for (let i = 0; i < lines.length; i++) {{
@@ -12982,7 +12985,12 @@ function parseRelatorio(text) {{
     let mPasso = trimmed.match(/^#{{0,4}}\\s*PASSO\\s+(\\d+)[\\s—:-]+(.+?)\\s*#*$/i);
     if (mPasso) {{
       closeCampo();
-      closePasso();
+      closePasso();  // fecha passo anterior (com campos dentro, se houver)
+      // Se sobrou camposBuffer (caso patológico — campos sem passo), joga no html
+      if (camposBuffer) {{
+        html += camposBuffer;
+        camposBuffer = '';
+      }}
       inPasso = true;
       passoNum = parseInt(mPasso[1]);
       passoTitle = mPasso[2].replace(/\\*\\*/g,'').trim();
@@ -13040,6 +13048,11 @@ function parseRelatorio(text) {{
 
   closeCampo();
   closePasso();
+  // Se sobrou algum campo sem passo associado, anexa direto ao html
+  if (camposBuffer) {{
+    html += camposBuffer;
+    camposBuffer = '';
+  }}
 
   // Score widget no topo (depois de calcular)
   const scoreReal = totalConformes * 1 + totalRessalvas * 0.5;
