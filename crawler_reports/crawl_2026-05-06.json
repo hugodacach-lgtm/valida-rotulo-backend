@@ -1,0 +1,30 @@
+{
+  "data": "2026-05-06",
+  "total": 20,
+  "salvos": 0,
+  "mantidos": 0,
+  "falhos": 20,
+  "taxa_sucesso": 0,
+  "detalhes": {
+    "rdc_727_2022": "todas_urls_falharam",
+    "rdc_429_2020": "todas_urls_falharam",
+    "in_75_2020": "todas_urls_falharam",
+    "rdc_724_2022": "todas_urls_falharam",
+    "rdc_722_2022": "todas_urls_falharam",
+    "rdc_778_2023": "todas_urls_falharam",
+    "in_211_2023": "todas_urls_falharam",
+    "rdc_843_2024": "todas_urls_falharam",
+    "rdc_715_2022": "todas_urls_falharam",
+    "rdc_332_2019": "todas_urls_falharam",
+    "portaria_1485_2025": "erro:HTTP Error 401: Unauthorized",
+    "in_4_2000_embutidos": "erro:HTTP Error 401: Unauthorized",
+    "lei_8078_cdc": "erro:HTTP Error 401: Unauthorized",
+    "lei_10674_2003_gluten": "erro:HTTP Error 401: Unauthorized",
+    "decreto_4680_2003_transgenicos": "erro:HTTP Error 401: Unauthorized",
+    "lei_10831_2003_organicos": "erro:HTTP Error 401: Unauthorized",
+    "decreto_6323_2007_organicos": "erro:HTTP Error 401: Unauthorized",
+    "lei_7678_1988_vinho": "todas_urls_falharam",
+    "decreto_6871_2009_bebidas": "erro:HTTP Error 401: Unauthorized",
+    "decreto_9013_2017_riispoa": "erro:HTTP Error 401: Unauthorized"
+  }
+}
