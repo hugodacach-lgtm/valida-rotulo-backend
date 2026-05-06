@@ -5254,7 +5254,7 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             "score_agente": score_auto,
             "timestamp":    __import__("datetime").datetime.now().isoformat(),
             "auto_stored":  True,
-            "relatorio_completo": relatorio[:8000],  # salva para comparativo
+            "relatorio_completo": relatorio[:30000],  # salva pra comparativo (30k cobre rótulos densos com 14 campos detalhados)
             "imagem_url":   "",  # preenchido em background pelo upload Storage (abaixo)
         }
         existing = next((x for x in _cases_db if x["case_id"] == case_id), None)
@@ -12612,21 +12612,20 @@ def _render_curador_html(title: str, body: str, status_class: str = "ok") -> str
 @app.get("/curador/relatorio/{case_id}")
 async def curador_ver_relatorio(case_id: str):
     """
-    Página HTML que mostra o relatório completo de uma validação.
-    Linkada do email diário do curador — permite Giovanna ver o contexto
-    completo da análise sem precisar reabrir a plataforma.
+    Página HTML que mostra o relatório completo da validação com a MESMA UI
+    do validador (index.html da plataforma). Linkada do email diário do curador.
     """
     if not _SUPABASE_ON:
-        return HTMLResponse(_render_curador_html(
-            "Indisponível",
-            "<div class='status-bar'>Sistema offline temporariamente.</div>",
-            "fail"
-        ), status_code=503)
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;padding:40px;text-align:center;'>"
+            "<h2>Sistema offline temporariamente</h2></body></html>",
+            status_code=503
+        )
 
     import html as _html_mod
-    import re as _re
+    import json as _json_rel
 
-    # Busca o caso
+    # Busca o caso no Supabase
     url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}&limit=1"
     try:
         async with httpx.AsyncClient(timeout=10.0) as cl:
@@ -12639,97 +12638,442 @@ async def curador_ver_relatorio(case_id: str):
         data = []
 
     if not data:
-        return HTMLResponse(_render_curador_html(
-            "Caso não encontrado",
-            f"<div class='status-bar'>Validação <code>{case_id[:24]}</code> não encontrada.</div>",
-            "fail"
-        ), status_code=404)
+        return HTMLResponse(
+            f"<html><body style='font-family:sans-serif;padding:40px;text-align:center;'>"
+            f"<h2>Validação não encontrada</h2><p>case <code>{case_id[:24]}</code></p></body></html>",
+            status_code=404
+        )
 
     caso = data[0]
     produto = (caso.get("produto") or "—").strip() or "—"
-    categoria = (caso.get("categoria") or caso.get("caminho_np") or "—").strip() or "—"
-    orgao = (caso.get("orgao") or "—").strip() or "—"
-    score_agente = caso.get("score_agente")
-    score_real = caso.get("score_real")
     imagem_url = (caso.get("imagem_url") or "").strip()
     relatorio = (caso.get("relatorio_completo") or "").strip()
     feedback_rt = (caso.get("feedback") or "").strip()
     rt_comment = (caso.get("rt_comment") or "").strip()
     created_at = (caso.get("created_at") or caso.get("timestamp") or "").strip()
 
-    if not relatorio:
-        relatorio_html = "<em style='color:#6b6757;'>Relatório completo não foi salvo para esta validação.</em>"
-    else:
-        # Conversão markdown-like → HTML simples
-        # Preserva quebras de linha; renderiza **bold**, # headers
-        rel_esc = _html_mod.escape(relatorio)
-        # Headers (## ou ###)
-        rel_esc = _re.sub(r'^### (.+)$', r'<h3 style="color:#0F2A20;margin:18px 0 8px;font-size:14px;">\1</h3>', rel_esc, flags=_re.MULTILINE)
-        rel_esc = _re.sub(r'^## (.+)$', r'<h2 style="color:#0F2A20;margin:22px 0 10px;font-size:16px;border-bottom:1px solid #e2ded2;padding-bottom:6px;">\1</h2>', rel_esc, flags=_re.MULTILINE)
-        rel_esc = _re.sub(r'^# (.+)$', r'<h1 style="color:#091A14;margin:24px 0 12px;font-size:20px;">\1</h1>', rel_esc, flags=_re.MULTILINE)
-        # CAMPO X — destaque visual
-        rel_esc = _re.sub(r'^(CAMPO \d+[^\n]*)$', r'<div style="background:#F0EDE3;padding:8px 12px;margin:14px 0 6px;border-left:3px solid #166534;font-weight:600;color:#091A14;">\1</div>', rel_esc, flags=_re.MULTILINE)
-        # Bold **texto**
-        rel_esc = _re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', rel_esc)
-        # Status colorido
-        rel_esc = rel_esc.replace("CONFORME", '<span style="color:#166534;font-weight:600;">CONFORME</span>') \
-                         .replace("NÃO <span style=\"color:#166534;font-weight:600;\">CONFORME</span>", '<span style="color:#992F2A;font-weight:600;">NÃO CONFORME</span>') \
-                         .replace("COM RESSALVAS", '<span style="color:#9C5A0E;font-weight:600;">COM RESSALVAS</span>')
-        # Newlines → <br>
-        rel_esc = rel_esc.replace("\n", "<br>\n")
-        relatorio_html = f'<div style="font-family:Geist,system-ui,sans-serif;font-size:13px;line-height:1.7;color:#0F2A20;">{rel_esc}</div>'
+    # Serializa o relatório como JSON pra inserir no JS sem problemas de escape
+    relatorio_json = _json_rel.dumps(relatorio)
+    produto_safe = _html_mod.escape(produto)
+    imagem_safe = _html_mod.escape(imagem_url) if imagem_url else ""
+    case_id_short = _html_mod.escape(case_id[:24])
 
-    # Score box
-    score_box = ""
-    if score_agente is not None:
-        score_box = f"<strong>Score IA:</strong> {score_agente}/14"
-        if score_real is not None and score_real != score_agente:
-            score_box += f" → <strong>Score após RT:</strong> {score_real}/14"
-
-    # Imagem
-    img_block = ""
-    if imagem_url:
-        img_block = f'''<div style="margin:16px 0;text-align:center;">
-            <a href="{imagem_url}" target="_blank" rel="noopener">
-                <img src="{imagem_url}" alt="Rótulo" style="max-width:100%;max-height:420px;border:1px solid #E2DED2;border-radius:8px;box-shadow:0 1px 3px rgba(15,42,32,0.08);">
-            </a>
-            <div style="font-size:11px;color:#6b6757;margin-top:6px;">Clique para abrir em tamanho real</div>
-        </div>'''
-    else:
-        img_block = '<div style="background:#F0EDE3;border:1px dashed #D9D2BE;border-radius:8px;padding:32px;text-align:center;color:#6b6757;font-size:12px;margin:16px 0;">Foto do rótulo não disponível para esta validação</div>'
-
-    # Feedback do RT (se houver)
-    fb_block = ""
+    # Bloco do feedback do RT
+    fb_html = ""
     if feedback_rt or rt_comment:
         fb_text = rt_comment or feedback_rt
-        fb_block = f'''<div style="background:#F5EBD8;border-left:3px solid #9C5A0E;padding:14px 18px;margin:20px 0;border-radius:4px;">
-            <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;">💬 Comentário geral do RT</div>
-            <div style="font-size:13px;color:#0f2a20;line-height:1.6;">{_html_mod.escape(fb_text)}</div>
-        </div>'''
+        fb_html = f"""
+<div class="rt-feedback-box">
+  <div class="rt-feedback-label">💬 Comentário do RT</div>
+  <div class="rt-feedback-text">{_html_mod.escape(fb_text)}</div>
+</div>"""
 
-    body_html = f'''
-<div style="background:#fff;border:1px solid #e2ded2;border-radius:10px;padding:24px;max-width:760px;margin:0 auto;">
-    <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Relatório completo · case {case_id[:24]}</div>
-    <h1 style="font-size:22px;color:#091a14;margin:8px 0 4px;">{_html_mod.escape(produto)}</h1>
-    <div style="font-size:13px;color:#6b6757;">{_html_mod.escape(categoria)} · {_html_mod.escape(orgao)}</div>
-    <div style="font-size:13px;color:#0f2a20;margin-top:8px;">{score_box}</div>
+    # Bloco da imagem
+    img_html = ""
+    if imagem_url:
+        img_html = f"""
+<div class="rotulo-img-box">
+  <a href="{imagem_safe}" target="_blank" rel="noopener">
+    <img src="{imagem_safe}" alt="Rótulo">
+  </a>
+  <div class="rotulo-img-cap">Clique para ampliar</div>
+</div>"""
+    else:
+        img_html = """
+<div class="rotulo-img-empty">
+  <div>📷</div>
+  <div>Foto do rótulo não disponível</div>
+</div>"""
 
-    {img_block}
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório · {produto_safe}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {{
+    --vr-ink:#0F2A20; --vr-ink-deep:#091A14; --vr-accent:#166534; --vr-accent-soft:#E8F0EA;
+    --vr-paper:#F7F5F0; --vr-paper-warm:#F0EDE3; --vr-bone:#FBFAF6; --vr-border:#E2DED2;
+    --vr-muted:#6B6757; --vr-faint:#A8A4A0;
+    --vr-pass:#166534; --vr-pass-soft:#E8F0EA;
+    --vr-fail:#992F2A; --vr-fail-soft:#F0DDDB;
+    --vr-warn:#9C5A0E; --vr-warn-soft:#F5EBD8;
+  }}
+  * {{ box-sizing:border-box; }}
+  html, body {{ margin:0; padding:0; font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--vr-ink); background:var(--vr-paper); -webkit-font-smoothing:antialiased; }}
 
-    {fb_block}
+  /* Header sticky */
+  .topbar {{ position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--vr-border); padding:14px 24px; }}
+  .topbar-inner {{ max-width:920px; margin:0 auto; display:flex; align-items:center; gap:10px; }}
+  .topbar-dot {{ width:7px; height:7px; background:var(--vr-accent); border-radius:50%; }}
+  .topbar-brand {{ font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--vr-ink-deep); font-weight:500; }}
+  .topbar-meta {{ margin-left:auto; font-family:'Geist Mono',monospace; font-size:10px; color:var(--vr-faint); letter-spacing:0.5px; }}
 
-    <hr style="border:none;border-top:1px solid #e2ded2;margin:24px 0;">
+  .wrap {{ max-width:920px; margin:0 auto; padding:24px 24px 60px; }}
 
-    <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:12px;">📋 Análise técnica completa</div>
-    {relatorio_html}
+  /* Hero */
+  .hero {{ margin-bottom:24px; }}
+  .hero-tag {{ font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--vr-muted); margin-bottom:8px; }}
+  .hero-title {{ font-size:24px; font-weight:600; color:var(--vr-ink-deep); letter-spacing:-0.5px; line-height:1.25; margin:0 0 6px; }}
+  .hero-case {{ font-family:'Geist Mono',monospace; font-size:10px; color:var(--vr-faint); letter-spacing:0.5px; }}
+
+  /* Imagem do rótulo */
+  .rotulo-img-box {{ background:#fff; border:1px solid var(--vr-border); border-radius:12px; padding:16px; margin-bottom:24px; text-align:center; }}
+  .rotulo-img-box img {{ max-width:100%; max-height:480px; border-radius:8px; display:block; margin:0 auto; }}
+  .rotulo-img-cap {{ font-family:'Geist Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--vr-faint); margin-top:10px; text-transform:uppercase; }}
+  .rotulo-img-empty {{ background:var(--vr-paper-warm); border:1px dashed #D9D2BE; border-radius:12px; padding:48px 24px; text-align:center; color:var(--vr-muted); font-size:13px; margin-bottom:24px; }}
+  .rotulo-img-empty > div:first-child {{ font-size:32px; margin-bottom:8px; }}
+
+  /* Feedback do RT */
+  .rt-feedback-box {{ background:var(--vr-warn-soft); border:1px solid rgba(156,90,14,0.2); border-left:3px solid var(--vr-warn); border-radius:8px; padding:14px 18px; margin-bottom:24px; }}
+  .rt-feedback-label {{ font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--vr-warn); font-weight:600; margin-bottom:6px; }}
+  .rt-feedback-text {{ font-size:13px; color:var(--vr-ink-deep); line-height:1.6; }}
+
+  /* Score widget (igual index.html) */
+  .score-summary {{ background:#fff; border:1px solid var(--vr-border); border-radius:12px; padding:20px 24px; margin-bottom:0; box-shadow:0 1px 3px rgba(15,42,32,0.04); }}
+  .score-summary-top {{ display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-wrap:wrap; }}
+  .score-big {{ font-size:36px; font-weight:600; color:var(--vr-ink-deep); line-height:1; }}
+  .score-big-frac {{ font-size:18px; color:var(--vr-muted); font-weight:500; }}
+  .score-bar-wrap {{ flex:1; min-width:180px; height:10px; background:var(--vr-paper-warm); border-radius:6px; overflow:hidden; }}
+  .score-bar-fill {{ height:100%; background:var(--vr-accent); transition:width 0.4s ease; border-radius:6px; }}
+  .score-bar-fill.warn {{ background:var(--vr-warn); }}
+  .score-bar-fill.fail {{ background:var(--vr-fail); }}
+  .score-veredicto {{ font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; padding:6px 12px; border-radius:4px; font-weight:600; }}
+  .score-veredicto.pass {{ background:var(--vr-pass-soft); color:var(--vr-pass); }}
+  .score-veredicto.warn {{ background:var(--vr-warn-soft); color:var(--vr-warn); }}
+  .score-veredicto.fail {{ background:var(--vr-fail-soft); color:var(--vr-fail); }}
+
+  .score-tiles {{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }}
+  .score-tile {{ background:var(--vr-bone); border:1px solid var(--vr-border); border-left:3px solid var(--vr-pass); border-radius:8px; padding:12px 14px; }}
+  .score-tile.warn {{ border-left-color:var(--vr-warn); }}
+  .score-tile.fail {{ border-left-color:var(--vr-fail); }}
+  .score-tile-num {{ font-size:22px; font-weight:600; color:var(--vr-ink-deep); line-height:1; }}
+  .score-tile-label {{ font-family:'Geist Mono',monospace; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--vr-muted); margin-top:4px; }}
+
+  /* Passos (igual index.html) */
+  .passo-card {{ background:#fff; border:1px solid var(--vr-border); border-left:4px solid var(--vr-accent); border-radius:10px; margin:14px 0 10px; overflow:hidden; }}
+  #resultado > .passo-card:first-child {{ margin-top:0; }}
+  .passo-header {{ display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--vr-paper-warm); border-bottom:1px solid var(--vr-border); cursor:pointer; user-select:none; }}
+  .passo-num {{ font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; background:#fff; color:var(--vr-ink-deep); padding:3px 8px; border-radius:3px; border:1px solid var(--vr-border); font-weight:500; }}
+  .passo-title {{ font-size:14px; font-weight:600; color:var(--vr-ink-deep); flex:1; }}
+  .passo-summary {{ font-size:13px; color:var(--vr-muted); }}
+  .passo-toggle {{ font-size:14px; color:var(--vr-faint); transition:transform 0.2s; }}
+  .passo-card.open .passo-toggle {{ transform:rotate(180deg); }}
+  .passo-body {{ padding:16px 20px; display:none; line-height:1.7; }}
+  .passo-card.open .passo-body {{ display:block; }}
+  .passo-body p {{ margin:6px 0; font-size:13px; color:var(--vr-ink); }}
+  .passo-body strong {{ color:var(--vr-ink-deep); }}
+  .check-line {{ display:flex; gap:8px; margin:6px 0; font-size:13px; }}
+  .check-line .ic {{ color:var(--vr-pass); flex-shrink:0; }}
+
+  /* Campos C1-C14 cards (igual index.html) */
+  .campo-card {{ background:#fff; border:1px solid var(--vr-border); border-radius:8px; margin:10px 0; overflow:hidden; }}
+  .campo-card-ok {{ border-left:4px solid var(--vr-pass); }}
+  .campo-card-warn {{ border-left:4px solid var(--vr-warn); }}
+  .campo-card-err {{ border-left:4px solid var(--vr-fail); }}
+  .campo-header {{ display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--vr-bone); border-bottom:1px solid var(--vr-border); }}
+  .campo-card-ok .campo-header {{ background:var(--vr-pass-soft); }}
+  .campo-card-warn .campo-header {{ background:var(--vr-warn-soft); }}
+  .campo-card-err .campo-header {{ background:var(--vr-fail-soft); }}
+  .campo-tag {{ font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:1.5px; padding:3px 7px; border-radius:3px; font-weight:600; background:#fff; color:var(--vr-ink-deep); border:1px solid var(--vr-border); }}
+  .campo-name {{ font-size:13px; font-weight:600; color:var(--vr-ink-deep); flex:1; }}
+  .campo-status {{ font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; border-radius:3px; font-weight:600; }}
+  .campo-card-ok .campo-status {{ background:var(--vr-pass); color:#fff; }}
+  .campo-card-warn .campo-status {{ background:var(--vr-warn); color:#fff; }}
+  .campo-card-err .campo-status {{ background:var(--vr-fail); color:#fff; }}
+  .campo-body {{ padding:12px 16px; line-height:1.6; font-size:13px; color:var(--vr-ink); }}
+  .campo-body ul {{ margin:6px 0; padding-left:20px; }}
+  .campo-body li {{ margin:4px 0; }}
+
+  /* Aviso amarelo */
+  .aviso-legal {{ background:var(--vr-warn-soft); border:1px solid rgba(156,90,14,0.2); border-radius:8px; padding:12px 16px; margin-top:24px; font-size:12px; color:var(--vr-ink); line-height:1.6; }}
+  .aviso-legal strong {{ color:var(--vr-warn); }}
+
+  @media (max-width: 640px) {{
+    .score-tiles {{ grid-template-columns:1fr; }}
+    .wrap {{ padding:16px; }}
+  }}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="topbar-dot"></span>
+    <span class="topbar-brand">InspectIA · Curadoria</span>
+    <span class="topbar-meta">case {case_id_short}</span>
+  </div>
 </div>
-'''
 
-    return HTMLResponse(_render_curador_html(
-        f"Relatório · {produto[:60]}",
-        body_html,
-        "ok"
-    ))
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">Relatório completo</div>
+    <h1 class="hero-title">{produto_safe}</h1>
+  </div>
+
+  {img_html}
+  {fb_html}
+
+  <!-- Resultado renderizado pelo JS -->
+  <div id="resultado"></div>
+
+  <div class="aviso-legal">
+    <strong>Aviso legal:</strong> Este relatório é gerado por inteligência artificial e tem caráter auxiliar.
+    Não substitui a análise e aprovação de Responsável Técnico habilitado.
+    A conformidade regulatória final é de responsabilidade exclusiva do RT inscrito no órgão competente.
+  </div>
+
+</div>
+
+<script>
+const RAW_RELATORIO = {relatorio_json};
+
+// Helper: escape HTML
+function escHtml(s) {{
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}}
+
+function renderInline(text) {{
+  if (!text) return '';
+  let s = escHtml(text);
+  s = s.replace(/\\*\\*([^*\\n]+)\\*\\*/g, '<strong>$1</strong>');
+  return s;
+}}
+
+function inferStatusCard(headerText) {{
+  const u = (headerText || '').toUpperCase();
+  if (u.includes('NÃO CONFORME') || u.includes('NAO CONFORME')) return 'err';
+  if (u.includes('COM RESSALVAS')) return 'warn';
+  if (u.includes('CONFORME') || u.includes('✅')) return 'ok';
+  return 'ok';
+}}
+
+function statusTextFromClass(cls) {{
+  return cls === 'ok' ? 'Conforme' : (cls === 'warn' ? 'Com Ressalvas' : 'Não Conforme');
+}}
+
+// Parser principal: transforma o relatório markdown em HTML estruturado
+function parseRelatorio(text) {{
+  if (!text) {{
+    return '<p style="color:#6B6757;font-style:italic;padding:20px;text-align:center;">Relatório completo não disponível para esta validação.</p>';
+  }}
+
+  const lines = text.split('\\n');
+  let html = '';
+  let scoreFinal = null;
+  let veredictoFinal = null;
+  let totalConformes = 0, totalRessalvas = 0, totalNaoConformes = 0;
+
+  let inPasso = false;
+  let passoBuffer = '';
+  let passoNum = 0;
+  let passoTitle = '';
+
+  let inCampo = false;
+  let campoBuffer = '';
+  let campoNum = 0;
+  let campoName = '';
+  let campoHeaderRaw = '';
+
+  function closeCampo() {{
+    if (!inCampo) return;
+    const cls = inferStatusCard(campoHeaderRaw);
+    if (cls === 'ok') totalConformes++;
+    else if (cls === 'warn') totalRessalvas++;
+    else if (cls === 'err') totalNaoConformes++;
+    const statusTxt = statusTextFromClass(cls);
+    const statusIcon = cls === 'ok' ? '✓' : (cls === 'warn' ? '⚠' : '✗');
+
+    // Body: trata cada linha
+    const bodyLines = campoBuffer.split('\\n').filter(l => l.trim());
+    let bodyHtml = '';
+    bodyLines.forEach(ln => {{
+      const t = ln.trim();
+      if (!t) return;
+      if (/^[-•·]\\s/.test(t) || /^\\d+[\\.\\)]\\s/.test(t)) {{
+        bodyHtml += '<p>' + renderInline(t.replace(/^[-•·]\\s/, '').replace(/^\\d+[\\.\\)]\\s/, '')) + '</p>';
+      }} else if (/^[✓✗⚠]\\s/.test(t)) {{
+        const ic = t.charAt(0);
+        const rest = t.slice(2).trim();
+        const icColor = ic === '✓' ? '#166534' : (ic === '⚠' ? '#9C5A0E' : '#992F2A');
+        bodyHtml += `<div class="check-line"><span class="ic" style="color:${{icColor}}">${{ic}}</span><span>${{renderInline(rest)}}</span></div>`;
+      }} else {{
+        bodyHtml += '<p>' + renderInline(t) + '</p>';
+      }}
+    }});
+
+    html += `
+<div class="campo-card campo-card-${{cls}}">
+  <div class="campo-header">
+    <span class="campo-tag">C${{campoNum}}</span>
+    <span class="campo-name">${{escHtml(campoName)}}</span>
+    <span class="campo-status">${{statusIcon}} ${{statusTxt}}</span>
+  </div>
+  <div class="campo-body">${{bodyHtml}}</div>
+</div>`;
+
+    inCampo = false;
+    campoBuffer = '';
+  }}
+
+  function closePasso() {{
+    if (!inPasso) return;
+    const bodyLines = passoBuffer.split('\\n').filter(l => l.trim());
+    let bodyHtml = '';
+    bodyLines.forEach(ln => {{
+      const t = ln.trim();
+      if (!t || /^[-─━=]+$/.test(t)) return;
+      if (/^[✓✗⚠]\\s/.test(t)) {{
+        const ic = t.charAt(0);
+        const rest = t.slice(2).trim();
+        const icColor = ic === '✓' ? '#166534' : (ic === '⚠' ? '#9C5A0E' : '#992F2A');
+        bodyHtml += `<div class="check-line"><span class="ic" style="color:${{icColor}}">${{ic}}</span><span>${{renderInline(rest)}}</span></div>`;
+      }} else if (/^[-•·]\\s/.test(t)) {{
+        bodyHtml += '<p>' + renderInline(t.replace(/^[-•·]\\s/, '')) + '</p>';
+      }} else {{
+        bodyHtml += '<p>' + renderInline(t) + '</p>';
+      }}
+    }});
+
+    html += `
+<div class="passo-card open">
+  <div class="passo-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="passo-num">Passo ${{passoNum}}</span>
+    <span class="passo-title">${{escHtml(passoTitle)}}</span>
+    <span class="passo-toggle">▾</span>
+  </div>
+  <div class="passo-body">${{bodyHtml}}</div>
+</div>`;
+
+    inPasso = false;
+    passoBuffer = '';
+  }}
+
+  for (let i = 0; i < lines.length; i++) {{
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip header de validação
+    if (/VALIDAÇÃO COMPLETA DE RÓTULO/i.test(trimmed)) continue;
+
+    // SCORE — captura mas não renderiza
+    let mScore = trimmed.match(/^[\\*#\\s]{{0,5}}SCORE[\\*\\s]*[:\\s]\\s*([\\d.,]+)\\s*\\/\\s*14/i);
+    if (mScore) {{
+      scoreFinal = parseFloat(mScore[1].replace(',','.'));
+      continue;
+    }}
+
+    // VEREDICTO — captura mas não renderiza
+    let mVer = trimmed.match(/^[\\*#\\s]{{0,5}}VEREDICTO[\\*\\s]*[:\\s]\\s*(.+)$/i);
+    if (mVer) {{
+      veredictoFinal = mVer[1].replace(/\\*\\*/g,'').trim().toUpperCase();
+      continue;
+    }}
+
+    // PASSO N — Título
+    let mPasso = trimmed.match(/^#{{0,4}}\\s*PASSO\\s+(\\d+)[\\s—:-]+(.+?)\\s*#*$/i);
+    if (mPasso) {{
+      closeCampo();
+      closePasso();
+      inPasso = true;
+      passoNum = parseInt(mPasso[1]);
+      passoTitle = mPasso[2].replace(/\\*\\*/g,'').trim();
+      continue;
+    }}
+
+    // CAMPO N — Nome ✅/⚠️/❌ STATUS
+    let mCampo = trimmed.match(/^#{{0,4}}\\s*\\*?\\*?CAMPO\\s+(\\d+)\\*?\\*?[\\s—:-]+(.+?)$/i);
+    if (mCampo) {{
+      closeCampo();
+      // Se estava em passo, mantém — campos são parte do passo 3
+      inCampo = true;
+      campoNum = parseInt(mCampo[1]);
+      const nomeCompleto = mCampo[2].replace(/\\*\\*/g,'').trim();
+      // Separa nome do status
+      const partsStatus = nomeCompleto.match(/^(.+?)[\\s:]+(✅[^(]*|⚠[^(]*|❌[^(]*|CONFORME[^(]*|COM RESSALVAS[^(]*|NÃO CONFORME[^(]*)(.*)$/i);
+      if (partsStatus) {{
+        campoName = partsStatus[1].trim().replace(/[:—-]+$/,'').trim();
+        campoHeaderRaw = partsStatus[2] + ' ' + (partsStatus[3] || '');
+      }} else {{
+        campoName = nomeCompleto;
+        campoHeaderRaw = '';
+      }}
+      continue;
+    }}
+
+    // Headers de seção markdown
+    if (/^#{{1,4}}\\s/.test(trimmed)) {{
+      if (inCampo || inPasso) {{
+        closeCampo();
+        closePasso();
+      }}
+      const headerText = trimmed.replace(/^#+\\s*/,'').replace(/\\*\\*/g,'');
+      html += `<h3 style="font-size:14px;color:var(--vr-ink-deep);margin:20px 0 8px;font-weight:600;letter-spacing:-0.2px;">${{escHtml(headerText)}}</h3>`;
+      continue;
+    }}
+
+    // Linha em branco
+    if (!trimmed) {{
+      if (inCampo) campoBuffer += '\\n';
+      else if (inPasso) passoBuffer += '\\n';
+      continue;
+    }}
+
+    // Conteúdo dentro de campo ou passo
+    if (inCampo) {{
+      campoBuffer += line + '\\n';
+    }} else if (inPasso) {{
+      passoBuffer += line + '\\n';
+    }} else {{
+      // Conteúdo solto (Passo 4 - relatório final, etc.)
+      html += '<p style="font-size:13px;line-height:1.7;color:var(--vr-ink);margin:6px 0;">' + renderInline(trimmed) + '</p>';
+    }}
+  }}
+
+  closeCampo();
+  closePasso();
+
+  // Score widget no topo (depois de calcular)
+  const scoreReal = totalConformes * 1 + totalRessalvas * 0.5;
+  const score = scoreFinal != null ? scoreFinal : scoreReal;
+  const pct = Math.round((score / 14) * 100);
+  let veredicto, vClass, barClass;
+  if (score >= 13) {{ veredicto='Aprovado'; vClass='pass'; barClass=''; }}
+  else if (score >= 8) {{ veredicto='Aprovado com ressalvas'; vClass='warn'; barClass='warn'; }}
+  else {{ veredicto='Reprovado'; vClass='fail'; barClass='fail'; }}
+
+  const scoreWidget = `
+<div class="score-summary" style="margin-bottom:0;">
+  <div class="score-summary-top">
+    <div><span class="score-big">${{score}}</span><span class="score-big-frac">/14</span></div>
+    <div class="score-bar-wrap"><div class="score-bar-fill ${{barClass}}" style="width:${{pct}}%"></div></div>
+    <div class="score-veredicto ${{vClass}}">${{veredicto}}</div>
+  </div>
+  <div class="score-tiles">
+    <div class="score-tile"><div class="score-tile-num">${{totalConformes}}</div><div class="score-tile-label">✓ Conformes</div></div>
+    <div class="score-tile warn"><div class="score-tile-num">${{totalRessalvas}}</div><div class="score-tile-label">⚠ Com Ressalvas</div></div>
+    <div class="score-tile fail"><div class="score-tile-num">${{totalNaoConformes}}</div><div class="score-tile-label">✗ Não Conformes</div></div>
+  </div>
+</div>`;
+
+  return scoreWidget + html;
+}}
+
+document.getElementById('resultado').innerHTML = parseRelatorio(RAW_RELATORIO);
+</script>
+
+</body>
+</html>"""
+
+    return HTMLResponse(html)
 
 
 @app.get("/curador/aprovar/{token}")
