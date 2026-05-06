@@ -5226,6 +5226,11 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
         score_auto = float(score_match.group(1).replace(",",".")) if score_match else None
         prod_match   = _re2.search(r"PRODUTO[:\s]+([^\n|]+)", relatorio, _re2.IGNORECASE)
         prod_auto    = prod_match.group(1).strip()[:80] if prod_match else ""
+        # Limpa markdown bold (**texto**) e prefixos residuais ("PRODUTO:", asteriscos)
+        if prod_auto:
+            prod_auto = _re2.sub(r"\*+", "", prod_auto)  # remove asteriscos
+            prod_auto = _re2.sub(r"^(PRODUTO[:\s]*)+", "", prod_auto, flags=_re2.IGNORECASE)  # remove prefixo PRODUTO:
+            prod_auto = prod_auto.strip(" :—-").strip()
         # Captura campos NÃO CONFORME e COM RESSALVAS
         erros_auto_list = _re2.findall(
             r"CAMPO (\d+)[^\n]*(?:NÃO CONFORME|AUSENTE)[^\n]*\n([^\n]{0,120})",
@@ -5265,23 +5270,22 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
 
             # Upload da imagem do rótulo pro Storage (fire-and-forget, não bloqueia resposta)
             # Quando upload completar, atualiza o registro com a imagem_url.
-            async def _upload_e_atualizar():
+            # IMPORTANTE: passa contents/content_type como argumentos default
+            # pra "congelar" a closure antes do scope acabar.
+            _ct = getattr(imagem, "content_type", None) or "image/jpeg"
+            _bytes = contents
+            async def _upload_e_atualizar(_case_id=case_id, _data=_bytes, _ct=_ct):
                 try:
-                    print(f"[storage] _upload_e_atualizar START case={case_id[:16]}", flush=True)
-                    if not contents:
-                        print(f"[storage] _upload_e_atualizar SKIP: contents vazio case={case_id[:16]}", flush=True)
+                    print(f"[storage] _upload_e_atualizar START case={_case_id[:16]}", flush=True)
+                    if not _data:
+                        print(f"[storage] _upload_e_atualizar SKIP: contents vazio case={_case_id[:16]}", flush=True)
                         return
-                    img_url = await _sb_upload_rotulo(
-                        contents,
-                        case_id,
-                        getattr(imagem, "content_type", None) or "image/jpeg"
-                    )
+                    img_url = await _sb_upload_rotulo(_data, _case_id, _ct)
                     if img_url:
-                        print(f"[storage] _upload_e_atualizar: upload OK, fazendo PATCH no DB case={case_id[:16]}", flush=True)
-                        # Usa PATCH direto em vez de upsert (mais simples — só atualiza imagem_url)
+                        print(f"[storage] _upload_e_atualizar: upload OK, fazendo PATCH no DB case={_case_id[:16]}", flush=True)
                         try:
                             async with httpx.AsyncClient(timeout=10.0) as cl:
-                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
+                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{_case_id}"
                                 pr = await cl.patch(
                                     patch_url,
                                     json={"imagem_url": img_url},
@@ -5293,15 +5297,15 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                                     },
                                 )
                                 if pr.status_code in (200, 201, 204):
-                                    print(f"[storage] DB PATCH OK case={case_id[:16]}", flush=True)
+                                    print(f"[storage] DB PATCH OK case={_case_id[:16]}", flush=True)
                                 else:
-                                    print(f"[storage] DB PATCH FALHOU case={case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
+                                    print(f"[storage] DB PATCH FALHOU case={_case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
                         except Exception as patch_e:
-                            print(f"[storage] DB PATCH EXCEÇÃO case={case_id[:16]}: {patch_e}", flush=True)
+                            print(f"[storage] DB PATCH EXCEÇÃO case={_case_id[:16]}: {patch_e}", flush=True)
                     else:
-                        print(f"[storage] _upload_e_atualizar: upload retornou vazio case={case_id[:16]}", flush=True)
+                        print(f"[storage] _upload_e_atualizar: upload retornou vazio case={_case_id[:16]}", flush=True)
                 except Exception as e:
-                    print(f"[storage] _upload_e_atualizar erro case={case_id[:16]}: {e}", flush=True)
+                    print(f"[storage] _upload_e_atualizar erro case={_case_id[:16]}: {e}", flush=True)
 
             asyncio.ensure_future(_upload_e_atualizar())
     except Exception:
@@ -6713,7 +6717,39 @@ async def store_feedback(request: Request):
         supabase_case = {**case, "created_at": _dt2.datetime.now().isoformat()}
         # Remove None values (Supabase rejeita)
         supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
-        sb_ok = await _sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id")
+        # Tira case_id do payload (vai como filtro do PATCH, não como valor)
+        case_id_for_patch = supabase_case.pop("case_id", "")
+
+        # Usa PATCH em vez de UPSERT pra PRESERVAR campos gravados pelo /validar
+        # (relatorio_completo, imagem_url, erros_auto, etc.) que não vêm no body do feedback.
+        # PATCH só atualiza os campos enviados, mantém os outros intactos.
+        sb_ok = False
+        if case_id_for_patch:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as cl:
+                    patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id_for_patch}"
+                    pr = await cl.patch(
+                        patch_url,
+                        json=supabase_case,
+                        headers={
+                            "apikey": _SUPABASE_KEY,
+                            "Authorization": f"Bearer {_SUPABASE_KEY}",
+                            "Content-Type": "application/json",
+                            "Prefer": "return=minimal",
+                        },
+                    )
+                    if pr.status_code in (200, 201, 204):
+                        sb_ok = True
+                        print(f"[supabase] feedback PATCH OK case={case_id_for_patch[:16]}", flush=True)
+                    else:
+                        # Se PATCH falhou (talvez registro não exista — caso edge), faz UPSERT como fallback
+                        print(f"[supabase] feedback PATCH falhou case={case_id_for_patch[:16]} status={pr.status_code} body={pr.text[:300]} — fallback UPSERT", flush=True)
+                        supabase_case["case_id"] = case_id_for_patch
+                        sb_ok = await _sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id")
+            except Exception as e:
+                print(f"[supabase] feedback PATCH exceção case={case_id_for_patch[:16]}: {e} — fallback UPSERT", flush=True)
+                supabase_case["case_id"] = case_id_for_patch
+                sb_ok = await _sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id")
 
         # Calcula métricas do feedback para retornar ao frontend
         campos_ok  = len(acertos_campos)
