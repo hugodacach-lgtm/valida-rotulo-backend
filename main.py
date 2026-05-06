@@ -5181,6 +5181,11 @@ def check_image_readability(image_bytes: bytes) -> dict:
     """
     Verifica se a imagem tem resolução e contraste suficientes para leitura de texto.
     Retorna {"ok": bool, "warning": str, "dim": tuple}
+
+    Estratégia anti-falso-positivo (3 camadas):
+      1. Amostragem distribuída uniformemente pela imagem
+      2. Se reprovar, recalcula com a imagem INTEIRA antes de bloquear
+      3. Threshold conservador (4) — só bloqueia se realmente for arquivo em branco
     """
     try:
         from PIL import Image as PILImage, ImageFilter
@@ -5198,19 +5203,54 @@ def check_image_readability(image_bytes: bytes) -> dict:
             return {"ok": True,
                     "warning": f"⚠️ Imagem pequena ({w}×{h}px) — qualidade pode ser limitada, mas vamos tentar.",
                     "dim": (w, h)}
-        # Verifica se imagem não é completamente branca/preta (PDF em branco, etc.)
+
+        # ── Camada 1: amostragem distribuída ────────────────────────────────
         gray = img.convert("L")
-        pixels = list(gray.getdata())
+        pixels_full = list(gray.getdata())
+        total = len(pixels_full)
+        if total == 0:
+            return {"ok": True, "warning": "", "dim": (w, h)}
+
+        # Pega ~10k amostras espaçadas uniformemente pela imagem
+        if total <= 10000:
+            amostra = pixels_full
+        else:
+            step = total // 10000
+            amostra = pixels_full[::step][:10000]
         try:
-            stdev = statistics.stdev(pixels[:10000])  # amostra
+            stdev_amostra = statistics.stdev(amostra)
         except Exception:
-            stdev = 50
-        if stdev < 8:
+            stdev_amostra = 50
+
+        # Se passou na primeira camada, libera direto
+        if stdev_amostra >= 4:
+            return {"ok": True, "warning": "", "dim": (w, h)}
+
+        # ── Camada 2: recálculo com imagem inteira (mais caro, mas só pra borderline) ──
+        # Se a amostragem deu baixa, antes de bloquear vamos verificar com TODOS
+        # os pixels — pode ser que a amostragem caiu por azar em região uniforme.
+        try:
+            stdev_full = statistics.stdev(pixels_full)
+        except Exception:
+            stdev_full = 50
+
+        # ── Camada 3: bloqueio só se ambas as medidas reprovarem ───────────
+        # Threshold da medida full pode ser ainda mais conservador (3) já que
+        # é a medida mais confiável.
+        if stdev_full < 3:
             return {"ok": False,
                     "warning": "⚠️ Imagem sem contraste detectável. Verifique se o arquivo está correto e tente novamente.",
                     "dim": (w, h)}
+
+        # Passou na camada 2 — libera com warning interno (não chega ao usuário)
+        # mas registra no log que foi um caso borderline
+        try:
+            print(f"[readability] borderline OK: dim={w}x{h} stdev_amostra={stdev_amostra:.2f} stdev_full={stdev_full:.2f}", flush=True)
+        except Exception:
+            pass
         return {"ok": True, "warning": "", "dim": (w, h)}
     except Exception:
+        # Em caso de erro inesperado, NUNCA bloqueia — deixa Claude tentar
         return {"ok": True, "warning": "", "dim": (0, 0)}
 
 
@@ -5553,9 +5593,33 @@ def preprocess_image(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
             img = ImageEnhance.Contrast(img).enhance(1.5)
             img = ImageEnhance.Sharpness(img).enhance(1.8)
 
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=95)
-        return buf.getvalue(), "image/jpeg"
+        # Salva como JPEG, garantindo que o resultado fique dentro do limite Anthropic.
+        # IMPORTANTE: a API mede o tamanho em BASE64 (~33% maior que binário).
+        # Limite Anthropic = 5 MB em base64 ≈ 3.75 MB em binário.
+        # Usamos 3.5 MB de teto pra deixar margem segura.
+        # Se quality=95 estourar, vai reduzindo: 90 → 85 → 80 → reduz dimensão.
+        MAX_BYTES = int(3.5 * 1024 * 1024)  # 3.5 MB binário ≈ 4.7 MB base64
+        for quality in (95, 90, 85, 80, 75):
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            data = buf.getvalue()
+            if len(data) <= MAX_BYTES:
+                return data, "image/jpeg"
+
+        # Se ainda passou de 3.5MB com quality=75, reduz dimensão progressivamente
+        cur_w, cur_h = img.size
+        for scale in (0.85, 0.70, 0.55, 0.40):
+            new_w = int(cur_w * scale)
+            new_h = int(cur_h * scale)
+            img_smaller = img.resize((new_w, new_h), PILImage.LANCZOS)
+            buf = io.BytesIO()
+            img_smaller.save(buf, format="JPEG", quality=85, optimize=True)
+            data = buf.getvalue()
+            if len(data) <= MAX_BYTES:
+                return data, "image/jpeg"
+
+        # Último recurso: retorna o melhor que conseguimos (não bloqueia)
+        return data, "image/jpeg"
 
     except Exception:
         return image_bytes, mime_type
