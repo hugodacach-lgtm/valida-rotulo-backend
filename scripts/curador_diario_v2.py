@@ -310,14 +310,10 @@ def render_score_visual(feedback: dict) -> str:
 # ─── 5. Montar email HTML ─────────────────────────────────────────────────
 def render_resumo_executivo(feedbacks_com_discordancias: list[dict],
                             total_feedbacks: int) -> str:
-    """
-    Resumo de 3 linhas no topo do email — Giovanna escaneia em 5 segundos
-    e sabe o tamanho do trabalho do dia.
-    """
+    """Resumo no topo do email — escaneável em 5 segundos."""
     total_disc = sum(len(f["discordancias"]) for f in feedbacks_com_discordancias)
-    estimativa_min = max(2, round(total_disc * 0.5))  # ~30s por discordância
+    estimativa_min = max(2, round(total_disc * 0.5))
 
-    # Top campo questionado
     todos_campos = []
     for f in feedbacks_com_discordancias:
         for d in f["discordancias"]:
@@ -329,69 +325,105 @@ def render_resumo_executivo(feedbacks_com_discordancias: list[dict],
         top_nome = NOMES_CAMPOS.get(top_num, f"Campo {top_num}")
         if top_count >= 2:
             top_campo_html = (
-                f'· top campo questionado: <strong>C{top_num} ({top_nome}) '
-                f'— {top_count}×</strong>'
+                f'<div style="margin-top:14px;padding-top:14px;border-top:1px solid #E8E5DD;'
+                f'font-size:12px;color:#6B6757;">Campo mais questionado: '
+                f'<strong style="color:#091A14;">C{top_num} · {top_nome}</strong> '
+                f'<span style="color:#9C5A0E;">({top_count}× hoje)</span></div>'
             )
 
     return f"""
-<div style="background:#0F2A20;color:#fff;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
-  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.75;margin-bottom:8px;">📊 RESUMO DE HOJE</div>
-  <div style="font-size:15px;line-height:1.6;">
-    <strong>{total_feedbacks}</strong> feedback{'s' if total_feedbacks != 1 else ''} ·
-    <strong>{total_disc}</strong> correç{'ões' if total_disc != 1 else 'ão'} pra revisar ·
-    estimativa <strong>~{estimativa_min} min</strong>
-  </div>
-  <div style="font-size:12px;line-height:1.6;opacity:0.85;margin-top:6px;">
-    {top_campo_html}
-  </div>
-</div>
+<!-- Resumo executivo -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+  <tr>
+    <td style="background:#FBFAF6;border:1px solid #E2DED2;border-radius:10px;padding:22px;">
+      <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6B6757;margin-bottom:14px;">Hoje</div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td valign="top" style="padding-right:8px;">
+            <div style="font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;font-size:32px;font-weight:600;color:#091A14;line-height:1;">{total_feedbacks}</div>
+            <div style="font-size:11px;color:#6B6757;margin-top:4px;letter-spacing:0.3px;">{'feedbacks' if total_feedbacks != 1 else 'feedback'}</div>
+          </td>
+          <td valign="top" style="padding:0 8px;border-left:1px solid #E8E5DD;padding-left:20px;">
+            <div style="font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;font-size:32px;font-weight:600;color:#091A14;line-height:1;">{total_disc}</div>
+            <div style="font-size:11px;color:#6B6757;margin-top:4px;letter-spacing:0.3px;">{'correções' if total_disc != 1 else 'correção'} pra revisar</div>
+          </td>
+          <td valign="top" style="padding-left:20px;border-left:1px solid #E8E5DD;">
+            <div style="font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;font-size:32px;font-weight:600;color:#166534;line-height:1;">~{estimativa_min}</div>
+            <div style="font-size:11px;color:#6B6757;margin-top:4px;letter-spacing:0.3px;">minutos estimados</div>
+          </td>
+        </tr>
+      </table>
+      {top_campo_html}
+    </td>
+  </tr>
+</table>
 """
 
 
 def render_email_html(feedbacks_com_discordancias: list[dict], total_feedbacks: int) -> str:
-    """Monta email HTML rico com todos os feedbacks e botões de aprovar/rejeitar."""
+    """
+    Email HTML com identidade InspectIA limpa e profissional.
+    Paleta: branco + verde escuro #0F2A20 + warm bone #FBFAF6 + accent #166534.
+    Tipografia: Geist (com fallback para system-ui em clientes que não suportam).
+    """
     hoje = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y")
     total_discordancias = sum(len(f["discordancias"]) for f in feedbacks_com_discordancias)
 
-    # ─── HEADER ───
     html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>InspectIA · Curadoria diária</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InspectIA · Curadoria diária · {hoje}</title>
 </head>
-<body style="margin:0;padding:0;font-family:'Helvetica Neue',Arial,sans-serif;background:#f0ede3;color:#0f2a20;">
-<div style="max-width:720px;margin:0 auto;padding:24px 16px;">
-
-<!-- HEADER -->
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#0F2A20;border-radius:10px;padding:20px 22px;margin-bottom:20px;">
+<body style="margin:0;padding:0;background:#FFFFFF;font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#091A14;">
+<!-- Wrapper externo -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;">
   <tr>
-    <td>
-      <div style="color:#fff;font-size:14px;font-weight:600;letter-spacing:0.5px;">📋 InspectIA · Curadoria diária</div>
-      <div style="color:#a8a4a0;font-size:12px;margin-top:4px;">{hoje}</div>
-    </td>
-  </tr>
-</table>
+    <td align="center" style="padding:32px 16px;">
+      <!-- Container principal -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:680px;background:#FFFFFF;">
 
-{render_resumo_executivo(feedbacks_com_discordancias, total_feedbacks)}
+        <!-- HEADER minimalista -->
+        <tr>
+          <td style="padding:0 0 28px;border-bottom:1px solid #E8E5DD;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td valign="middle">
+                  <div style="display:inline-block;width:8px;height:8px;background:#166534;border-radius:50%;vertical-align:middle;margin-right:10px;"></div>
+                  <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#091A14;font-weight:500;vertical-align:middle;">InspectIA</span>
+                </td>
+                <td align="right" valign="middle">
+                  <span style="font-family:'Geist Mono',monospace;font-size:11px;color:#6B6757;letter-spacing:0.5px;">{hoje}</span>
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top:24px;">
+              <h1 style="font-family:'Geist',sans-serif;font-size:28px;font-weight:600;color:#091A14;margin:0;letter-spacing:-0.5px;line-height:1.2;">Curadoria diária</h1>
+              <p style="font-size:14px;color:#6B6757;margin:8px 0 0;line-height:1.5;">Olá Giovanna — feedbacks de RTs aguardando sua revisão.</p>
+            </div>
+          </td>
+        </tr>
 
-<!-- INTRO -->
-<div style="background:#fff;border:1px solid #e2ded2;border-radius:10px;padding:18px 22px;margin-bottom:20px;line-height:1.55;">
-  <div style="font-size:14px;color:#0f2a20;margin-bottom:10px;">
-    Olá Giovanna,
-  </div>
-  <div style="font-size:13px;color:#0f2a20;">
-    Recebemos <strong>{total_feedbacks}</strong> feedback{"s" if total_feedbacks != 1 else ""} de RTs nas últimas 24h, totalizando
-    <strong>{total_discordancias}</strong> correç{"ões" if total_discordancias != 1 else "ão"} para revisar.
-  </div>
-  <div style="font-size:12px;color:#6b6757;margin-top:10px;line-height:1.6;">
-    Cada correção tem 2 botões: <strong>Aprovar</strong> (vira aprendizado da IA) ou <strong>Rejeitar</strong> (descarta).
-    A IA reformulará o texto técnico antes de gravar — sua aprovação é o que autoriza isso.
-  </div>
-</div>
+        <!-- Espaçamento -->
+        <tr><td style="height:24px;"></td></tr>
+
+        <!-- Resumo executivo -->
+        <tr><td>{render_resumo_executivo(feedbacks_com_discordancias, total_feedbacks)}</td></tr>
+
+        <!-- Instruções -->
+        <tr>
+          <td style="padding:0 0 28px;">
+            <p style="font-size:13px;color:#6B6757;margin:0;line-height:1.6;">
+              Para cada correção abaixo, você pode <strong style="color:#166534;">aprovar</strong>
+              (vira aprendizado da IA) ou <strong style="color:#992F2A;">rejeitar</strong> (descarta).
+              A IA reformula o texto técnico antes de gravar — sua aprovação é o que autoriza.
+            </p>
+          </td>
+        </tr>
 """
 
-    # ─── FEEDBACKS ───
+    # ─── FEEDBACKS ───────────────────────────────────────────────────────────
     for idx, item in enumerate(feedbacks_com_discordancias, start=1):
         fb = item["feedback"]
         discord = item["discordancias"]
@@ -405,55 +437,63 @@ def render_email_html(feedbacks_com_discordancias: list[dict], total_feedbacks: 
         imagem_url = (fb.get("imagem_url") or "").strip()
         relatorio_completo = fb.get("relatorio_completo", "") or ""
 
-        score_text = ""
+        # Score visual
+        score_text_html = ""
         if score_agente is not None:
-            score_text = f"IA: <strong>{score_agente}/14</strong>"
+            score_text_html = f'<span style="color:#091A14;">IA: <strong>{score_agente}/14</strong></span>'
             if score_real is not None and score_real != score_agente:
                 delta = score_real - score_agente
                 sinal = "+" if delta > 0 else ""
-                score_text += f' → RT: <strong>{score_real}/14</strong> <span style="color:#9C5A0E;">(Δ {sinal}{delta})</span>'
+                score_text_html += (
+                    f' <span style="color:#6B6757;">→</span> '
+                    f'<span style="color:#091A14;">RT: <strong>{score_real}/14</strong></span> '
+                    f'<span style="color:#9C5A0E;font-size:12px;">(Δ {sinal}{delta})</span>'
+                )
 
-        score_visual = render_score_visual(fb)
+        score_visual_quadrados = render_score_visual(fb)
         link_relatorio = f"{BACKEND_URL}/curador/relatorio/{case_id}" if case_id else ""
 
-        # ── HEADER DO CARD (com foto à esquerda, info à direita) ──
+        # Foto do rótulo (250x250 ou placeholder)
         if imagem_url:
-            img_tag = f'''<a href="{imagem_url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;">
-                <img src="{imagem_url}" alt="Rótulo {html_escape(produto)}" width="240" height="240"
-                     style="display:block;width:240px;height:240px;object-fit:cover;border-radius:8px;border:1px solid #e2ded2;">
+            img_block = f'''<a href="{imagem_url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;line-height:0;">
+                <img src="{imagem_url}" alt="{html_escape(produto)}" width="250" height="250" style="display:block;width:250px;height:250px;object-fit:cover;border-radius:8px;border:1px solid #E2DED2;">
             </a>
-            <div style="font-size:10px;color:#a8a4a0;margin-top:4px;text-align:center;">clique pra ampliar</div>'''
+            <div style="font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:1px;color:#A8A4A0;text-align:center;margin-top:8px;text-transform:uppercase;">clique pra ampliar</div>'''
         else:
-            img_tag = '''<div style="width:240px;height:240px;background:#f0ede3;border:1px dashed #d9d2be;
-                         border-radius:8px;display:flex;align-items:center;justify-content:center;color:#a8a4a0;
-                         font-size:11px;text-align:center;padding:0 12px;line-height:1.5;">Foto não disponível<br>(validação anterior à<br>v.com-foto)</div>'''
+            img_block = '''<div style="width:250px;height:250px;background:#FBFAF6;border:1px dashed #D9D2BE;border-radius:8px;display:table-cell;vertical-align:middle;text-align:center;color:#A8A4A0;font-size:11px;line-height:1.6;padding:0 16px;">📷<br>Foto não<br>disponível</div>'''
 
         html += f"""
 <!-- FEEDBACK #{idx} -->
-<div style="background:#fff;border:1px solid #e2ded2;border-radius:10px;margin-bottom:24px;overflow:hidden;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ede3;border-bottom:1px solid #e2ded2;">
-    <tr>
-      <td valign="top" width="260" style="padding:16px 16px 16px 22px;">
-        {img_tag}
-      </td>
-      <td valign="top" style="padding:16px 22px 16px 8px;">
-        <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;">FEEDBACK #{idx}</div>
-        <div style="font-size:17px;color:#091a14;font-weight:600;margin-top:6px;line-height:1.3;">{html_escape(produto)}</div>
-        <div style="font-size:12px;color:#6b6757;margin-top:6px;">
-          {html_escape(categoria)}{' · ' + html_escape(orgao) if orgao else ''}
-        </div>
-        <div style="font-size:13px;color:#0f2a20;margin-top:10px;">{score_text}</div>
-        <div style="margin-top:10px;">{score_visual}</div>
-        <div style="font-size:10px;color:#a8a4a0;margin-top:10px;font-family:monospace;">case: {html_escape(case_id_short)}</div>
-        {f'''<div style="margin-top:12px;">
-          <a href="{link_relatorio}" target="_blank" rel="noopener" style="display:inline-block;font-size:12px;color:#166534;text-decoration:underline;font-weight:500;">📄 Ver relatório completo</a>
-        </div>''' if link_relatorio else ''}
-      </td>
-    </tr>
-  </table>
+<tr>
+  <td style="padding:0 0 32px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;border:1px solid #E2DED2;border-radius:12px;overflow:hidden;">
+
+      <!-- Card header: foto + meta -->
+      <tr>
+        <td style="background:#FBFAF6;padding:24px;border-bottom:1px solid #E8E5DD;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td valign="top" width="270" style="padding-right:24px;">
+                {img_block}
+              </td>
+              <td valign="top">
+                <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6B6757;font-weight:500;margin-bottom:8px;">Feedback #{idx}</div>
+                <h2 style="font-family:'Geist',sans-serif;font-size:18px;font-weight:600;color:#091A14;margin:0 0 8px;line-height:1.3;letter-spacing:-0.2px;">{html_escape(produto)}</h2>
+                <div style="font-size:13px;color:#6B6757;margin-bottom:14px;">
+                  {html_escape(categoria)}{' · ' + html_escape(orgao) if orgao else ''}
+                </div>
+                <div style="font-size:13px;margin-bottom:14px;line-height:1.4;">{score_text_html}</div>
+                <div style="margin-bottom:14px;">{score_visual_quadrados}</div>
+                <div style="font-family:'Geist Mono',monospace;font-size:10px;color:#A8A4A0;letter-spacing:0.5px;margin-bottom:14px;">{html_escape(case_id_short)}</div>
+                {f'''<a href="{link_relatorio}" target="_blank" rel="noopener" style="display:inline-block;font-size:12px;color:#166534;text-decoration:none;font-weight:500;border-bottom:1px solid #166534;padding-bottom:1px;">Ver relatório completo →</a>''' if link_relatorio else ''}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
 """
 
-        # ── DISCORDÂNCIAS DO FEEDBACK (cada campo questionado) ──
+        # ── DISCORDÂNCIAS — cada campo questionado ──
         for disc in discord:
             num = disc["campo_num"]
             nome = disc["campo_nome"]
@@ -461,86 +501,106 @@ def render_email_html(feedbacks_com_discordancias: list[dict], total_feedbacks: 
             url_aprovar = f"{BACKEND_URL}/curador/aprovar/{disc['token_aprovar']}"
             url_rejeitar = f"{BACKEND_URL}/curador/rejeitar/{disc['token_rejeitar']}"
 
-            # Extrai o que a IA disse sobre esse campo
             ia_data = extrair_trecho_ia(relatorio_completo, num)
             ia_status = ia_data["status"]
             ia_texto = ia_data["texto"]
 
             # Cor da pílula de status da IA
             status_cor = {
-                "CONFORME":       ("#166534", "#E8F0EA"),  # verde
-                "COM RESSALVAS":  ("#9C5A0E", "#F5EBD8"),  # amarelo
-                "NÃO CONFORME":   ("#992F2A", "#F0DDDB"),  # vermelho
-                "—":              ("#6b6757", "#f0ede3"),  # cinza neutro
-            }.get(ia_status, ("#6b6757", "#f0ede3"))
+                "CONFORME":      ("#166534", "#E8F0EA"),
+                "COM RESSALVAS": ("#9C5A0E", "#F5EBD8"),
+                "NÃO CONFORME":  ("#992F2A", "#F0DDDB"),
+                "—":             ("#6B6757", "#FBFAF6"),
+            }.get(ia_status, ("#6B6757", "#FBFAF6"))
 
-            # Bloco do que a IA disse
             if ia_texto:
-                ia_block = f'''
-            <div style="background:{status_cor[1]};border-left:3px solid {status_cor[0]};padding:12px 14px;border-radius:4px;margin-bottom:10px;">
-              <div style="font-size:11px;color:{status_cor[0]};font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
-                🤖 IA: {ia_status}
-              </div>
-              <div style="font-size:13px;color:#0f2a20;line-height:1.55;">{html_escape(ia_texto)}</div>
-            </div>'''
+                ia_block = f'''<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{status_cor[1]};border-radius:6px;margin-bottom:12px;">
+                  <tr>
+                    <td style="padding:14px 16px;border-left:3px solid {status_cor[0]};">
+                      <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:{status_cor[0]};font-weight:600;margin-bottom:6px;">IA · {ia_status}</div>
+                      <div style="font-size:13px;color:#091A14;line-height:1.6;">{html_escape(ia_texto)}</div>
+                    </td>
+                  </tr>
+                </table>'''
             else:
-                ia_block = f'''
-            <div style="background:#fbfaf6;border:1px dashed #d9d2be;padding:10px 14px;border-radius:4px;margin-bottom:10px;font-size:12px;color:#a8a4a0;font-style:italic;">
-              🤖 IA: análise específica deste campo não localizada no relatório
-            </div>'''
+                ia_block = '''<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FBFAF6;border-radius:6px;margin-bottom:12px;border:1px dashed #D9D2BE;">
+                  <tr>
+                    <td style="padding:12px 16px;font-size:12px;color:#A8A4A0;font-style:italic;">
+                      IA: análise específica deste campo não disponível no relatório
+                    </td>
+                  </tr>
+                </table>'''
 
             html += f"""
-  <div style="padding:18px 22px;border-bottom:1px solid #f0ede3;">
-    <div style="font-size:11px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px;">
-      Campo {num} — {html_escape(nome)}
-    </div>
-    {ia_block}
-    <div style="background:#fff;border:1px solid #d9d2be;border-left:3px solid #9C5A0E;padding:12px 14px;border-radius:4px;margin-bottom:14px;">
-      <div style="font-size:11px;color:#9C5A0E;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
-        👤 RT corrige
-      </div>
-      <div style="font-size:13px;color:#0f2a20;line-height:1.55;">"{html_escape(comentario)}"</div>
-    </div>
-    <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td align="left">
-          <a href="{url_aprovar}" style="display:inline-block;background:#166534;color:#fff;text-decoration:none;font-weight:600;font-size:12px;padding:10px 20px;border-radius:6px;margin-right:8px;">
-            ✓ Aprovar correção
-          </a>
-          <a href="{url_rejeitar}" style="display:inline-block;background:#fff;color:#992f2a;text-decoration:none;font-weight:600;font-size:12px;padding:10px 20px;border-radius:6px;border:1px solid #992f2a;">
-            ✗ Rejeitar
-          </a>
+        <td style="padding:24px;border-bottom:1px solid #F0EDE3;">
+          <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6B6757;font-weight:500;margin-bottom:14px;">
+            Campo {num} · {html_escape(nome)}
+          </div>
+
+          {ia_block}
+
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;border:1px solid #E8E5DD;border-radius:6px;margin-bottom:18px;">
+            <tr>
+              <td style="padding:14px 16px;border-left:3px solid #9C5A0E;">
+                <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#9C5A0E;font-weight:600;margin-bottom:6px;">RT · Correção proposta</div>
+                <div style="font-size:13px;color:#091A14;line-height:1.6;">{html_escape(comentario)}</div>
+              </td>
+            </tr>
+          </table>
+
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding-right:8px;">
+                <a href="{url_aprovar}" style="display:inline-block;background:#166534;color:#FFFFFF;text-decoration:none;font-family:'Geist',sans-serif;font-weight:500;font-size:13px;padding:11px 22px;border-radius:6px;letter-spacing:0.2px;">Aprovar correção</a>
+              </td>
+              <td>
+                <a href="{url_rejeitar}" style="display:inline-block;background:#FFFFFF;color:#6B6757;text-decoration:none;font-family:'Geist',sans-serif;font-weight:500;font-size:13px;padding:11px 22px;border-radius:6px;border:1px solid #D9D2BE;letter-spacing:0.2px;">Rejeitar</a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
-    </table>
-  </div>
 """
 
-        # ── NORMAS KB RELACIONADAS (collapsed via <details>) ──
+        # Normas KB (collapsed via details)
         normas_kb = item.get("normas_kb", [])
         if normas_kb:
             normas_lis = "".join(
-                f'<div style="font-size:11px;color:#6b6757;line-height:1.6;">· {html_escape((n.get("titulo") or n.get("chave") or "—")[:80])}</div>'
+                f'<div style="font-size:12px;color:#6B6757;line-height:1.7;">· {html_escape((n.get("titulo") or n.get("chave") or "—")[:80])}</div>'
                 for n in normas_kb[:5]
             )
             html += f"""
-  <details style="background:#fbfaf6;padding:10px 22px;border-top:1px solid #f0ede3;">
-    <summary style="font-size:10px;color:#6b6757;text-transform:uppercase;letter-spacing:1px;font-weight:600;cursor:pointer;outline:none;">📚 Normas relevantes na KB ({len(normas_kb)})</summary>
-    <div style="margin-top:8px;">{normas_lis}</div>
-  </details>
+      <tr>
+        <td style="background:#FBFAF6;padding:14px 24px;">
+          <details>
+            <summary style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B6757;font-weight:500;cursor:pointer;outline:none;">Normas relevantes na KB ({len(normas_kb)})</summary>
+            <div style="margin-top:10px;">{normas_lis}</div>
+          </details>
+        </td>
+      </tr>
 """
 
-        html += "</div>\n"
+        html += "    </table>\n  </td>\n</tr>\n"
 
-    # ─── FOOTER ───
+    # ─── FOOTER ─────────────────────────────────────────────────────────────
     html += f"""
-<div style="background:#fff;border:1px solid #e2ded2;border-radius:10px;padding:16px 22px;margin-top:20px;font-size:11px;color:#6b6757;line-height:1.6;text-align:center;">
-  <strong style="color:#0f2a20;">InspectIA</strong> · Validador de Rótulos com IA<br>
-  Curadoria automática · Email enviado em {hoje} às 8h Brasília<br>
-  <span style="color:#a8a4a0;">Cada token expira em {TOKEN_TTL_DAYS} dias e só pode ser usado uma vez.</span>
-</div>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:32px 0 0;border-top:1px solid #E8E5DD;text-align:center;">
+            <div style="display:inline-block;width:6px;height:6px;background:#166534;border-radius:50%;margin-right:8px;vertical-align:middle;"></div>
+            <span style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#091A14;font-weight:500;vertical-align:middle;">InspectIA</span>
+            <div style="font-size:11px;color:#A8A4A0;margin-top:12px;line-height:1.7;">
+              Validador de rótulos com IA · Curadoria automática<br>
+              Email enviado em {hoje} · Cada token expira em {TOKEN_TTL_DAYS} dias e só pode ser usado uma vez
+            </div>
+          </td>
+        </tr>
 
-</div>
+      </table>
+    </td>
+  </tr>
+</table>
 </body>
 </html>"""
 
