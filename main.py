@@ -3097,6 +3097,40 @@ c) ENDEREÇO COMPLETO — todos estes elementos são obrigatórios (RDC 727/2022
    • Para importados: nome + endereço COMPLETO do importador brasileiro (todos os 6 elementos acima)
 d) Para importados: nome e endereço do importador no Brasil
 
+═══════════════════════════════════════════════════════════════════
+VALIDAÇÃO DE INTEGRIDADE DOS DADOS (regra de leitura defensiva)
+═══════════════════════════════════════════════════════════════════
+Esta seção do rótulo costuma ter fonte pequena (1.5-2mm) e leitura por foto
+pode falhar em dígitos isolados. Aplique sempre estas verificações:
+
+• CNPJ: deve ter EXATAMENTE 14 dígitos no formato XX.XXX.XXX/XXXX-XX.
+  Se você não conseguir ler todos os 14 dígitos com 100% de certeza
+  (qualquer dúvida em algum número), NÃO chute → marque ⚠️ COM RESSALVAS:
+  "CNPJ identificado mas não foi possível confirmar todos os dígitos com
+   nitidez plena. RT, validar visualmente o número completo na embalagem
+   física antes da impressão."
+
+• CEP: deve ter EXATAMENTE 8 dígitos no formato XXXXX-XXX.
+  Mesma regra acima — se houver dúvida em qualquer dígito, marque
+  ⚠️ COM RESSALVAS pedindo validação visual ao RT.
+
+• ENDEREÇO: distinguir entre 2 cenários:
+  (1) Falta um elemento ÓBVIO (ex: rótulo claramente sem número, ou sem
+      cidade declarada) → ❌ NÃO CONFORME (RDC 727/2022 Art. 8°).
+  (2) Texto provavelmente presente mas com leitura parcial (cortado pela
+      foto, embaçado, perspectiva ruim) → ⚠️ COM RESSALVAS:
+      "Endereço identificado parcialmente — RT, conferir todos os elementos
+       (logradouro, número, bairro, cidade, UF, CEP) na embalagem física."
+
+⚠️ ERRO CRÍTICO A EVITAR: declarar CONFORME quando você não conseguiu ler
+   todos os dígitos do CNPJ ou CEP com certeza. É melhor marcar COM RESSALVAS
+   e pedir validação humana do que liberar um rótulo com número errado.
+
+⚠️ TOM DA NOTA AO RT: nunca culpe a foto ou a qualidade da imagem. Use
+   linguagem defensiva: "RT, validar visualmente" / "conferir na embalagem
+   física" — nunca "imagem ruim" ou "não consigo ler".
+═══════════════════════════════════════════════════════════════════
+
 ─────────────────────────────────────────────
 CAMPO 5 — DECLARAÇÃO DE GLÚTEN (Lei 10.674/2003)
 ─────────────────────────────────────────────
@@ -3246,7 +3280,92 @@ NÍVEL 2 — COERÊNCIA MATEMÁTICA (OBRIGATÓRIO — faça este cálculo sempre
   • "Sem sal adicionado" + sódio > 400mg/100g → ⚠️ verificar fonte alternativa de sódio
   Se os valores por 100g não estiverem visíveis, calcule pela porção.
 
-NÍVEL 3 — PLAUSIBILIDADE POR CATEGORIA (TACO 4ª ed. UNICAMP + RTIQ/MAPA)
+NÍVEL 3 — FORMATO, ORDEM E APRESENTAÇÃO (IN 75/2020 Anexos II e III)
+──────────────────────────────────────────────────────────────────
+3a) ORDEM OBRIGATÓRIA DE DECLARAÇÃO (IN 75/2020 Anexo II) — verificar
+    se a tabela apresenta os nutrientes EXATAMENTE nesta sequência:
+    1. Valor energético (kcal e kJ)
+    2. Carboidratos totais
+    3.   ↳ Açúcares totais (subnível, indentado)
+    4.   ↳ Açúcares adicionados (subnível, indentado)
+    5. Proteínas
+    6. Gorduras totais
+    7.   ↳ Gorduras saturadas (subnível, indentado)
+    8.   ↳ Gorduras trans (subnível, indentado)
+    9. Fibra alimentar
+    10. Sódio
+    • Ordem trocada → ⚠️ COM RESSALVAS (citar qual nutriente está fora)
+    • Açúcares/gorduras saturadas/trans não indentados como subnível → ⚠️ COM RESSALVAS
+
+3b) ARREDONDAMENTO (IN 75/2020 Anexo III) — conferir casas decimais:
+    • Valor energético: número INTEIRO em kcal e kJ
+    • Macronutrientes (carboidratos, proteínas, gorduras totais, fibra):
+      uma casa decimal se <10g; sem decimal se ≥10g
+    • Sódio: sem decimal se ≥100mg; uma casa decimal se <100mg
+    • Açúcares e gord.sat./trans: uma casa decimal SEMPRE
+    • Erro de arredondamento → ⚠️ COM RESSALVAS
+
+3c) TEXTO FIXO OBRIGATÓRIO no rodapé da tabela:
+    "% Valores Diários fornecidos pela porção" (ou variação literal IN 75/2020)
+    • Texto ausente ou parafraseado de forma incorreta → ⚠️ COM RESSALVAS
+
+3d) UNIDADE DA PORÇÃO declarada — deve aparecer DUAS unidades:
+    • A unidade nutricional (g ou mL)
+    • A medida caseira equivalente (ex: "30g (1 fatia)", "200mL (1 copo)")
+    • Apenas uma das duas → ⚠️ COM RESSALVAS
+
+3e) VALORES "POR PORÇÃO" e "POR 100g/100mL" lado a lado (RDC 429/2020):
+    • Apenas uma coluna declarada → ❌ NÃO CONFORME (ambas obrigatórias)
+    • Excesso permitido: pode ter 3ª coluna com %VD da porção
+
+3f) FUNDO BRANCO + LETRAS PRETAS — obrigatório por contraste (RDC 429/2020).
+    • Cor de fundo diferente → ❌ NÃO CONFORME
+    • Letra colorida → ❌ NÃO CONFORME
+
+NÍVEL 4 — CLAIMS NUTRICIONAIS E COMPLEMENTARES (RDC 54/2012, RDC 19/2014)
+──────────────────────────────────────────────────────────────────
+Claims na embalagem precisam ser sustentados pelos valores da tabela.
+Procure no rótulo (frente, verso, qualquer lugar) frases como:
+"Fonte de proteínas" / "Rico em fibras" / "Light" / "Zero açúcar" / "Sem lactose"
+/ "Reduzido em gorduras" / "Sem adição de açúcares" / "Diet" / "Integral"
+/ "100% natural" / "Alta proteína" / "Baixo em sódio".
+
+REGRAS DE VERIFICAÇÃO (RDC 54/2012):
+• "FONTE DE [nutriente]" → exige ≥15% IDR por porção (ou ≥10% IDR por 100g/mL)
+• "RICO EM" / "ALTO TEOR DE [nutriente]" → exige ≥30% IDR por porção (ou ≥20% IDR por 100g)
+• "REDUZIDO EM [nutriente]" → exige ≥25% redução vs. produto convencional
+• "BAIXO TEOR DE SÓDIO" → ≤120mg/100g (sólido) ou ≤120mg/100mL (líquido)
+• "MUITO BAIXO TEOR DE SÓDIO" → ≤40mg/100g
+• "SEM SÓDIO" → ≤5mg/100g
+• "BAIXO EM GORDURAS" → ≤3g/100g (sólido) ou ≤1.5g/100mL (líquido)
+• "ZERO GORDURAS" / "SEM GORDURAS" → ≤0.5g/100g
+• "ZERO AÇÚCAR" / "SEM AÇÚCAR" → ≤0.5g/100g (somando totais e adicionados)
+• "FONTE DE FIBRAS" → ≥3g/100g | "RICO EM FIBRAS" → ≥6g/100g
+• "FONTE DE PROTEÍNAS" → ≥6g/100g E ≥12% do valor energético do produto
+• "RICO EM PROTEÍNAS" → ≥12g/100g E ≥20% do valor energético
+
+PROCEDIMENTO:
+1. Identifique TODOS os claims no rótulo
+2. Para cada claim, busque o nutriente correspondente na tabela e calcule
+3. Se claim FALSO (não bate com tabela) → ❌ NÃO CONFORME (alto risco — RDC 54/2012)
+4. Se claim VERDADEIRO mas não declarado conforme → ⚠️ COM RESSALVAS
+
+NÍVEL 5 — ISENÇÕES E CASOS ESPECIAIS (RDC 429/2020 Art. 12 e 13)
+──────────────────────────────────────────────────────────────────
+Tabela nutricional é DISPENSADA para:
+• Bebidas alcoólicas (cerveja, vinho, destilados) — declarar apenas energia se solicitado
+• Especiarias e ervas aromáticas
+• Vinagres
+• Sal de cozinha
+• Café, chá, erva-mate (sem ingredientes adicionados)
+• Águas minerais e de mesa
+• Embalagens com superfície ≤100cm² (rotulagem nutricional simplificada permitida)
+
+Para esses casos:
+• Tabela ausente → ✅ CONFORME (citar isenção: "produto isento de tabela conforme RDC 429/2020 Art. 12")
+• Tabela presente mesmo sendo dispensada → ✅ CONFORME (tabela é benefício extra ao consumidor)
+
+NÍVEL 6 — PLAUSIBILIDADE POR CATEGORIA (TACO 4ª ed. UNICAMP + RTIQ/MAPA)
 Compare os valores declarados POR 100g com as faixas abaixo.
 • Faixa TACO = valores analíticos reais (mín–máx esperado)
 • Limite RTIQ = exigência legal (mínimo ou máximo)
@@ -4247,10 +4366,50 @@ Lupa OBRIGATÓRIA se (por 100g):
 • Gorduras saturadas ≥ 6g → "ALTO EM GORDURAS SATURADAS"
 • Sódio ≥ 600mg → "ALTO EM SÓDIO"
 
-Verificar:
-a) Lupa preta com texto em branco no PAINEL PRINCIPAL
-b) Texto exato: "ALTO EM [NUTRIENTE]"
-c) Se valores não visíveis claramente: registrar como ⚠️ COM RESSALVAS — solicitar ao RT confirmação visual da lupa.
+═══════════════════════════════════════════════════════════════════
+HEURÍSTICA DE INFERÊNCIA — LUPA FRONTAL (regra crítica de leitura)
+═══════════════════════════════════════════════════════════════════
+Você NÃO precisa "enxergar nitidamente" o pictograma da lupa octogonal preta
+para confirmá-la presente. Use 3 evidências cruzadas:
+
+(a) MATEMÁTICA NUTRICIONAL: algum nutriente ultrapassa o limiar?
+    Sódio ≥ 600mg/100g ? Açúcar add. ≥ 15g/100g ? Gord. sat. ≥ 6g/100g ?
+    → SE SIM, lupa OBRIGATÓRIA por lei.
+
+(b) TEXTO DA ADVERTÊNCIA: aparece em qualquer lugar do painel principal
+    o texto "ALTO EM SÓDIO", "ALTO EM AÇÚCARES" ou "ALTO EM GORD. SAT."
+    (qualquer variação)?
+    → SE SIM, a LUPA ESTÁ PRESENTE — porque esse texto não existe no Brasil
+       fora do contexto da advertência octogonal RDC 429/2020.
+
+(c) SÍMBOLO ESCURO: existe alguma forma escura/preta em formato octogonal
+    ou retangular próxima ao texto "ALTO EM..."?
+    → SE SIM, formato visual confirmado.
+
+REGRAS DE DECISÃO (use exatamente esta lógica):
+• (a) verdadeiro + (b) detectado + (c) detectado → ✅ CONFORME (lupa presente
+   e correta no formato exigido).
+• (a) verdadeiro + (b) detectado, mas (c) não claramente visível → ✅ CONFORME
+   (texto "ALTO EM..." é evidência suficiente da existência da lupa — pode
+   adicionar nota: "Pictograma da lupa não 100% nítido na foto, mas advertência
+   textual confirma presença. RT, validar visualmente formato octogonal preto").
+• (a) verdadeiro mas (b) NÃO detectado → ❌ NÃO CONFORME (lupa obrigatória
+   ausente — risco regulatório alto, citar nutriente que excede limiar e
+   exigir adição da lupa octogonal preta).
+• (a) falso → CAMPO 10 não aplicável (lupa não obrigatória pra esse produto).
+
+⚠️ ERRO COMUM A EVITAR: marcar "lupa não detectada / não verificável" quando
+   o texto "ALTO EM..." está claramente legível na foto. Se vê o texto, a
+   lupa EXISTE na embalagem — pode não estar perfeitamente nítida na foto
+   (cantinho da imagem, ângulo, resolução), mas existe. Marcar CONFORME com
+   nota defensiva, NUNCA NÃO CONFORME por causa de nitidez.
+
+⚠️ TOM DA NOTA AO RT: defensivo do produto. NÃO escreva "imagem ruim" ou
+   "baixa resolução". Use linguagem como: "Pictograma da lupa octogonal não
+   visualizável com nitidez plena nesta foto — advertência textual ALTO EM
+   [NUTRIENTE] confirma sua presença. RT, validar visualmente o formato
+   octogonal preto da lupa na embalagem física."
+═══════════════════════════════════════════════════════════════════
 
 ─────────────────────────────────────────────
 CAMPO 11 — DECLARAÇÃO DE ALÉRGENOS (RDC 727/2022, Art. 13-15)
