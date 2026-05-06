@@ -5268,24 +5268,23 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
             supabase_case = {k: v for k, v in supabase_case.items() if v is not None}
             asyncio.ensure_future(_sb_upsert_v2("validacoes", supabase_case, conflict_col="case_id"))
 
-            # Upload da imagem do rótulo pro Storage (fire-and-forget, não bloqueia resposta)
-            # Quando upload completar, atualiza o registro com a imagem_url.
-            # IMPORTANTE: passa contents/content_type como argumentos default
-            # pra "congelar" a closure antes do scope acabar.
-            _ct = getattr(imagem, "content_type", None) or "image/jpeg"
-            _bytes = contents
-            async def _upload_e_atualizar(_case_id=case_id, _data=_bytes, _ct=_ct):
-                try:
-                    print(f"[storage] _upload_e_atualizar START case={_case_id[:16]}", flush=True)
-                    if not _data:
-                        print(f"[storage] _upload_e_atualizar SKIP: contents vazio case={_case_id[:16]}", flush=True)
-                        return
-                    img_url = await _sb_upload_rotulo(_data, _case_id, _ct)
+            # Upload da imagem do rótulo pro Storage (await direto pra garantir execução).
+            # Antes usava asyncio.ensure_future, mas o coroutine ficava órfão quando
+            # o generator do StreamingResponse terminava — upload nunca rodava.
+            # Custo: +1-2s no final do stream (cliente já viu o relatório, sem UX impact).
+            try:
+                print(f"[storage] CHECKPOINT 1: dispatching upload for case={case_id[:16]}", flush=True)
+                if not contents:
+                    print(f"[storage] SKIP: contents vazio case={case_id[:16]}", flush=True)
+                else:
+                    _ct = getattr(imagem, "content_type", None) or "image/jpeg"
+                    print(f"[storage] CHECKPOINT 2: calling _sb_upload_rotulo size={len(contents)}b ct={_ct}", flush=True)
+                    img_url = await _sb_upload_rotulo(contents, case_id, _ct)
                     if img_url:
-                        print(f"[storage] _upload_e_atualizar: upload OK, fazendo PATCH no DB case={_case_id[:16]}", flush=True)
+                        print(f"[storage] CHECKPOINT 3: upload OK, fazendo PATCH no DB case={case_id[:16]}", flush=True)
                         try:
                             async with httpx.AsyncClient(timeout=10.0) as cl:
-                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{_case_id}"
+                                patch_url = f"{_SUPABASE_URL}/rest/v1/validacoes?case_id=eq.{case_id}"
                                 pr = await cl.patch(
                                     patch_url,
                                     json={"imagem_url": img_url},
@@ -5297,17 +5296,15 @@ Use essas informações como ponto de partida — confirme ou corrija com base n
                                     },
                                 )
                                 if pr.status_code in (200, 201, 204):
-                                    print(f"[storage] DB PATCH OK case={_case_id[:16]}", flush=True)
+                                    print(f"[storage] CHECKPOINT 4: DB PATCH OK case={case_id[:16]}", flush=True)
                                 else:
-                                    print(f"[storage] DB PATCH FALHOU case={_case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
+                                    print(f"[storage] DB PATCH FALHOU case={case_id[:16]} status={pr.status_code} body={pr.text[:300]}", flush=True)
                         except Exception as patch_e:
-                            print(f"[storage] DB PATCH EXCEÇÃO case={_case_id[:16]}: {patch_e}", flush=True)
+                            print(f"[storage] DB PATCH EXCEÇÃO case={case_id[:16]}: {patch_e}", flush=True)
                     else:
-                        print(f"[storage] _upload_e_atualizar: upload retornou vazio case={_case_id[:16]}", flush=True)
-                except Exception as e:
-                    print(f"[storage] _upload_e_atualizar erro case={_case_id[:16]}: {e}", flush=True)
-
-            asyncio.ensure_future(_upload_e_atualizar())
+                        print(f"[storage] upload retornou vazio case={case_id[:16]}", flush=True)
+            except Exception as e:
+                print(f"[storage] erro geral case={case_id[:16]}: {e}", flush=True)
     except Exception:
         pass  # auto-store nunca deve quebrar o relatório
 
